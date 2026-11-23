@@ -4,10 +4,14 @@
 // opened in this tab ("vc-guide:<path>#<guide id>", in session storage). Checked two ways:
 //   static   every use of a storage API in the code: local and session storage only in the modules that
 //            keep those three, under those keys; IndexedDB, the Cache API, cookies, service workers,
-//            the storage manager, window.name and changes to the address nowhere;
-//   browser  the page, used as a visitor uses it (guide, theme, language, reload), keeps only those
-//            keys with their expected values, no database, cache, cookie or service worker, and its
-//            address stays as it was opened.
+//            the storage manager and window.name nowhere. The address follows the presenter, as Vici's
+//            "Presenting step by step" asks, so a link opens the same scenario at the same step: one
+//            history.replaceState in js/app.js, which writes the scenario and the step and keeps a language
+//            given in the address. Nothing a person enters or an agent writes goes there;
+//   browser  the page, used as a visitor uses it (guide, theme, language, reload, a whole run played with
+//            an item removed and another answer chosen), keeps only those keys with their expected values,
+//            no database, cache, cookie or service worker, and its address names nothing but the scenario,
+//            the step, the language and the guide.
 // After a live run with a planted key, only the allowed keys may remain: that part arrives with the
 // live client in 0.3.0. Each scanner and the judge first prove on planted examples that they catch
 // what they look for.
@@ -30,7 +34,7 @@ const GUIDE = /^vc-guide:\/[^#\s]*#guide-(en|de)$/;
 
 // Where local and session storage may be used, and the keys each place may name.
 const ALLOWED = {
-  "js/theme.js": { local: [THEME] },
+  "vici/dist/vici-theme.js": { local: [THEME] },
   "js/lang.js": { local: [LANG], session: ["vc-guide:"] },
   "js/i18n/index.js": { local: ["STORAGE.lang"] },
   "vici/dist/vici.js": { local: ["key"], session: ["key"] }
@@ -110,11 +114,18 @@ function judge(state) {
 }
 
 // ---- static --------------------------------------------------------------------------------------------
-const scripts = [...files("js", ".js"), ...files("data", ".js"), ...files("schemas", ".js"), "vici/dist/vici.js"];
+const scripts = [...files("js", ".js"), ...files("data", ".js"), ...files("schemas", ".js"), "vici/dist/vici.js", "vici/dist/vici-theme.js"];
 const found = scripts.flatMap((f) => uses(read(f)).map(([name, line]) => ({ f, name, line })));
 const storageOnly = (u) => u.name === "local storage" || u.name === "session storage";
-const banned = found.filter((u) => !storageOnly(u));
-check(!banned.length, `no IndexedDB, Cache API, cookie, service worker, storage manager, window.name or address change in ${scripts.length} scripts${banned.length ? `: ${banned.map((u) => `${u.name} (${u.f}:${u.line})`).join(", ")}` : ""}`);
+// The presenter's one address change: js/app.js, history.replaceState(null, "", u) in syncUrl().
+const app = stripComments(read("js/app.js"));
+const sync = (/function syncUrl\(\) \{([\s\S]*?)\n  \}/.exec(app) || [])[1] || "";
+const presenter = (u) => u.name === "the address" && u.f === "js/app.js" && /history\.replaceState\(null, "", u\)/.test(app.split("\n")[u.line - 1]);
+const banned = found.filter((u) => !storageOnly(u) && !presenter(u));
+check(!banned.length, `no IndexedDB, Cache API, cookie, service worker, storage manager or window.name in ${scripts.length} scripts, and no address change but the presenter's${banned.length ? `: ${banned.map((u) => `${u.name} (${u.f}:${u.line})`).join(", ")}` : ""}`);
+const addressCalls = found.filter((u) => u.name === "the address");
+const setNames = [...sync.matchAll(/searchParams\.set\("([a-z]+)"/g)].map((m) => m[1]);
+check(addressCalls.length === 1 && presenter(addressCalls[0]) && /history\.replaceState/.test(sync) && setNames.join() === "scenario,step,lang" && /if \(u\.searchParams\.has\("lang"\)\)/.test(sync), `the address changes in one place, js/app.js syncUrl(), which sets only ${setNames.join(", ") || "nothing"} and the language only when the address already names it (${addressCalls.length} call)`);
 const outside = found.filter((u) => storageOnly(u) && !ALLOWED[u.f]);
 check(!outside.length, `local and session storage only in ${Object.keys(ALLOWED).join(", ")}${outside.length ? `; also ${outside.map((u) => `${u.f}:${u.line}`).join(", ")}` : ""}`);
 for (const [f, allowed] of Object.entries(ALLOWED)) {
@@ -136,7 +147,7 @@ const declared = [...block.matchAll(/(\w+):\s*`\$\{P\}([^`]+)`/g)].map((m) => [m
 check(declared.length === 1 && declared[0][0] === "lang" && declared[0][1] === LANG && /const P = `\$\{APP\.id\}\.`;/.test(config), `js/config.js declares one key of its own, ${LANG} (${declared.map(([k, v]) => `${k}=${v}`).join(", ") || "none"})`);
 check(KEYS.lang === LANG && Object.keys(KEYS).length === 1, "the test harness names the same key");
 check(/var seen = function \(l\) \{ return "vc-guide:" \+ window\.location\.pathname \+ "#guide-" \+ l; \};/.test(read("js/lang.js")) && /sessionStorage\.setItem\(seen\(lang\), "1"\)/.test(read("js/lang.js")), "js/lang.js notes the guide under Vici's key vc-guide:<path>#guide-<lang> = 1");
-check(/localStorage\.getItem\("bmc\.lang"\)/.test(read("js/lang.js")) && /localStorage\.getItem\("vc-theme"\)/.test(read("js/theme.js")), "the early scripts read the same keys as the modules");
+check(/localStorage\.getItem\("bmc\.lang"\)/.test(read("js/lang.js")) && /localStorage\.getItem\('vc-theme'\)/.test(read("vici/dist/vici-theme.js")) && /<script src="vici\/dist\/vici-theme\.js"><\/script>/.test(read("index.html")), "the early scripts read the same keys as the modules: js/lang.js and Vici's vici-theme.js, which index.html loads");
 
 // ---- browser -------------------------------------------------------------------------------------------
 async function inBrowser() {
@@ -183,7 +194,9 @@ async function inBrowser() {
     check(used.local[THEME] === "dark" && used.local[LANG] === "en", `the theme and the language are remembered (${THEME}=${used.local[THEME]}, ${LANG}=${used.local[LANG]})`);
     const usedProblems = judge(used);
     check(!usedProblems.length, `after the guide, the theme and both languages the browser keeps only the allowed entries${usedProblems.length ? `: ${usedProblems.join(", ")}` : ""}`);
-    check(page.url() === first, `the address stays as it was opened (${page.url()})`);
+    const params = (u) => [...new URL(u).searchParams.keys()];
+    const onlyPresenter = (u) => params(u).every((k) => ["scenario", "step", "lang", "guide"].includes(k));
+    check(onlyPresenter(page.url()) && new URL(page.url()).searchParams.get("scenario") === "s1", `the address names the scenario shown and nothing else (${page.url()})`);
 
     const second = `${server.base}?lang=de`;
     await page.goto(second);
@@ -192,7 +205,44 @@ async function inBrowser() {
     const reloaded = await state();
     const reloadedProblems = judge(reloaded);
     check(reloaded.local[LANG] === "de" && !reloadedProblems.length, `a visit with ?lang=de stores the language and nothing else${reloadedProblems.length ? `: ${reloadedProblems.join(", ")}` : ""}`);
-    check(page.url() === second, `?lang=de stays in the address as it was given (${page.url()})`);
+    check(onlyPresenter(page.url()) && new URL(page.url()).searchParams.get("lang") === "de", `?lang=de stays in the address as it was given (${page.url()})`);
+
+    // A whole run, played as a presenter plays it: the second company, an item removed, the challenge,
+    // another answer than the one recommended, applied, and the summary. Then only the allowed entries
+    // remain, and the address holds the scenario and the step.
+    await page.goto(`${server.base}?scenario=s2`);
+    await ready();
+    await closeGuide();
+    const at = (name) => page.waitForSelector(`body[data-step="${name}"]`, { timeout: 15000 });
+    await page.click("#btn-cta");
+    await at("complete");
+    if (await page.evaluate(() => window.BMC.playing)) await page.click("#play");
+    const toggle = page.locator("#canvas .item-toggle:visible").first();
+    await toggle.waitFor({ timeout: 15000 });
+    const removedText = await toggle.getAttribute("aria-label");
+    await toggle.click();
+    await page.click("#btn-cta");
+    await at("challenge");
+    for (const name of ["assess", "adapt"]) { await page.click("#btn-next"); await at(name); }
+    // A person clicks the card of another option; the card is the radio's label.
+    const cards = page.locator(".options__cards label.option");
+    const checked = await cards.evaluateAll((all) => all.map((c) => c.querySelector("input").checked));
+    const pick = checked.indexOf(false);
+    let choseOther = pick >= 0;
+    if (choseOther) {
+      await cards.nth(pick).click();
+      choseOther = await cards.nth(pick).locator("input").isChecked();
+    }
+    await page.click("#btn-cta");
+    await page.click("#btn-next");
+    await at("summary");
+    const played = await state();
+    const playedProblems = judge(played);
+    const url = page.url();
+    check(choseOther && !playedProblems.length && onlyPresenter(url) && new URL(url).searchParams.get("step") === "5", `a run played to the summary, an item removed and another answer chosen, keeps only the allowed entries and an address of scenario and step (${url}${playedProblems.length ? `; ${playedProblems.join(", ")}` : ""})`);
+    const everything = JSON.stringify(played) + decodeURIComponent(url);
+    const removedItem = (removedText || "").replace(/^[^:]+:\s*/, "");
+    check(removedItem.length > 8 && !everything.includes(removedItem), `nothing of the run reaches storage or the address, such as the removed item "${removedItem.slice(0, 40)}"`);
 
     // The judge on the real page: a planted entry is found, then removed.
     await page.evaluate(() => { localStorage.setItem("bmc.planted", "x"); sessionStorage.setItem("bmc.run", "{}"); });

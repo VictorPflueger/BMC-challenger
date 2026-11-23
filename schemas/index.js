@@ -15,6 +15,9 @@ import SHARED_HANDOFF from "./strategy-challenge-1.js";
 const BLOCKS = ["partners","activities","resources","value","relationships","channels","segments","costs","revenue"];
 const ISSUE_TYPES = ["consistency", "customer", "competition", "technology", "regulation", "economy", "operations", "finance", "sustainability"];
 const HORIZONS = ["now", "1_to_3_years", "over_3_years"];
+// How long until a response shows: one of five spans, which code words in the run's language, so the
+// model writes no figure for it (brief 5.10).
+const TIME_TO_IMPACT = ["under_3_months", "3_to_6_months", "6_to_12_months", "1_to_2_years", "over_2_years"];
 const CONFIDENCE = ["high", "medium", "low"];
 const ITEM_ID = "^(" + BLOCKS.join("|") + ")-\\d+$";
 const ISSUE_ID = "^I\\d{1,2}$";
@@ -104,7 +107,7 @@ export const OUTPUT = {
         first_step: str("The first step"),
         owner: str("Who owns it"),
         effort: oneOf(["S", "M", "L"], "Small, medium or large"),
-        time_to_impact: str("How long until it shows, such as 3-6 months"),
+        time_to_impact: oneOf(TIME_TO_IMPACT, "How long until it shows"),
         changes: list(obj({
           block: oneOf(BLOCKS, "The block it changes"),
           action: oneOf(["add", "change", "remove"], "What happens to the item"),
@@ -204,7 +207,8 @@ const Signal = {
     summary: { type: "string", maxLength: 400 },
     url: { type: "string", pattern: "^https?://" },
     published: { type: "string", pattern: "^(\\d{4}-\\d{2}-\\d{2})?$" },
-    areas: { type: "array", minItems: 1, items: { enum: BLOCKS } }
+    areas: { type: "array", minItems: 1, items: { enum: BLOCKS } },
+    read_on: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
   }
 };
 const Issue = {
@@ -270,7 +274,7 @@ const Option = {
     first_step: { type: "string", minLength: 1, maxLength: 200 },
     owner: { type: "string", minLength: 1, maxLength: 60 },
     effort: { enum: ["S", "M", "L"] },
-    time_to_impact: { type: "string", minLength: 1, maxLength: 40 },
+    time_to_impact: { enum: TIME_TO_IMPACT },
     changes: {
       type: "array",
       minItems: 1,
@@ -348,28 +352,27 @@ const Answers = {
     summary: { $ref: "Summary" }
   }
 };
+// A scenario in one language, as js/run.js localise() gives it from the authored file, where every text
+// a person reads is a pair { en, de }: the company, the canvas its team entered, the six answers, the
+// facts of DATA_SOURCES.md it rests on and the choices the recorded run made.
 const Scenario = {
   type: "object",
   additionalProperties: false,
-  required: ["id", "source", "as_of", "company", "entered", "answers", "choices"],
+  required: ["id", "source", "as_of", "facts", "company", "entered", "answers", "choices"],
   properties: {
     id: { enum: ["s1", "s2", "s3"] },
     source: { enum: ["authored", "recorded"] },
-    as_of: { type: "string", format: "date" },
-    company: Company,
-    entered: { $ref: "Canvas" },
-    answers: {
-      type: "object",
-      additionalProperties: false,
-      required: ["en", "de"],
-      properties: { en: Answers, de: Answers }
-    },
+    as_of: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+    facts: { type: "array", minItems: 1, items: { type: "string", pattern: "^S[1-3]\\.\\d{1,2}$" } },
+    company: { ...Company, required: ["name", "sector", "country", "description", "size", "fictional"] },
+    entered: { type: "object", additionalProperties: false, required: ["blocks"], properties: { blocks: { type: "object", additionalProperties: false, properties: Object.fromEntries(BLOCKS.map((b) => [b, { type: "array", maxItems: 8, items: { $ref: "Item" } }])) } } },
+    answers: Answers,
     choices: {
       type: "object",
       additionalProperties: false,
       required: ["removed", "decisions"],
       properties: {
-        removed: { type: "array", items: { type: "string" } },
+        removed: { type: "array", items: { type: "string", pattern: ITEM_ID } },
         decisions: { type: "array", items: { type: "object", additionalProperties: false, required: ["issue", "choice", "option"], properties: { issue: { type: "string", pattern: ISSUE_ID }, choice: { enum: ["mitigate", "advantage", "accept"] }, option: { type: ["integer", "null"], minimum: 0, maximum: 1 } } } }
       }
     }

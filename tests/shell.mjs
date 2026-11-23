@@ -2,10 +2,12 @@
 // browser is set to German; the switch to German and back changes every text without a reload and is
 // remembered; ?lang= in the address wins over the remembered choice; the guide of the page's language
 // opens by itself once per tab and again from the header; the header holds the three key figures, which
-// say what they wait for; Play, the six steps and Run it live stand in the talk bar, disabled in 0.1.0,
-// with the AI notice beside Run it live; the Strategyzer credit stands under the canvas in both
-// languages; the dark theme starts as cleanly as the light one; nothing leaves this site; and a start that
-// fails says so on the loading screen, in the page's language, with what to do.
+// answer first: before anything runs they show what is at stake for the first company and what a live
+// run would cost; Play, the six steps and Run it live stand in the talk bar, the steps after Start waiting
+// for the run and Run it live for the live client of 0.3.0, with the AI notice beside it; the Strategyzer
+// credit stands under the canvas in both languages; the dark theme starts as cleanly as the light one;
+// nothing leaves this site; and a start that fails says so on the loading screen, in the page's language,
+// with what to do.
 // Usage: node tests/shell.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +16,12 @@ import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } fr
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const EN = (await mod("js/i18n/en.js")).default;
 const DE = (await mod("js/i18n/de.js")).default;
+// The first company's figures before anything runs, from the engine, as the tiles must show them.
+const { SCENARIOS } = await mod("data/scenarios/index.js");
+const { localise, buildRun } = await mod("js/run.js");
+const { fmtMoney, fmtPressure } = await mod("js/format.js");
+const firstRun = buildRun(localise(SCENARIOS[0], "en"), { removed: new Set(), decisions: new Map() });
+const EXPECTED = { stake: fmtMoney(firstRun.before.atStake, "en"), pressure: fmtPressure(firstRun.before.pressure.before, firstRun.before.pressure.of, "en") };
 
 const results = [];
 const check = (ok, what, detail = "") => results.push({ ok: !!ok, what, detail });
@@ -70,7 +78,7 @@ try {
   })));
   const width = await page.evaluate(() => document.documentElement.clientWidth);
   check(tiles.map((x) => x.id).join() === "kpi-stake,kpi-pressure,kpi-cost", `the header holds the three key figures (${tiles.map((x) => x.id).join(", ")})`);
-  check(tiles.every((x) => x.state === "idle" && x.value === "…" && x.note), `before a run each figure shows "…" and what it waits for (${tiles.map((x) => `${x.value} ${x.note}`).join(" | ")})`);
+  check(tiles.every((x) => x.state === "ready" && x.note) && tiles[0]?.value === EXPECTED.stake && tiles[1]?.value === EXPECTED.pressure && /^≈ €\d/.test(tiles[2]?.value || ""), `before anything runs the figures answer: ${EXPECTED.stake} at stake, ${EXPECTED.pressure} under pressure and the cost of a live run, each with what it rests on (${tiles.map((x) => `${x.value} ${x.note}`).join(" | ")})`);
   check(tiles.length === 3 && Math.max(...tiles.map((x) => x.right)) > width - 40 && Math.max(...tiles.map((x) => x.top)) < 80, "the figures stand at the top right");
   check((await page.textContent("#mode-text")) === "SIMULATION", "the header says SIMULATION");
   const talk = await page.evaluate(() => ({
@@ -80,11 +88,11 @@ try {
     notice: document.getElementById("live")?.nextElementSibling?.matches(".vc-tag.vc-tag--feature.ai-notice") ? document.getElementById("live").nextElementSibling.textContent.trim() : null
   }));
   check(talk.steps.map((s) => s.id).join() === "start,complete,challenge,assess,adapt,summary", `the talk bar has the six steps in order (${talk.steps.map((s) => s.id).join(", ")})`);
-  check(talk.steps[0]?.current === "step" && !talk.steps[0].disabled && talk.steps.slice(1).every((s) => s.disabled), "Start is the current step; the other five wait for 0.2.0");
-  check(talk.play === true && talk.live === true, "Play and Run it live are there and disabled until the simulation and the live client arrive");
+  check(talk.steps[0]?.current === "step" && !talk.steps[0].disabled && talk.steps.slice(1).every((s) => s.disabled), "Start is the current step; the other five wait until the run starts");
+  check(talk.play === false && talk.live === true, "Play is ready; Run it live is there and disabled until the live client of 0.3.0");
   check(talk.notice === EN["p.ai"] && await visible(page, ".ai-notice"), `the lilac AI notice stands beside Run it live ("${talk.notice}")`);
   const credit = await page.evaluate(() => {
-    const c = document.querySelector(".stage .canvas + .credit");
+    const c = document.querySelector(".stage .canvas + .credit-row > .credit");
     const links = c ? [...c.querySelectorAll("a")].map((a) => [a.textContent, a.href]) : [];
     return { text: c?.textContent.replace(/\s+/g, " ").trim(), links };
   });
@@ -104,7 +112,7 @@ try {
   check(await visible(page, '[data-vc-guide-open="guide-de"]') && !(await visible(page, '[data-vc-guide-open="guide-en"]')), "the header now shows the German guide's button only");
   check(await page.getAttribute('.lang-option[data-lang="de"]', "aria-pressed") === "true", "the language switch marks DE as chosen");
   check((await page.evaluate(() => localStorage.getItem("bmc.lang"))) === "de", "the choice is remembered under bmc.lang");
-  const deCredit = await page.evaluate(() => document.querySelector(".stage .canvas + .credit")?.textContent.replace(/\s+/g, " ").trim());
+  const deCredit = await page.evaluate(() => document.querySelector(".stage .canvas + .credit-row > .credit")?.textContent.replace(/\s+/g, " ").trim());
   check(deCredit?.startsWith(DE["p.credit.label"]) && deCredit.includes("Strategyzer.com"), `the credit stays under the canvas in German: ${deCredit}`);
   await page.click('[data-vc-guide-open="guide-de"]');
   check((await openGuides(page)).join() === "guide-de", "the header's button opens the German guide");

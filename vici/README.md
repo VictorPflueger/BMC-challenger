@@ -1,17 +1,20 @@
 # Vici, copied into this prototype
 
 These files come unchanged from Vici, Victor Pflüger's design system
-(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`484b49a`**
-(23 November 2026), on the way to Vici 2.0. That commit brings the How it works guide (`vc-guide`)
-with one guide per language, the 2.0 byline, the key-figure rule, the struck-through old value of a
-key figure (`vc-stat__was`), `vc-attention` for the button the page waits for and `--vc-step-fill` for
-the stepper's rail. Its files still call themselves 1.0.0 until 2.0 is released. The prototype loads
-them from here rather than from a CDN, so every page is served from this site alone.
+(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`2759b7a`**
+(24 November 2026), on the way to Vici 2.0. Besides the How it works guide (`vc-guide`) with one guide
+per language, the 2.0 byline, the key-figure rule, the struck-through old value of a key figure
+(`vc-stat__was`), `vc-attention` and `--vc-step-fill`, that commit brings the framework view with its
+item and block states, the risk matrix with markers sized by what is at stake (both of them merged
+from this tool and the SWOT Challenger) and `vici-theme.js`, which applies the theme before the first
+paint under a strict security policy. Its files still call themselves 1.0.0 until 2.0 is released. The
+prototype loads them from here rather than from a CDN, so every page is served from this site alone.
 
 | File here | What it is |
 |---|---|
 | `dist/vici.min.css` | Vici's stylesheet: tokens, light and dark theme, components, icons |
 | `dist/vici.js` | Vici's small script: theme toggle, tooltips, the How it works guide and the behaviours of its components |
+| `dist/vici-theme.js` | The theme before the first paint: the visitor's choice, else the light theme `index.html` names |
 | `dist/tokens.json` | Vici's token values, light and dark, for scripts and tests |
 | `assets/fonts/*.woff2` | Bricolage Grotesque, Inter, JetBrains Mono and Vici Mask, as the stylesheet expects them |
 | `assets/fonts/OFL-*.txt` | The SIL Open Font License of each font family |
