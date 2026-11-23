@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 103.92">
+  <!-- Business Model Canvas Challenger's page icon: Vici's layout icon in a lilac hexagon cell, as its card
+       on Victor Pflüger's website will show it (icon and kind: VictorPflueger/VIP, data/prototypes.js).
+       Vici's lilac 100 (#f2e9fd) and lilac 900 (#372544); the icon is drawn larger and a little bolder
+       than on the card, centred on the cell, so that it still reads at 16 px. -->
+  <polygon points="120,51.96 90,103.92 30,103.92 0,51.96 30,0 90,0" fill="#f2e9fd"/>
+  <g transform="translate(9 0.96) scale(4.25)" fill="none" stroke="#372544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4.5 H20 V8 H4 Z M4 10.5 H9 V19.5 H4 Z M11.5 10.5 H20 V19.5 H11.5 Z"/>
+  </g>
+</svg>

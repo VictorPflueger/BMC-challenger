@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Everything comes from this site. A live run reaches api.anthropic.com with the person's own key;
+       nothing else can be reached. js/config.js holds the same policy, and tests/policy.mjs compares them. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src https://api.anthropic.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Business Model Canvas Challenger: AI agents complete a business model canvas, find where it breaks, put a yearly figure on each issue and rebuild the weak blocks. Fictional companies in the simulation; a live run uses your own company and Claude key.">
+  <title>Business Model Canvas Challenger · Agentic AI prototype</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="vici/dist/vici.min.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="js/theme.js"></script>
+  <script src="vici/dist/vici.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body class="app-shell">
+  <!-- The texts below are the English defaults: an element that names its key in data-i18n (or
+       data-i18n-attr for attributes) gets its words from js/i18n/, in English or German. -->
+  <a class="vc-skip-link" href="#stage" data-i18n="p.skip">Skip to the canvas</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="vc-cell vc-cell--lilac" aria-hidden="true"><span class="vc-icon vc-icon--layout"></span></span>
+      <span data-i18n="app.name" class="brand-name">Business Model Canvas Challenger</span>
+    </div>
+
+    <div class="header-actions">
+      <span class="vc-tooltip-anchor">
+        <span class="vc-tag vc-tag--lg mode-tag" id="mode-tag" data-mode="simulation" tabindex="0" aria-describedby="tip-mode"><span id="mode-text" data-i18n="p.mode.simulation">SIMULATION</span></span>
+        <span class="vc-tooltip vc-tooltip--bottom" role="tooltip" id="tip-mode" data-i18n="p.mode.tip">Plays prepared agent answers through the real engine: no model is called. This version holds the foundations; the three companies arrive in 0.2.0.</span>
+      </span>
+      <!-- One guide per language, each with its own button; js/lang.js shows the page's. -->
+      <button type="button" class="vc-button vc-button--secondary guide-open" data-vc-guide-open="guide-en" lang="en"><span class="vc-icon vc-icon--info" aria-hidden="true"></span>How it works</button>
+      <button type="button" class="vc-button vc-button--secondary guide-open" data-vc-guide-open="guide-de" lang="de" hidden><span class="vc-icon vc-icon--info" aria-hidden="true"></span>So funktioniert's</button>
+      <div class="vc-button-group lang-switch" role="group" aria-label="Language" data-i18n-attr="aria-label:p.lang">
+        <button type="button" class="vc-button vc-button--secondary lang-option" data-lang="en" lang="en" title="English" aria-pressed="true">EN</button>
+        <button type="button" class="vc-button vc-button--secondary lang-option" data-lang="de" lang="de" title="Deutsch" aria-pressed="false">DE</button>
+      </div>
+      <span class="vc-tooltip-anchor">
+        <button type="button" class="vc-icon-button" data-vc-theme-toggle aria-labelledby="tip-theme"><span class="vc-icon vc-icon--moon vc-when-light" aria-hidden="true"></span><span class="vc-icon vc-icon--sun vc-when-dark" aria-hidden="true"></span></button>
+        <span class="vc-tooltip vc-tooltip--bottom" role="tooltip" id="tip-theme" data-i18n="p.theme">Dark or light theme</span>
+      </span>
+    </div>
+
+    <!-- The three key figures. data-vc-kpi names each in English, data-vc-kpi-de in German; each guide
+         explains them in a row of its How it works chapter. Until a run has played they say what they
+         wait for rather than show zeros; from 0.2.0 they answer first with the scenario's figures. -->
+    <div class="kpis" role="group" aria-label="Key figures" data-i18n-attr="aria-label:p.kpis">
+      <div class="kpi vc-stat" id="kpi-stake" data-vc-kpi="At stake a year" data-vc-kpi-de="Risiko pro Jahr" data-state="idle">
+        <p class="vc-stat__label" data-i18n="p.kpi.stake.label">At stake a year</p>
+        <p class="vc-stat__value kpi-value"><s class="vc-stat__was" hidden></s><span class="kpi-main">…</span></p>
+        <p class="vc-stat__note kpi-note" data-i18n="p.kpi.stake.note">waits for a run</p>
+      </div>
+      <div class="kpi vc-stat" id="kpi-pressure" data-vc-kpi="Blocks under pressure" data-vc-kpi-de="Bausteine unter Druck" data-state="idle">
+        <p class="vc-stat__label" data-i18n="p.kpi.pressure.label">Blocks under pressure</p>
+        <p class="vc-stat__value kpi-value"><s class="vc-stat__was" hidden></s><span class="kpi-main">…</span></p>
+        <p class="vc-stat__note kpi-note" data-i18n="p.kpi.pressure.note">waits for the challenge</p>
+      </div>
+      <div class="kpi vc-stat" id="kpi-cost" data-vc-kpi="Session cost" data-vc-kpi-de="Sitzungskosten" data-state="idle">
+        <p class="vc-stat__label" data-i18n="p.kpi.cost.label">Session cost</p>
+        <p class="vc-stat__value kpi-value"><span class="kpi-main">…</span></p>
+        <p class="vc-stat__note kpi-note" data-i18n="p.kpi.cost.note">waits for a run</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- What the tool does and how real its data is, in one sentence of the brief's, beside the byline. -->
+  <div class="intro">
+    <p class="intro-text" data-i18n="p.strip">AI agents complete a Business Model Canvas, find where it breaks, put a figure on it and rebuild the weak blocks. The simulation uses fictional companies; a live run uses your company and your Claude key.</p>
+    <p class="vc-byline">
+      <span class="vc-byline__label" data-i18n="p.byline.label">Built by</span>
+      <a class="vc-byline__person" href="https://www.linkedin.com/in/victorpflueger" rel="author noopener" target="_blank">
+        <span class="vc-avatar vc-avatar--xs"><img src="vici/assets/brand/portrait-96.jpg" alt="" width="96" height="96"></span>
+        <span class="vc-byline__name">Victor Pflüger</span>
+        <img class="vc-platform-mark" src="vici/assets/marks/linkedin.png" alt="" width="840" height="779">
+        <span class="vc-visually-hidden" data-i18n="p.byline.linkedin"> on LinkedIn (opens in a new tab)</span>
+      </a>
+      <span class="vc-tooltip-anchor">
+        <a class="vc-byline__icon" href="https://victorpflueger.github.io/VIP/index.html" rel="author noopener" target="_blank" aria-label="Victor Pflüger's website (opens in a new tab)" data-i18n-attr="aria-label:p.byline.website"><span class="vc-icon vc-icon--globe-hex" aria-hidden="true"></span></a>
+        <span class="vc-tooltip vc-tooltip--bottom" aria-hidden="true" data-i18n="p.byline.tip">Website</span>
+      </span>
+    </p>
+  </div>
+
+  <!-- The talk track's bar: Play, the six steps and Run it live, which stands after the steps with the AI
+       notice beside it (Vici, Presenting step by step). In 0.1.0 nothing plays yet: the controls are
+       disabled and the panel under the canvas says when each arrives. -->
+  <nav class="talk" aria-label="Steps of the run" data-i18n-attr="aria-label:p.talk">
+    <button type="button" class="vc-button vc-button--secondary play" id="play" disabled><span class="vc-icon vc-icon--play" aria-hidden="true"></span><span data-i18n="p.play">Play</span></button>
+    <ol class="vc-stepper steps" id="steps">
+      <li class="vc-step" data-step="start"><button type="button" class="vc-step__button" aria-current="step"><span class="vc-step__marker" aria-hidden="true">1</span><span class="vc-step__label" data-i18n="p.step.start">Start</span></button></li>
+      <li class="vc-step" data-step="complete"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">2</span><span class="vc-step__label" data-i18n="p.step.complete">Complete</span></button></li>
+      <li class="vc-step" data-step="challenge"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">3</span><span class="vc-step__label" data-i18n="p.step.challenge">Challenge</span></button></li>
+      <li class="vc-step" data-step="assess"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">4</span><span class="vc-step__label" data-i18n="p.step.assess">Assess</span></button></li>
+      <li class="vc-step" data-step="adapt"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">5</span><span class="vc-step__label" data-i18n="p.step.adapt">Adapt</span></button></li>
+      <li class="vc-step" data-step="summary"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">6</span><span class="vc-step__label" data-i18n="p.step.summary">Summary</span></button></li>
+    </ol>
+    <button type="button" class="vc-button vc-button--secondary live" id="live" data-vc-live disabled><span data-i18n="p.live">Run it live</span></button>
+    <span class="vc-tag vc-tag--feature ai-notice"><span class="vc-icon vc-icon--sparkle" aria-hidden="true"></span><span data-i18n="p.ai">You are interacting with an AI system</span></span>
+  </nav>
+
+  <main class="workspace" id="stage" tabindex="-1">
+    <section class="stage" aria-labelledby="stage-title">
+      <h1 class="stage-title" id="stage-title" data-i18n="p.stage.title">The canvas</h1>
+      <!-- The nine blocks in the canvas's classic layout (js/canvas.js, css/app.css grid areas), each with
+           the question it answers. Strategyzer's credit stands under every canvas this tool draws. -->
+      <div class="canvas" role="group" aria-label="Business Model Canvas, nine blocks" data-i18n-attr="aria-label:p.canvas">
+        <section class="block" data-block="partners"><h2 class="block-name" data-i18n="block.partners.name">Key partners</h2><p class="block-question" data-i18n="block.partners.question">Who helps us deliver, and with what?</p></section>
+        <section class="block" data-block="activities"><h2 class="block-name" data-i18n="block.activities.name">Key activities</h2><p class="block-question" data-i18n="block.activities.question">What must we do well to deliver the value proposition?</p></section>
+        <section class="block" data-block="resources"><h2 class="block-name" data-i18n="block.resources.name">Key resources</h2><p class="block-question" data-i18n="block.resources.question">Which assets does the model depend on?</p></section>
+        <section class="block" data-block="value"><h2 class="block-name" data-i18n="block.value.name">Value propositions</h2><p class="block-question" data-i18n="block.value.question">What do we offer each segment, and why do they choose us?</p></section>
+        <section class="block" data-block="relationships"><h2 class="block-name" data-i18n="block.relationships.name">Customer relationships</h2><p class="block-question" data-i18n="block.relationships.question">How do we win, keep and grow customers?</p></section>
+        <section class="block" data-block="channels"><h2 class="block-name" data-i18n="block.channels.name">Channels</h2><p class="block-question" data-i18n="block.channels.question">How do we reach and serve each segment?</p></section>
+        <section class="block" data-block="segments"><h2 class="block-name" data-i18n="block.segments.name">Customer segments</h2><p class="block-question" data-i18n="block.segments.question">For whom do we create value?</p></section>
+        <section class="block" data-block="costs"><h2 class="block-name" data-i18n="block.costs.name">Cost structure</h2><p class="block-question" data-i18n="block.costs.question">What are the largest costs, fixed and variable?</p></section>
+        <section class="block" data-block="revenue"><h2 class="block-name" data-i18n="block.revenue.name">Revenue streams</h2><p class="block-question" data-i18n="block.revenue.question">What do customers pay for, how and how much?</p></section>
+      </div>
+      <p class="credit"><span data-i18n="p.credit.label">The Business Model Canvas:</span> <a href="https://www.strategyzer.com" rel="noopener" target="_blank">Strategyzer.com</a> · <a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="noopener license" target="_blank">CC BY-SA 3.0</a></p>
+    </section>
+    <section class="panel build" aria-labelledby="build-title">
+      <h2 class="build-title" id="build-title" data-i18n="p.build.title">Version 0.1.0: the foundations</h2>
+      <p class="build-text" data-i18n="p.build.text">The engine that prices every issue, the data schemas, the sector KPI library and both languages are in place. The three simulated companies and Play arrive in 0.2.0, Run it live in 0.3.0 and the report in 0.4.0.</p>
+    </section>
+  </main>
+
+  <!-- How it works, once in English and once in German: Vici's guide. vici.js builds each chapter rail and
+       opens the guide of the page's language once per browser tab (js/lang.js keeps the other closed);
+       ?guide=0 keeps it closed, ?guide=present opens the talk track. -->
+  <dialog class="vc-dialog vc-guide" id="guide-en" lang="en-GB" aria-labelledby="guide-en-title" data-vc-guide data-vc-guide-auto data-vc-guide-count="{n} of {total}" data-vc-guide-rail="Chapters">
+    <header class="vc-dialog__header">
+      <h2 class="vc-dialog__title" id="guide-en-title">How the prototype works</h2>
+      <button type="button" class="vc-icon-button" data-vc-close aria-label="Close"><span class="vc-icon vc-icon--close" aria-hidden="true"></span></button>
+    </header>
+    <div class="vc-guide__chapters">
+      <section class="vc-guide__chapter" data-vc-chapter="what" data-vc-nav="What it does">
+        <h3>Where a business model breaks, and what that costs</h3>
+        <p class="vc-guide__lead">Name a company and fill in as much of its Business Model Canvas as you know. AI agents find where the model breaks, put a yearly figure on each issue and propose how to rebuild the weak blocks.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>What goes in and what comes out</caption>
+          <tbody>
+            <tr><th scope="row">You enter</th><td>A company and the canvas items you know, from none to all nine blocks</td></tr>
+            <tr><th scope="row">The agents</th><td>Complete the canvas, challenge it, price each issue, propose responses and write the summary</td></tr>
+            <tr><th scope="row">You decide</th><td>Which of the AI's items to keep and which response to take for each issue</td></tr>
+            <tr><th scope="row">You get</th><td>A report as PDF and HTML, and a JSON file for the Prototype Ideator</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="how" data-vc-nav="How it works">
+        <h3>Agents write, code computes every figure</h3>
+        <p class="vc-guide__lead">Five agents each return one structured answer. Code checks each answer, prices every issue by its impact, likelihood and euro range, and works out the three figures at the top.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>Key figures</caption>
+          <thead><tr><th scope="col">Figure</th><th scope="col">What it measures</th><th scope="col">Value</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">At stake a year</th><td>The expected yearly loss from the issues found: the midpoint of each euro range times its likelihood</td><td>Waits for a run</td></tr>
+            <tr><th scope="row">Blocks under pressure</th><td>How many of the nine blocks carry an issue of medium band or worse</td><td>Waits for the challenge</td></tr>
+            <tr><th scope="row">Session cost</th><td>What the model calls cost: measured in a live run against its cap, estimated in the simulation, at a fixed rate of €0.894 to the dollar</td><td>Waits for a run</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="real" data-vc-nav="What is real">
+        <h3>Real facts, fictional companies, nothing kept</h3>
+        <p class="vc-guide__lead">The simulated companies are fictional; the laws, prices and market facts they meet are real and carry their source and date. Lilac marks what the AI wrote.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>Where everything comes from</caption>
+          <tbody>
+            <tr><th scope="row">Real</th><td>Every law, price and market fact, each with its source and the date it was read</td></tr>
+            <tr><th scope="row">Fictional</th><td>The three companies and their own figures</td></tr>
+            <tr><th scope="row">The canvas</th><td>Adapted from The Business Model Canvas by Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); the questions on each block are this tool's own</td></tr>
+            <tr><th scope="row">Kept</th><td>Nothing: your key and your inputs stay in this tab's memory and are gone when you close it</td></tr>
+            <tr><th scope="row">This version</th><td>0.1.0 holds the engine, the schemas, the KPI library and both languages; the simulation arrives in 0.2.0, live runs in 0.3.0</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="present" data-vc-nav="How to present">
+        <h3>Show it in five minutes</h3>
+        <p class="vc-guide__lead">From 0.2.0 it plays by itself and stops where you act; Space pauses.</p>
+        <ol class="vc-guide__path">
+          <li><strong>Point at the key figures.</strong> <span class="vc-guide__say">“What the issues cost a year, how many blocks are under pressure, what the session costs.”</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Start: the company and the AI's additions.</strong> <span class="vc-guide__say">“The team filled five blocks; the agents completed the rest, each item in lilac with its basis.”</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Challenge: open one red block.</strong> <span class="vc-guide__say">“Each red block names its issue, its band and what it rests on.”</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Adapt: choose a response.</strong> <span class="vc-guide__say">“Mitigate here, turn this one into an advantage: the old figure stays struck through beside the new one.”</span> <span class="vc-guide__time">1.5 min</span></li>
+          <li><strong>Summary: open the PDF.</strong> <span class="vc-guide__say">“Every page says where it comes from, and the canvas credits Strategyzer.”</span> <span class="vc-guide__time">0.5 min</span></li>
+        </ol>
+      </section>
+    </div>
+    <footer class="vc-dialog__footer vc-guide__footer">
+      <span class="vc-guide__count"></span>
+      <button type="button" class="vc-button vc-button--ghost" data-vc-guide-back><span class="vc-icon vc-icon--chevron-left" aria-hidden="true"></span>Back</button>
+      <button type="button" class="vc-button" data-vc-guide-next data-vc-guide-done="Start">Next<span class="vc-icon vc-icon--chevron-right" aria-hidden="true"></span></button>
+    </footer>
+  </dialog>
+  <dialog class="vc-dialog vc-guide" id="guide-de" lang="de" aria-labelledby="guide-de-title" data-vc-guide data-vc-guide-auto data-vc-guide-count="{n} von {total}" data-vc-guide-rail="Kapitel">
+    <header class="vc-dialog__header">
+      <h2 class="vc-dialog__title" id="guide-de-title">So funktioniert der Prototyp</h2>
+      <button type="button" class="vc-icon-button" data-vc-close aria-label="Schließen"><span class="vc-icon vc-icon--close" aria-hidden="true"></span></button>
+    </header>
+    <div class="vc-guide__chapters">
+      <section class="vc-guide__chapter" data-vc-chapter="what" data-vc-nav="Was er tut">
+        <h3>Wo ein Geschäftsmodell bricht und was das kostet</h3>
+        <p class="vc-guide__lead">Nennen Sie ein Unternehmen und füllen Sie so viel von seinem Business Model Canvas aus, wie Sie wissen. KI-Agenten finden, wo das Modell bricht, beziffern jede Schwachstelle pro Jahr und schlagen vor, wie sich die schwachen Bausteine neu aufbauen lassen.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>Was hineingeht und was herauskommt</caption>
+          <tbody>
+            <tr><th scope="row">Sie geben ein</th><td>Ein Unternehmen und die Einträge, die Sie kennen, von keinem bis zu allen neun Bausteinen</td></tr>
+            <tr><th scope="row">Die Agenten</th><td>Ergänzen das Canvas, hinterfragen es, beziffern jede Schwachstelle, schlagen Antworten vor und schreiben die Zusammenfassung</td></tr>
+            <tr><th scope="row">Sie entscheiden</th><td>Welche Einträge der KI bleiben und welche Antwort Sie je Schwachstelle wählen</td></tr>
+            <tr><th scope="row">Sie erhalten</th><td>Einen Bericht als PDF und HTML und eine JSON-Datei für den Prototype Ideator</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="how" data-vc-nav="So funktioniert's">
+        <h3>Agenten schreiben, Code rechnet jede Zahl</h3>
+        <p class="vc-guide__lead">Fünf Agenten geben je eine strukturierte Antwort. Code prüft jede Antwort, bewertet jede Schwachstelle nach Auswirkung, Wahrscheinlichkeit und Euro-Spanne und errechnet die drei Kennzahlen oben.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>Kennzahlen</caption>
+          <thead><tr><th scope="col">Kennzahl</th><th scope="col">Was sie misst</th><th scope="col">Wert</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Risiko pro Jahr</th><td>Der erwartete Verlust pro Jahr aus den gefundenen Schwachstellen: die Mitte jeder Euro-Spanne mal ihre Wahrscheinlichkeit</td><td>Wartet auf einen Lauf</td></tr>
+            <tr><th scope="row">Bausteine unter Druck</th><td>Wie viele der neun Bausteine eine Schwachstelle der Stufe mittel oder höher tragen</td><td>Wartet auf die Prüfung</td></tr>
+            <tr><th scope="row">Sitzungskosten</th><td>Was die Modellaufrufe kosten: im Live-Lauf gemessen gegen die Obergrenze, in der Simulation geschätzt, zum festen Kurs von 0,894 € je Dollar</td><td>Wartet auf einen Lauf</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="real" data-vc-nav="Was echt ist">
+        <h3>Echte Fakten, fiktive Unternehmen, nichts gespeichert</h3>
+        <p class="vc-guide__lead">Die simulierten Unternehmen sind fiktiv; die Gesetze, Preise und Marktfakten, auf die sie treffen, sind echt und tragen Quelle und Datum. Lila markiert, was die KI geschrieben hat.</p>
+        <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
+          <caption>Woher alles kommt</caption>
+          <tbody>
+            <tr><th scope="row">Echt</th><td>Jedes Gesetz, jeder Preis und jede Marktentwicklung, mit Quelle und Lesedatum</td></tr>
+            <tr><th scope="row">Fiktiv</th><td>Die drei Unternehmen und ihre eigenen Zahlen</td></tr>
+            <tr><th scope="row">Das Canvas</th><td>Angepasst nach dem Business Model Canvas der Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); die Fragen in den Bausteinen stammen von diesem Werkzeug</td></tr>
+            <tr><th scope="row">Gespeichert</th><td>Nichts: Ihr Schlüssel und Ihre Eingaben bleiben im Speicher dieses Tabs und sind weg, wenn Sie ihn schließen</td></tr>
+            <tr><th scope="row">Diese Version</th><td>0.1.0 enthält die Rechenlogik, die Schemas, die KPI-Bibliothek und beide Sprachen; die Simulation kommt mit 0.2.0, Live-Läufe mit 0.3.0</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="vc-guide__chapter" data-vc-chapter="present" data-vc-nav="So präsentieren Sie">
+        <h3>In fünf Minuten zeigen</h3>
+        <p class="vc-guide__lead">Ab 0.2.0 läuft die Vorführung von selbst und hält, wo Sie handeln; die Leertaste pausiert.</p>
+        <ol class="vc-guide__path">
+          <li><strong>Auf die Kennzahlen zeigen.</strong> <span class="vc-guide__say">„Was die Schwachstellen pro Jahr kosten, wie viele Bausteine unter Druck stehen, was die Sitzung kostet.“</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Start: das Unternehmen und die Ergänzungen der KI.</strong> <span class="vc-guide__say">„Das Team hat fünf Bausteine gefüllt; die Agenten haben den Rest ergänzt, jeden Eintrag in Lila mit seiner Begründung.“</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Hinterfragen: einen roten Baustein öffnen.</strong> <span class="vc-guide__say">„Jeder rote Baustein nennt seine Schwachstelle, ihre Stufe und worauf sie beruht.“</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Anpassen: eine Antwort wählen.</strong> <span class="vc-guide__say">„Hier abschwächen, diese in einen Vorteil wenden: Die alte Zahl bleibt durchgestrichen neben der neuen.“</span> <span class="vc-guide__time">1,5 min</span></li>
+          <li><strong>Zusammenfassung: das PDF öffnen.</strong> <span class="vc-guide__say">„Jede Seite sagt, woher sie kommt, und das Canvas nennt Strategyzer als Quelle.“</span> <span class="vc-guide__time">0,5 min</span></li>
+        </ol>
+      </section>
+    </div>
+    <footer class="vc-dialog__footer vc-guide__footer">
+      <span class="vc-guide__count"></span>
+      <button type="button" class="vc-button vc-button--ghost" data-vc-guide-back><span class="vc-icon vc-icon--chevron-left" aria-hidden="true"></span>Zurück</button>
+      <button type="button" class="vc-button" data-vc-guide-next data-vc-guide-done="Los geht's">Weiter<span class="vc-icon vc-icon--chevron-right" aria-hidden="true"></span></button>
+    </footer>
+  </dialog>
+
+  <div id="boot" class="boot" data-state="loading">
+    <div class="boot-card">
+      <p class="boot-brand"><span class="vc-cell vc-cell--lilac vc-cell--xl" aria-hidden="true"><span class="vc-icon vc-icon--layout"></span></span>Business Model Canvas Challenger</p>
+      <p class="boot-status" role="status"><span class="vc-spinner" aria-hidden="true"></span><span id="boot-status"><span data-boot-lang="en">Starting the Business Model Canvas Challenger…</span><span data-boot-lang="de" lang="de" hidden>Der Business Model Canvas Challenger startet…</span></span></p>
+      <p id="boot-detail" class="vc-alert vc-alert--danger boot-detail" hidden></p>
+      <p class="boot-help" data-boot-lang="en">Still on this screen? Serve the folder over http, for example with <code>python -m http.server 8000</code>, and open <code>http://localhost:8000</code>. Browsers don't run its modules from a file.</p>
+      <p class="boot-help" data-boot-lang="de" lang="de" hidden>Hängt es hier? Liefern Sie den Ordner über http aus, etwa mit <code>python -m http.server 8000</code>, und öffnen Sie <code>http://localhost:8000</code>. Aus einer Datei führen Browser die Module nicht aus.</p>
+      <noscript><p class="boot-detail">The Business Model Canvas Challenger needs JavaScript. Allow it for this site and reload the page.</p><p class="boot-detail" lang="de">Der Business Model Canvas Challenger braucht JavaScript. Erlauben Sie es für diese Seite und laden Sie sie neu.</p></noscript>
+    </div>
+  </div>
+
+  <!-- Runs here, before vici.js, so the guide that opens by itself is the one in the page's language. -->
+  <script src="js/lang.js"></script>
+</body>
+</html>

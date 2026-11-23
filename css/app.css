@@ -1,0 +1,220 @@
+/* Business Model Canvas Challenger: the page on top of Vici (vici/dist/vici.min.css, loaded first, in
+ * cascade layers, so these unlayered rules refine it without !important). Four rules of meaning, as in
+ * the sister prototypes:
+ *   1. Merlot (--vc-accent) is the person in charge: the primary action, the step that waits for you,
+ *      the Your turn callout and your decisions. It never marks a state.
+ *   2. States take Vici's danger, warning and success tones, each with a mark and a word as well.
+ *   3. Lilac (Vici's feature tone) is the AI's voice: what the agents wrote carries it.
+ *   4. Ink and Vici's neutrals carry everything else. Simulation is neutral, Live is lilac.
+ * The page fills the window at 1280 × 720 and 1920 × 1080: header, strip and step bar on top, the canvas
+ * and its panel below; only the workspace scrolls, and only when a window is smaller than that.
+ */
+
+:root {
+  --fs-xs: 0.8125rem;
+  --fs-lg: 1.1875rem;
+  --fs-kpi: 1.75rem;
+  --hit: 44px;
+  --gutter: clamp(14px, 1.4vw, 28px);
+  --canvas-gap: 6px;
+}
+
+/* Never below Vici's sizes (16 px at 1280 px wide), a little larger on a 1920 projector, and it follows
+   the reader's own text-size setting. */
+html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
+
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  background: var(--vc-bg);
+  color: var(--vc-text);
+}
+
+::selection { background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
+.app-shell * { scrollbar-width: thin; scrollbar-color: var(--vc-border) transparent; }
+.kpi-value { font-variant-numeric: tabular-nums; }
+
+/* ---- header ------------------------------------------------------------------------------------ */
+.app-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 8px var(--gutter);
+  border-bottom: 1px solid var(--vc-border-subtle);
+  background: var(--vc-surface);
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-name { font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-2xl); letter-spacing: var(--vc-tracking-heading); line-height: 1.05; white-space: nowrap; color: var(--vc-text); }
+.header-actions { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
+.header-actions .vc-button, .header-actions .vc-icon-button { --_h: 40px; white-space: nowrap; }
+.mode-tag.vc-tag { cursor: help; letter-spacing: 0.04em; }
+.mode-tag[data-mode="live"] { background: var(--vc-feature-bg); color: var(--vc-feature-text); border-color: var(--vc-feature-border); }
+.lang-switch .vc-button { --_h: 40px; min-width: 2.75rem; justify-content: center; }
+.lang-switch .vc-button[aria-pressed="true"] { background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); border-color: var(--vc-accent); }
+
+/* The three key figures, top right. Each tile's label, value and note sit on rows the three tiles share
+   (subgrid), so the values line up when one label takes two lines. */
+.kpis { display: grid; grid-auto-flow: column; grid-auto-columns: var(--kpi-w, 13rem); grid-template-rows: repeat(3, auto); column-gap: 8px; }
+.kpi.vc-stat { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 1px; align-content: start; min-width: 0; padding: 6px 14px 7px; transition: background-color 0.3s ease, border-color 0.3s ease; }
+.kpi .vc-stat__label { align-self: start; line-height: 1.2; text-wrap: balance; }
+.kpi-value.vc-stat__value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 0.3em; font-size: var(--fs-kpi); line-height: 1.1; white-space: nowrap; }
+.kpi[data-state="idle"] .kpi-value { color: var(--vc-text-subtle); }
+.kpi-note.vc-stat__note { color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); line-height: 1.3; text-wrap: balance; }
+
+/* ---- the sentence under the header, with the byline ----------------------------------------------- */
+.intro { display: flex; align-items: center; justify-content: space-between; gap: 6px 24px; padding: 4px var(--gutter); background: var(--vc-surface); border-bottom: 1px solid var(--vc-border-subtle); }
+.intro-text { margin: 0; min-width: 0; flex: 1 1 30rem; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); text-wrap: pretty; }
+.intro .vc-byline { flex: none; flex-wrap: nowrap; white-space: nowrap; margin: 0; }
+.intro .vc-byline__icon { min-width: var(--hit); min-height: 34px; }
+
+/* ---- the talk track's bar ------------------------------------------------------------------------ */
+.talk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px var(--gutter);
+  border-bottom: 1px solid var(--vc-border-subtle);
+  background: var(--vc-bg-subtle);
+}
+.talk > .vc-button { --_h: var(--hit); flex: none; }
+.play.vc-button { min-width: 7.5rem; justify-content: center; }
+/* A step's label is centred under its marker and may reach past the stepper's edge, as Summary's does in
+   German: the margins keep it clear of Play and Run it live. */
+.steps.vc-stepper { flex: 1 1 auto; margin: 0 16px; min-width: 0; }
+.steps .vc-step { min-width: 0; }
+.steps .vc-step__button { min-height: var(--hit); padding-block: 2px; }
+.steps .vc-step__label { font-weight: var(--vc-weight-semibold); white-space: nowrap; }
+.steps .vc-step__button:disabled { cursor: default; opacity: 0.55; }
+.ai-notice.vc-tag { gap: 6px; flex: none; }
+
+/* ---- the workspace: the canvas, its credit and the panel under it --------------------------------------- */
+.workspace {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px var(--gutter) var(--gutter);
+  background-color: var(--vc-bg-sunken);
+  background-image: var(--vc-honeycomb-pattern);
+  background-size: var(--vc-honeycomb-pattern-size);
+}
+.workspace:focus { outline: none; }
+.stage { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; }
+.stage-title { margin: 0; font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-xl); line-height: 1.1; letter-spacing: var(--vc-tracking-heading); color: var(--vc-text); }
+
+/* The canvas in its classic layout: ten columns, three rows; the blocks take the grid areas named after
+   their ids (js/canvas.js). */
+.canvas {
+  min-height: 12rem;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-areas:
+    "partners partners activities activities value value relationships relationships segments segments"
+    "partners partners resources resources value value channels channels segments segments"
+    "costs costs costs costs costs revenue revenue revenue revenue revenue";
+  gap: var(--canvas-gap);
+}
+.block { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--vc-surface); border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg); }
+.block[data-block="partners"] { grid-area: partners; }
+.block[data-block="activities"] { grid-area: activities; }
+.block[data-block="resources"] { grid-area: resources; }
+.block[data-block="value"] { grid-area: value; }
+.block[data-block="relationships"] { grid-area: relationships; }
+.block[data-block="channels"] { grid-area: channels; }
+.block[data-block="segments"] { grid-area: segments; }
+.block[data-block="costs"] { grid-area: costs; }
+.block[data-block="revenue"] { grid-area: revenue; }
+.block-name { margin: 0; font-size: var(--vc-font-size-md); font-weight: var(--vc-weight-semibold); line-height: 1.2; color: var(--vc-text); }
+.block-question { margin: 0; font-size: var(--vc-font-size-sm); line-height: 1.35; color: var(--vc-text-muted); text-wrap: pretty; }
+.credit { margin: 0; font-size: var(--fs-xs); color: var(--vc-text-muted); }
+.credit a { color: inherit; text-underline-offset: 0.18em; }
+
+/* The panel under the canvas: in 0.1.0 it says what this version holds and when the rest arrives. */
+.panel { background: var(--vc-surface); border: 1px solid var(--vc-border-subtle); border-radius: var(--vc-radius-xl); box-shadow: var(--vc-shadow-sm); padding: 14px 18px; }
+.build { display: grid; gap: 4px; }
+.build-title { margin: 0; font-size: var(--vc-font-size-lg); font-weight: var(--vc-weight-semibold); line-height: 1.25; color: var(--vc-text); }
+.build-text { margin: 0; max-width: 75ch; color: var(--vc-text-muted); line-height: 1.45; }
+
+/* ---- boot screen ------------------------------------------------------------------------------------ */
+.boot { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; background: var(--vc-bg); transition: opacity 0.3s ease; }
+.boot[data-state="done"] { opacity: 0; pointer-events: none; }
+.boot-card { display: flex; flex-direction: column; gap: 12px; max-width: 34rem; padding: 24px; }
+.boot-brand { display: flex; align-items: center; gap: 12px; margin: 0; font-family: var(--vc-font-display); font-size: var(--vc-font-size-2xl); font-weight: var(--vc-weight-display); }
+.boot-status { display: flex; align-items: center; gap: 10px; margin: 0; }
+/* The help, about a page opened from a file, shows only while a start hangs for more than four seconds:
+   never as the screen fades out after a normal start, and not after a failed start, whose own message
+   says what to do. A failed start doesn't spin. */
+.boot-help { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); visibility: hidden; }
+.boot[data-state="loading"] .boot-help { animation: boot-help 0s 4s both; }
+.boot[data-state="failed"] .vc-spinner { display: none; }
+@keyframes boot-help { from { visibility: hidden; } to { visibility: visible; } }
+
+/* ---- larger and smaller windows ------------------------------------------------------------------------ */
+@media (min-width: 1700px) {
+  :root { --fs-kpi: 2rem; --canvas-gap: 8px; }
+  .kpis { --kpi-w: 14.5rem; }
+  .block { padding: 14px 16px; gap: 6px; }
+  .block-name { font-size: var(--vc-font-size-lg); }
+  .block-question { font-size: var(--vc-font-size-md); }
+  .stage-title { font-size: var(--vc-font-size-2xl); }
+  .credit { font-size: var(--vc-font-size-sm); }
+}
+/* The name, the header's controls and three figures share the header: the name and a figure's label may
+   take two lines. */
+@media (max-width: 1500px) {
+  :root { --fs-kpi: 1.5rem; }
+  .brand-name { max-width: 12em; font-size: var(--vc-font-size-xl); white-space: normal; text-wrap: balance; }
+  .kpis { --kpi-w: 10.5rem; }
+  .kpi.vc-stat { padding: 5px 11px 6px; }
+}
+@media (max-width: 1366px) {
+  .app-header { gap: 10px 14px; padding-inline: 14px 12px; }
+  .header-actions { gap: 6px; }
+  .header-actions .vc-button:not(.lang-option) { padding-inline: 12px; }
+  .lang-switch .vc-button { min-width: 2.5rem; padding-inline: 8px; }
+  .brand { gap: 10px; }
+  .brand-name { font-size: var(--vc-font-size-lg); }
+  .kpis { column-gap: 6px; --kpi-w: 10.5rem; }
+  .kpi.vc-stat { padding: 4px 9px 5px; }
+  .talk { gap: 10px; }
+  .steps .vc-step__label { font-size: var(--vc-font-size-sm); }
+}
+/* Laptop screens shared at 1280 × 720 or 1366 × 768: everything stays in view. */
+@media (max-height: 820px) and (min-width: 961px) {
+  .app-header { padding-block: 5px; }
+  .intro { padding-block: 2px; }
+  .talk { padding-block: 4px; }
+  .workspace { gap: 8px; padding-top: 8px; padding-bottom: 12px; }
+  .block { padding: 7px 10px; gap: 2px; }
+  .block-name { font-size: var(--vc-font-size-sm); }
+  .block-question { font-size: var(--fs-xs); line-height: 1.3; }
+  .panel { padding: 10px 16px; }
+  .build-title { font-size: var(--vc-font-size-md); }
+  .build-text { font-size: var(--vc-font-size-sm); line-height: 1.4; }
+}
+@media (max-width: 1180px) {
+  .app-header { grid-template-columns: 1fr auto; }
+  .kpis { grid-column: 1 / -1; --kpi-w: 1fr; }
+}
+@media (max-width: 960px) {
+  .app-shell { height: auto; min-height: 100dvh; overflow: visible; }
+  .workspace { overflow: visible; }
+  .talk { flex-wrap: wrap; }
+  .steps.vc-stepper { flex-basis: 100%; order: 3; }
+  .canvas { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-template-areas: "partners activities" "resources value" "relationships channels" "segments segments" "costs revenue"; }
+}
+@media (max-width: 640px) {
+  .app-header { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
+  .header-actions { flex-wrap: wrap; }
+  .intro { flex-direction: column; align-items: flex-start; }
+  .canvas { grid-template-columns: minmax(0, 1fr); grid-template-areas: "partners" "activities" "resources" "value" "relationships" "channels" "segments" "costs" "revenue"; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kpi.vc-stat, .boot { transition: none; }
+}
