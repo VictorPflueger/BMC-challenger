@@ -1,6 +1,8 @@
 // The schemas (brief 4.3, 5.2 and section 10):
-//   handoff     strategy-challenge/1 validates the brief's example and refuses each planted break, and
-//               schemas/index.js carries exactly schemas/strategy-challenge-1.json
+//   handoff     strategy-challenge/1, the set's shared schema (copied from the SWOT Challenger, which
+//               merged it first), validates the brief's example and refuses each planted break; its
+//               module schemas/strategy-challenge-1.js carries exactly schemas/strategy-challenge-1.json,
+//               and schemas/index.js hands that module on unchanged
 //   output      every agent output schema has all fields required, no union types and
 //               additionalProperties false, uses only the keywords structured outputs enforce, and each
 //               request stays within 24 optional and 16 union-typed parameters and 20 strict tools
@@ -15,6 +17,7 @@ import { APP_ROOT } from "./lib/harness.mjs";
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const { validate } = await mod("js/schema.js");
 const { HANDOFF, HANDOFF_DEFS, OUTPUT, CONTRACTS } = await mod("schemas/index.js");
+const SHARED = (await mod("schemas/strategy-challenge-1.js")).default;
 const json = JSON.parse(readFileSync(path.join(APP_ROOT, "schemas/strategy-challenge-1.json"), "utf8"));
 const example = JSON.parse(readFileSync(path.join(APP_ROOT, "tests/fixtures/handoff-example.json"), "utf8"));
 
@@ -25,7 +28,8 @@ const handoff = (v) => validate(v, HANDOFF, HANDOFF_DEFS);
 const contract = (name, v) => validate(v, CONTRACTS[name], CONTRACTS);
 
 // ---- the handoff file ---------------------------------------------------------------------------------
-check(JSON.stringify(HANDOFF) === JSON.stringify(json), "schemas/index.js carries exactly schemas/strategy-challenge-1.json");
+check(JSON.stringify(SHARED) === JSON.stringify(json), "schemas/strategy-challenge-1.js carries exactly schemas/strategy-challenge-1.json");
+check(HANDOFF === SHARED && HANDOFF_DEFS === SHARED.$defs, "schemas/index.js hands on the shared module itself, not a copy");
 const ok = handoff(example);
 check(ok.valid, `the brief's example validates${ok.valid ? "" : `: ${ok.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`}`);
 const breaks = [
@@ -35,13 +39,15 @@ const breaks = [
   ["an impact of 6", (v) => { v.issues[0].impact = 6; }],
   ["a likelihood that is not whole", (v) => { v.issues[0].likelihood = 2.5; }],
   ["an unknown response kind", (v) => { v.responses[0].kind = "ignore"; }],
-  ["an area that no framework has", (v) => { v.issues[0].areas = ["pricing"]; }],
   ["a figure written as text", (v) => { v.figures.at_stake_eur_year = "€9.5m"; }],
   ["a creation time that is no time", (v) => { v.created = "1 December 2026"; }],
   ["a source date that is no date", (v) => { v.sources[0].read_on = "2026-13-01"; }],
   ["an unknown score", (v) => { v.figures.score.name = "health"; }],
-  ["an item id without its block", (v) => { v.framework.areas[0].items[0].id = "1"; }],
-  ["a negative amount", (v) => { v.issues[0].eur_year_low = -1; }]
+  ["a negative amount", (v) => { v.issues[0].eur_year_low = -1; }],
+  ["a tool outside the set", (v) => { v.tool.id = "okr-challenger"; }],
+  ["a country that is no code", (v) => { v.company.country = "Germany"; }],
+  ["an unknown band", (v) => { v.issues[0].band = "severe"; }],
+  ["a horizon in another form", (v) => { v.issues[0].horizon = "1-3y"; }]
 ];
 for (const [what, plant] of breaks) {
   const v = copy(example);
@@ -119,6 +125,12 @@ for (const [name, [good, plant, what]] of Object.entries(SAMPLES)) {
   plant(bad);
   check(r.valid && !contract(name, bad).valid, `${name}: a sound record validates and ${what} is refused${r.valid ? "" : `: ${r.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`}`);
 }
+
+// What the shared handoff schema leaves open, the tool's own records hold: an item's id carries its
+// block, and an issue names blocks of the canvas only.
+const noBlock = copy(item); noBlock.id = "1";
+const pricing = copy(issue); pricing.blocks = ["pricing"];
+check(!contract("Item", noBlock).valid && !contract("Issue", pricing).valid, "the tool's own records refuse an item id without its block and a block the canvas does not have, which the shared handoff schema leaves open");
 
 const failed = results.filter(([ok]) => !ok);
 for (const [ok, what] of results) console.log(`${ok ? "PASS" : "FAIL"}  ${what}`);

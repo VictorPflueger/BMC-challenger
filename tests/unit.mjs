@@ -19,6 +19,7 @@ const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const i18n = await mod("js/i18n/index.js");
 const fmt = await mod("js/format.js");
 const risk = await mod("js/risk.js");
+const { worse } = await mod("js/engine.js");
 const { BLOCKS, isBlock } = await mod("js/canvas.js");
 const { APP, CSP, STORAGE, FX_USD_EUR } = await mod("js/config.js");
 const html = readFileSync(path.join(APP_ROOT, "index.html"), "utf8");
@@ -62,11 +63,11 @@ check(fmt.fmtPartMoney(5_700_000, 4, 5, "en") === "€5.7m on 4 of 5 issues" && 
 check(fmt.fmtMoney(0, "en") === "€0" && nb(fmt.fmtMoney(0, "de")) === "0 €" && fmt.fmtMoney(-1500, "en") === "−€2k", "money at zero and below zero");
 
 // ---- the risk helpers at their edges ---------------------------------------------------------------------
-check(risk.onScale(1) && risk.onScale(5) && !risk.onScale(0) && !risk.onScale(6) && !risk.onScale(2.5) && !risk.onScale("3"), "a scale value is a whole number from 1 to 5");
-check(throws(() => risk.score(0, 3)) && throws(() => risk.band(3, 6)), "score and band refuse a value off the scale");
-check(risk.worse("low", "high") === "high" && risk.worse("critical", "medium") === "critical" && risk.worse(null, "low") === "low", "worse picks the worse band; nothing yet counts as better than low");
-check(risk.bandRank("low") < risk.bandRank("medium") && risk.bandRank("high") < risk.bandRank("critical"), "bands rank low, medium, high, critical");
-check(risk.roundHalfAway(2.5) === 3 && risk.roundHalfAway(-2.5) === -3 && risk.roundHalfAway(1.005, 2) === 1.01 && risk.roundHalfAway(0.1 + 0.2, 1) === 0.3, "rounding is half away from zero, after cleaning float noise");
+check(risk.BANDS.map((b) => `${b.id} ${b.min}-${b.max}`).join(", ") === "low 1-4, medium 5-9, high 10-15, critical 16-25", "the shared bands: low 1 to 4, medium 5 to 9, high 10 to 15, critical 16 to 25");
+check(throws(() => risk.riskScore(0, 3)) && throws(() => risk.band(3, 6)) && throws(() => risk.riskScore(2.5, 3)) && throws(() => risk.probability("3")), "the score, the band and the probability refuse a value off the scale");
+check(worse("low", "high") === "high" && worse("critical", "medium") === "critical" && worse(null, "low") === "low", "worse picks the worse band; nothing yet counts as better than low");
+check(risk.roundHalfAway(2.5) === 3 && risk.roundHalfAway(-2.5) === -3 && risk.roundHalfAway(1.005, 2) === 1.01 && risk.roundHalfAway(0.1 + 0.2, 1) === 0.3 && risk.round9(0.1 + 0.2) === 0.3, "rounding is half away from zero, after rounding float noise to 1e-9");
+check(risk.fixed(2.525, 2, "de") === "2,53" && risk.fixed(-2.525, 2) === "−2.53" && risk.fixed(-0.0001, 2) === "0.00", "fixed places with the language's decimal mark and a minus sign, never a minus zero");
 check(throws(() => risk.expected(-1, 5, 3)) && throws(() => risk.expected(9, 5, 3)) && throws(() => risk.expected(1, 5, 6)), "the expected loss refuses a negative or reversed range and a likelihood off the scale");
 check(Math.abs(risk.expected(1_000_000, 3_000_000, 4) - 1_400_000) < 1e-9, "the expected loss: the midpoint of the range times the likelihood's probability");
 

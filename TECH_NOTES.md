@@ -43,24 +43,26 @@ The key, everything a person enters and everything the agents create live in mem
 
 ## 5. The engine
 
-`js/risk.js` (shared with the other challengers) and `js/engine.js` follow the brief (6.5) and PLAN.md §5:
+`js/risk.js` is the challengers' shared part, copied unchanged from the SWOT Challenger (§10): the bands, the probabilities, the expected values, the totals at stake, left and upside, the rounding and the money format. `js/engine.js` adds what only the canvas has, the nine blocks with their health and states, and calls the shared functions for every total. Both follow the brief (6.5) and PLAN.md §5:
 
 - A score is impact times likelihood, both whole numbers from 1 to 5. Bands: low 1 to 4, medium 5 to 9, high 10 to 15, critical 16 to 25.
 - Likelihood counts as probability 0.1, 0.3, 0.5, 0.7 and 0.9. The expected loss is the midpoint of the euro range times that probability; a range must satisfy 0 ≤ low ≤ high.
 - Block health is 100 minus each touching issue's penalty (low 5, medium 10, high 20, critical 35), never below 0. A block is under pressure with an issue of medium band or worse, on watch with low issues only, otherwise clear.
 - A missing decision means accept. Mitigate uses the residual impact, likelihood and range; turn into an advantage keeps the loss and adds the upside.
-- Values stay at full precision, cleaned to 1e-9, and are rounded once for display, half away from zero. The unit is chosen after rounding: €999,950 shows as €1.0m. Below €1,000 in euros, from €1,000 in thousands, from €1m in millions with one decimal; German writes 5,8 Mio. € with no-break spaces.
+- Values stay at full precision, rounded to 1e-9, and are rounded once for display, half away from zero. The unit is chosen after rounding: €999,950 shows as €1.0m. Below €1,000 in euros, from €1,000 in thousands, from €1m in millions with one decimal; German writes 5,8 Mio. € with no-break spaces.
 - A figure summed over part of the issues says so: "€5.7m on 4 of 5 issues".
+- What a mitigation leaves of an issue is its residual, never more than the issue's own expected loss, as the shared `left()` counts it.
+- The shared money format writes amounts from €1bn without a thousands separator: €1,250m reads €1250.0m, 1250,0 Mio. € in German. The tool takes it unchanged, and the boundary case in the fixture says so; a separator would be a change to all four tools at once.
 
 The golden cases B0, B1 and B2 and the boundary cases are in `tests/fixtures/golden.json`; `tests/engine.mjs` holds every value to 1e-9 and every display string in both languages. B1 departs from the brief's table on purpose: after the decision, Key partners, Key resources and Cost structure still carry the mitigated issue at a low band, so they show Watch (PLAN.md §16, item 1).
 
 ## 6. Schemas and the validator
 
-`schemas/strategy-challenge-1.json` is the canonical handoff schema (brief 4.3), shared by all four tools. The agents' output schemas in `schemas/index.js` keep to what structured outputs enforce: every field required, no union types, `additionalProperties: false`, and only the keywords type, properties, required, additionalProperties, items, enum and description. Lengths, ranges and patterns are checked in code by `js/schema.js`, the Sovereignty Assessment's validator. `tests/schemas.mjs` counts the optional and union-typed parameters of each request against the limits in §2.
+`schemas/strategy-challenge-1.json` is the handoff schema (brief 4.3), shared by all four tools, and `schemas/strategy-challenge-1.js` the same schema as a module the page can import; both are the SWOT Challenger's files, unchanged (§10). `schemas/index.js` hands the module on. The shared schema leaves two things open that the canvas needs, so the tool's own records hold them: an item's id carries its block (`value-2`), and an issue names only the nine blocks. Its tokens for the horizon, now, 1_to_3_years and over_3_years, are the tool's too, so an answer moves into the handoff file unchanged. The agents' output schemas in `schemas/index.js` keep to what structured outputs enforce: every field required, no union types, `additionalProperties: false`, and only the keywords type, properties, required, additionalProperties, items, enum and description. Lengths, ranges and patterns are checked in code by `js/schema.js`, the Sovereignty Assessment's validator. `tests/schemas.mjs` counts the optional and union-typed parameters of each request against the limits in §2.
 
 ## 7. The KPI library
 
-`data/kpis.js` (shared) holds the twelve sectors of the brief and "general", 129 KPIs in all: 8 to 12 a sector and the ten general ones. Each KPI has an id ("transport_logistics.cost_per_teu"), a name and a definition in English and German, a unit code from `UNITS` worded in both languages, the direction that is better, and its source ("common practice" or a web address). The library holds no benchmark values: a figure an agent estimates says so and what it rests on. `tests/kpis.mjs` checks it.
+`data/kpis.js`, shared and copied unchanged from the SWOT Challenger (§10), holds the twelve sectors of the brief and "general", 115 KPIs in all: 8 to 12 a sector and the ten general ones. Each KPI has an id ("transport_logistics.cost_per_teu"), a name and a definition in English and German, a unit as a symbol that reads the same in both languages (€/TEU, %), the direction that is better, and its source ("common practice" or a web address). `kpisFor(sector)` gives a sector's KPIs and then the general ones; `kpiById(id)` finds one. The library holds no benchmark values: a figure an agent estimates says so and what it rests on. `tests/kpis.mjs`, the SWOT Challenger's suite taken unchanged, checks it.
 
 ## 8. Two languages
 
@@ -82,7 +84,7 @@ One placement differs from the plan: PLAN.md §3 puts the note "Adapted from The
 
 ## 10. The siblings and the shared parts
 
-On 23 November 2026 at 20:30 UTC the SWOT Challenger (56a199e), the PESTEL Challenger (a223844) and the Prototype Ideator (0aefaf6) held their Phase 0 plans only, on `main`, with no other branch. No sibling had built a shared part, so this tool builds `js/risk.js`, `data/kpis.js` and `schemas/strategy-challenge-1.json` first, for the others to copy byte for byte (brief 4.1). `tests/parity.mjs` compares each shared part with every sibling checkout that has it.
+The brief's rule (4.1): before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit. At 20:30 UTC on 23 November 2026 no sibling had a shared part, so this tool built its own. The SWOT Challenger merged its M1 at 20:44 UTC (617b122), a few minutes before this tool's M1 was pushed, with `js/risk.js`, `data/kpis.js`, `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js`. Those four are its files now, copied unchanged from 617b122, and the engine, the formats and the tests moved onto them; `tests/kpis.mjs` is SWOT's too. The PESTEL Challenger (a223844) and the Prototype Ideator (0aefaf6) still held their plans only. `tests/parity.mjs` compares each shared part with every sibling checkout that has it, and CI checks out all three.
 
 ## 11. Tests and CI
 

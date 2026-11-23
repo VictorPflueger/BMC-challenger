@@ -1,5 +1,5 @@
 {
-  "about": "The golden cases of PLAN.md section 5 (brief section 11), with the Watch correction Victor approved on 23 November 2026, and the boundary cases M1 adds. Written before js/risk.js and js/engine.js; tests/engine.mjs reads them and never changes them.",
+  "about": "The golden cases of PLAN.md section 5 (brief section 11), with the Watch correction Victor approved on 23 November 2026, and the boundary cases M1 adds. Written before js/risk.js and js/engine.js; tests/engine.mjs reads them and never changes them. One boundary case changed on 23 November 2026: the shared js/risk.js, copied from the SWOT Challenger at 617b122, writes amounts from €1bn without a thousands separator (€1250.0m), and this tool takes the shared format unchanged (TECH_NOTES §5).",
   "B0": [
     { "impact": 1, "likelihood": 1, "score": 1, "band": "low" },
     { "impact": 2, "likelihood": 2, "score": 4, "band": "low" },
@@ -68,7 +68,7 @@
       { "eur": 1150000, "en": "€1.2m", "de": "1,2 Mio. €" },
       { "eur": 1250000, "en": "€1.3m", "de": "1,3 Mio. €" },
       { "eur": 2960000, "en": "€3.0m", "de": "3,0 Mio. €" },
-      { "eur": 1250000000, "en": "€1,250.0m", "de": "1.250,0 Mio. €" }
+      { "eur": 1250000000, "en": "€1250.0m", "de": "1250,0 Mio. €" }
     ],
     "health_floor": {
       "about": "Three critical issues on one block take 105 points; health stops at 0.",

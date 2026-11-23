@@ -11,17 +11,29 @@
 //                      critical 35), never below 0; resilience is the mean of the nine
 //   block state        under pressure when its worst band is medium or higher, watch when only low
 //                      issues touch it, clear when none do
+// The bands, the expected values and the three totals come from js/risk.js, the challengers' shared
+// part, so every tool of the set prices an issue the same way; this module adds what only the canvas
+// has: the nine blocks, their health and their states.
 
-import { band, bandRank, worse, score, probability, expected, clean } from "./risk.js";
+import { BANDS, band, riskScore, probability, expected, round9, atStake, left, upside } from "./risk.js";
 import { BLOCKS, isBlock } from "./canvas.js";
 
 export const PENALTY = Object.freeze({ low: 5, medium: 10, high: 20, critical: 35 });
 export const CHOICES = Object.freeze(["mitigate", "advantage", "accept"]);
 
+/** A band's rank, low 0 to critical 3, in the order of the shared BANDS. */
+const RANK = Object.freeze(Object.fromEntries(BANDS.map((b, i) => [b.id, i])));
+
+/** The worse of two bands; null counts as better than low. */
+export function worse(a, b) {
+  if (a === null || a === undefined) return b;
+  return RANK[b] > RANK[a] ? b : a;
+}
+
 /** The state of a block from the worst band touching it: "pressure", "watch" or "clear". */
 export function blockState(worst) {
   if (!worst) return "clear";
-  return bandRank(worst) >= bandRank("medium") ? "pressure" : "watch";
+  return RANK[worst] >= RANK.medium ? "pressure" : "watch";
 }
 
 function checkIssue(i) {
@@ -53,7 +65,7 @@ export function assess(issues, decisions = []) {
     checkIssue(i);
     const monetisable = i.monetisable !== false;
     const before = {
-      score: score(i.impact, i.likelihood),
+      score: riskScore(i.impact, i.likelihood),
       band: band(i.impact, i.likelihood),
       probability: probability(i.likelihood),
       expected: monetisable ? expected(i.eur_year_low, i.eur_year_high, i.likelihood) : null
@@ -62,19 +74,29 @@ export function assess(issues, decisions = []) {
     let after = { ...before };
     let upside = null;
     if (d.choice === "mitigate") {
+      // What is left of the issue is its residual, never more than its own expected loss (js/risk.js).
       after = {
-        score: score(d.impact, d.likelihood),
+        score: riskScore(d.impact, d.likelihood),
         band: band(d.impact, d.likelihood),
         probability: probability(d.likelihood),
-        expected: monetisable ? expected(d.eur_year_low, d.eur_year_high, d.likelihood) : null
+        expected: monetisable ? Math.min(before.expected, expected(d.eur_year_low, d.eur_year_high, d.likelihood)) : null
       };
     } else if (d.choice === "advantage") {
       upside = expected(d.eur_year_low, d.eur_year_high, d.likelihood);
     }
-    return { id: i.id, blocks: [...i.blocks], monetisable, choice: d.choice, before, after, upside };
+    return { id: i.id, blocks: [...i.blocks], monetisable, choice: d.choice, before, after, upside, decision: d };
   });
-  const sum = (xs) => clean(xs.reduce((a, b) => a + b, 0));
-  const priced = rows.filter((r) => r.monetisable);
+  // The totals through the shared functions: the issues and the chosen responses in their shape.
+  const shared = issues.map((i) => ({ id: i.id, likelihood: i.likelihood, monetisable: i.monetisable !== false, eur_year_low: i.eur_year_low, eur_year_high: i.eur_year_high }));
+  const range = (d) => ({ eur_year_low: d.eur_year_low, eur_year_high: d.eur_year_high, likelihood: d.likelihood });
+  const responses = rows.filter((r) => r.choice !== "accept").map((r) => ({
+    issue: r.id,
+    chosen: true,
+    residual: r.choice === "mitigate" ? range(r.decision) : null,
+    upside: r.choice === "advantage" ? range(r.decision) : null
+  }));
+  const stake = atStake(shared);
+  for (const r of rows) delete r.decision;
   const blocks = BLOCKS.map((id) => {
     const touching = rows.filter((r) => r.blocks.includes(id));
     const health = (side) => Math.max(0, 100 - touching.reduce((a, r) => a + PENALTY[r[side].band], 0));
@@ -86,15 +108,15 @@ export function assess(issues, decisions = []) {
       after: { health: health("after"), worst: worst("after"), state: blockState(worst("after")) }
     };
   });
-  const mean = (side) => clean(blocks.reduce((a, b) => a + b[side].health, 0) / blocks.length);
+  const mean = (side) => round9(blocks.reduce((a, b) => a + b[side].health, 0) / blocks.length);
   const pressure = (side) => blocks.filter((b) => b[side].state === "pressure").length;
   return {
     issues: rows,
-    count: rows.length,
-    priced: priced.length,
-    atStake: sum(priced.map((r) => r.before.expected)),
-    left: sum(priced.map((r) => r.after.expected)),
-    upside: sum(rows.filter((r) => r.upside !== null).map((r) => r.upside)),
+    count: stake.of,
+    priced: stake.priced,
+    atStake: stake.value,
+    left: left(shared, responses),
+    upside: upside(responses),
     blocks,
     resilience: { before: mean("before"), after: mean("after") },
     pressure: { before: pressure("before"), after: pressure("after"), of: blocks.length }

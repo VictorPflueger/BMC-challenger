@@ -87,7 +87,7 @@ for (const m of html.matchAll(/data-i18n="([^"]+)"/g)) used.add(m[1]);
 for (const m of html.matchAll(/data-i18n-attr="([^"]+)"/g)) for (const pair of m[1].split(";")) used.add(pair.split(":")[1].trim());
 // Keys the code builds from a family and a value, with every value the family can take.
 const FAMILIES = {
-  "band.": { values: BANDS, file: "js/format.js" }
+  "band.": { values: BANDS.map((b) => b.id), file: "js/format.js" }
 };
 const families = [];
 for (const [prefix, { values, file }] of Object.entries(FAMILIES)) {

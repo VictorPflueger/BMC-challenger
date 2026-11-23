@@ -5,7 +5,7 @@
 // "€5.7m on 4 of 5 issues" (Vici's rule for figures on part of the data).
 
 import { locale, getLang, t, tn } from "./i18n/index.js";
-import { formatEur, roundHalfAway } from "./risk.js";
+import { money, roundHalfAway } from "./risk.js";
 
 const cache = new Map();
 function nf(lang, digits = 0) {
@@ -16,12 +16,12 @@ function nf(lang, digits = 0) {
 
 /** An amount in euros: €5.8m, €600k, €950; 5,8 Mio. €, 600 Tsd. €, 950 €. */
 export function fmtMoney(value, lang = getLang()) {
-  return formatEur(value, lang);
+  return money(value, lang);
 }
 
 /** An amount summed over part of the issues says so: "€5.7m on 4 of 5 issues"; over all, just the amount. */
 export function fmtPartMoney(value, priced, total, lang = getLang()) {
-  const amount = formatEur(value, lang);
+  const amount = money(value, lang);
   return priced < total ? tn("fig.partial", total, { amount, priced, total }, lang) : amount;
 }
 

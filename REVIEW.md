@@ -5,12 +5,17 @@ Version 0.1.0. Every file this tool took from Vici or a sister prototype, how an
 - ViciDesign at 484b49a (v1.0.0 on `main`), Victor's design system
 - the Sovereignty Assessment 2.0.0 at 35c0dea: the newest live client and the bilingual build
 - the Data Quality Agent 2.2.0 at 831f050: the presenter (steps, Play, key figures, live dialog)
+- the SWOT Challenger at 617b122, its M1: the first of the set to merge the shared parts
 
 ## Copied unchanged
 
 | File | From | Why |
 |---|---|---|
 | `vici/` (19 files, listed in its README) | ViciDesign | Standing requirement 1: Vici's files unchanged, at a named commit; `tests/vici.mjs` and `tests/vici-files.mjs` compare them byte for byte |
+| `js/risk.js` | SWOT Challenger | Shared by the set (brief 4.1): bands, probabilities, expected values, the totals and the money format |
+| `data/kpis.js` | SWOT Challenger | Shared: the sector KPI library |
+| `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js` | SWOT Challenger | Shared: the handoff schema, and the same as a module the page can import |
+| `tests/kpis.mjs` | SWOT Challenger | The checks of the shared KPI library, the same in every tool that holds it |
 | `js/theme.js` | Sovereignty Assessment, the same in the Data Quality Agent | Applies the remembered theme before the page is drawn |
 | `tests/tokens.mjs` | Sovereignty Assessment | Vici's colour checks, the same file in every prototype; this tool's pairs are in `tests/lib/prototype.mjs` |
 | `tests/hexagon.mjs` | Data Quality Agent, the same in the Sovereignty Assessment | Vici's hexagon rule; this tool's tour is in `tests/lib/prototype.mjs` |
@@ -51,4 +56,4 @@ Version 0.1.0. Every file this tool took from Vici or a sister prototype, how an
 
 ## Written for this tool
 
-`js/risk.js`, `data/kpis.js` and `schemas/strategy-challenge-1.json` are shared parts, written first here for the siblings to copy byte for byte (TECH_NOTES §10). `js/engine.js`, `js/canvas.js`, `js/app.js`, the dictionaries, `schemas/index.js`, `favicon.svg` and the suites `engine`, `schemas`, `kpis`, `storage`, `shell`, `layout` and `parity` with their fixtures are new.
+`js/engine.js`, `js/canvas.js`, `js/app.js`, the dictionaries, `schemas/index.js`, `favicon.svg` and the suites `engine`, `schemas`, `storage`, `shell`, `layout` and `parity` with their fixtures are new. The engine calls the shared `js/risk.js` for every total (TECH_NOTES §10).

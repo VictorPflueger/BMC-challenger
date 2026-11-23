@@ -18,7 +18,7 @@ Read on 23 November 2026. The German edition's reading sample (Campus, 2011: htt
 
 ## The sector KPI library
 
-`data/kpis.js` names 129 KPIs for the twelve sectors of the brief and a general set. Their names and definitions are common practice in each sector, written for this tool in English and German, and each says so as its source. The library holds no benchmark values, so no figure on screen comes from it: what an agent estimates says that it is an estimate and what it rests on.
+`data/kpis.js`, shared by the set and written by the SWOT Challenger, names 115 KPIs for the twelve sectors of the brief and a general set. Their names and definitions are common practice in each sector, in English and German, and each says so as its source. The library holds no benchmark values, so no figure on screen comes from it: what an agent estimates says that it is an estimate and what it rests on.
 
 ## The exchange rate
 

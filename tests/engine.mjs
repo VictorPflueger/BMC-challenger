@@ -24,7 +24,7 @@ const throws = (fn) => { try { fn(); return false; } catch { return true; } };
 
 // ---- B0: the bands ---------------------------------------------------------------------------------
 for (const r of G.B0) {
-  check(risk.score(r.impact, r.likelihood) === r.score && risk.band(r.impact, r.likelihood) === r.band, `B0: impact ${r.impact}, likelihood ${r.likelihood} scores ${r.score}, ${r.band}`);
+  check(risk.riskScore(r.impact, r.likelihood) === r.score && risk.band(r.impact, r.likelihood) === r.band, `B0: impact ${r.impact}, likelihood ${r.likelihood} scores ${r.score}, ${r.band}`);
 }
 check(JSON.stringify(Object.values(risk.PROBABILITY)) === "[0.1,0.3,0.5,0.7,0.9]", "likelihood 1 to 5 counts as 0.1, 0.3, 0.5, 0.7 and 0.9");
 check(JSON.stringify(PENALTY) === '{"low":5,"medium":10,"high":20,"critical":35}', "band penalties: low 5, medium 10, high 20, critical 35");
@@ -68,11 +68,11 @@ check(["I1", "I2", "I3", "I4", "I5"].every((id) => `issue.${id}.expected` in val
 
 // ---- boundaries ----------------------------------------------------------------------------------------
 for (const m of G.boundaries.money) {
-  const en = plain(risk.formatEur(m.eur, "en"));
-  const de = plain(risk.formatEur(m.eur, "de"));
+  const en = plain(risk.money(m.eur, "en"));
+  const de = plain(risk.money(m.eur, "de"));
   check(en === m.en && de === m.de, `money: ${m.eur} shows as "${m.en}" and "${m.de}" (got "${en}" and "${de}")`);
 }
-check(/ /.test(risk.formatEur(5760000, "de")) && !/ /.test(risk.formatEur(5760000, "de")), "German amounts hold together with no-break spaces");
+check(/ /.test(risk.money(5760000, "de")) && !/ /.test(risk.money(5760000, "de")), "German amounts hold together with no-break spaces");
 const hf = G.boundaries.health_floor;
 const floor = assess(hf.issues, []);
 check(floor.blocks.find((b) => b.id === hf.block).before.health === hf.health && near(floor.resilience.before, hf.resilience), `health stops at 0 when penalties pass 100; resilience ${hf.resilience}`);
@@ -80,7 +80,7 @@ const zw = G.boundaries.zero_width;
 const zero = assess([zw.issue], []);
 check(near(zero.atStake, zw.expected) && plain(fmtMoney(zero.atStake, "en")) === zw.en && plain(fmtMoney(zero.atStake, "de")) === zw.de, `a range of zero width: expected ${zw.en}`);
 check(risk.roundHalfAway(2.5) === 3 && risk.roundHalfAway(-2.5) === -3 && risk.roundHalfAway(0.9995, 3) === 1 && risk.roundHalfAway(1.25, 1) === 1.3 && risk.roundHalfAway(1.005, 2) === 1.01, "rounding is half away from zero, after cleaning float noise (1.005 to two decimals is 1.01)");
-check(risk.formatEur(-1250000, "en") === "−€1.3m", "a negative amount carries a minus sign");
+check(risk.money(-1250000, "en") === "−€1.3m", "a negative amount carries a minus sign");
 check(blockState(null) === "clear" && blockState("low") === "watch" && blockState("medium") === "pressure" && blockState("critical") === "pressure", "block states: none clear, low watch, medium or worse under pressure");
 
 // ---- what the engine refuses -----------------------------------------------------------------------------
