@@ -1,6 +1,6 @@
 # Business Model Canvas Challenger: plan
 
-Phase 0 of the build brief, written on 23 November 2026 for Victor Pflüger's approval. Nothing below is built yet. The brief itself stays in the project files, never in this repository. Sections 1 to 15 are the plan; section 16 lists where the brief needs a change, section 17 the design review, and Appendix A the reuse map, file by file.
+Phase 0 of the build brief, written on 23 November 2026. Victor Pflüger approved it the same evening with every cut of section 17 and the decisions D1 to D14 as recommended; the `HYGIENE_TERMS` secret waits, so CI runs the generic hygiene check and the full check runs locally. GitHub Pages serves `main`. Building starts with M1. The brief itself stays in the project files, never in this repository. Sections 1 to 15 are the plan; section 16 lists where the brief needs a change, section 17 the design review, and Appendix A the reuse map, file by file.
 
 ## 1. The One Thing
 
@@ -84,7 +84,7 @@ BMC-challenger/
 ├── tests/                Node and Playwright suites (section 12)
 ├── vici/                 Vici copied unchanged; vici/README.md names the commit
 ├── .github/workflows/    tests.yml, live-site.yml
-└── README.md, DESIGN.md, TECH_NOTES.md, DATA_SOURCES.md, DEMO_SCRIPT.md, REVIEW.md, GATES.md
+└── README.md, DESIGN.md, TECH_NOTES.md, DATA_SOURCES.md, DEMO_SCRIPT.md, REVIEW.md
 ```
 
 37 modules in `js/`, three of them string files. `tests/lean.mjs`, adapted from the Sovereignty Assessment's (a shell of seven modules in 1,500 lines, `js/` in 6,000), holds this tool's shell of eight modules (main, app, view, story, run, kpis, estimate, lang) to 1,800 lines and `js/` to 6,500.
@@ -99,11 +99,11 @@ Two changes to shared files, made once so that all four tools can copy them unch
 
 | Tool | Repository | State on 2026-11-23 | Shared parts taken |
 |---|---|---|---|
-| SWOT Challenger | VictorPflueger/SWOT-challenger | empty (no commits) | none |
+| SWOT Challenger | VictorPflueger/SWOT-challenger | 56a199e, Phase 0 plan only (PLAN.md, README.md, .nojekyll), pushed two minutes after this plan's bootstrap | none; no shared file yet |
 | PESTEL Challenger | VictorPflueger/PESTEL-challenger | a223844, Phase 0 plan only (PLAN.md, README.md, .nojekyll) | none; no shared file yet |
 | Prototype Ideator | VictorPflueger/PrototypeIdeator | 0aefaf6, Phase 0 plan only (PLAN.md, README.md, .nojekyll) | none; no shared file yet |
 
-Both plans arrived at 19:20 UTC, after this plan's first draft. Each also plans to build `data/kpis.js` and the handoff schema in its own M1, and the PESTEL plan `js/risk.js` too. The brief's rule (4.1) settles the race: before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit; otherwise build it so the next tool can copy it unchanged. `tests/parity.mjs` compares the parts with the first sibling checkout beside the repository that has them, and passes with a note while none has. Section 9 lists the facts on which the three plans differ.
+The PESTEL and Ideator plans arrived at 19:20 UTC, during this plan's work, and the SWOT plan at 19:38 UTC, two minutes after its bootstrap. The PESTEL and Ideator plans build `data/kpis.js` and the handoff schema in their M1, the PESTEL plan `js/risk.js` too; the SWOT plan follows the same rule as this one. The brief's rule (4.1) settles the race: before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit; otherwise build it so the next tool can copy it unchanged. `tests/parity.mjs` compares the parts with the first sibling checkout beside the repository that has them, and passes with a note while none has. Section 9 lists the facts on which the four plans differ.
 
 ## 3. The canvas
 
@@ -314,7 +314,7 @@ One frame for every step, on Vici's layout for prototypes. The canvas fills the 
 
 The heights add up to 712 px at 1280 × 720 and 1,076 px at 1920 × 1080; `tests/layout.mjs` holds them (AC-14). The step's panels:
 
-- **Start.** Simulation: the three companies as three cards, S1 selected, each with sector, size and what the team entered, and the Your turn bar with "Start the agents". Live: the empty canvas, editable, each empty block showing the tool's own question in grey, under the public-information notice, with company name, sector or "let the agents decide", country and one line; "Start the agents" opens the live-run dialog.
+- **Start.** Simulation: the three companies as three cards, S1 selected, each with sector, size and what the team entered, and the Your turn bar with "Start the agents". Live: the empty canvas, editable, each empty block showing its question from section 6.1 of the brief in grey, under the public-information notice, with company name, sector or "let the agents decide", country and one line; "Start the agents" opens the live-run dialog.
 - **Complete.** The AI's items as a list to keep, edit or remove, each with basis and confidence.
 - **Challenge.** One card per issue: title, type, band with mark and word, blocks; selecting a card lights its blocks.
 - **Assess.** The risk matrix (likelihood across, impact up, one hexagon per issue sized by its expected euros, its table one click away) and the impact table with KPI effects and euro ranges, each tagged "AI estimate".
@@ -369,7 +369,7 @@ Three recordings in `data/scenarios/`, authored by hand from the facts below (th
 | S2.3 | EU Machinery Regulation | verified | Applies from 20 January 2027 and replaces the Machinery Directive; the date did not move when Regulation (EU) 2026/1744 of 8 July 2026 changed how AI-related safety duties are handled | https://www.baua.de/EN/Topics/Work-design/Machine-and-operational-safety/Machinery/Machinery-Directive-Revision, https://assuranceinaction.intertek.com/post/102n2z0/the-eu-omnibus-carve-out-less-duplication-not-less-urgency | 2026-11-23 |
 | S2.4 | Energy prices | changed | Power for small and medium industry costs about 16.7 ct/kWh in 2026, 0.9 ct less than in 2025 thanks to a €6.5bn grid subsidy, while the war on Iran lifted wholesale power to about 9.9 ct/kWh early in the year; the subsidised industrial price of 5 ct/kWh for half the consumption covers 91 electricity-intensive sectors, and whether a drive maker qualifies needs checking | https://www.bdew.de/media/documents/BDEW_Strompreisanalyse_042026.pdf, https://www.bundeswirtschaftsministerium.de/Redaktion/DE/Schlaglichter-der-Wirtschaftspolitik/2026/06/02-wettbewerbsfaehige-strompreise.html, https://www.bundeswirtschaftsministerium.de/Redaktion/DE/Pressemitteilungen/2026/04/20260416-industriestrompreis-wird-eingefuehrt.html | 2026-11-23 |
 | S2.5 | Shortage of service technicians | changed | The shortage eases but stays: 157 bottleneck occupations in 2025 against 183 in 2023, and in April 2026 one firm in five said missing skilled staff held its business back; the scenario frames technicians as Arvento's own capacity limit | https://statistik.arbeitsagentur.de/DE/Statischer-Content/Statistiken/Themen-im-Fokus/Fachkraeftebedarf/Fachkraefteengpassanalyse/Fachkraefteengpassanalyse.html, https://www.kfw.de/PDF/Download-Center/Konzernthemen/Research/PDF-Dokumente-KfW-ifo-Fachkräftebarometer/KfW-ifo-Fachkraeftebarometer_2026-06.pdf | 2026-11-23 |
-| S2.6 | Tariffs on machinery | changed | The US Supreme Court struck down the IEEPA tariffs on 20 February 2026, and a 10% tariff on all imports followed on 24 February; the Section 232 tariffs of up to 50% on the steel and aluminium content remain. VDMA's estimates of the share they reach range from 30% of EU machinery exports to 56% of German ones, depending on date and scope, so the scenario quotes no share. On 2 June 2026 the US proposed up to 10% more on EU goods under Section 301 | https://www.gtai.de/de/trade/usa/branchen/deutsche-maschinenbauer-bleiben-in-den-usa-auf-rekordkurs-1029242, https://www.cio.de/article/4046653/maschinenbau-leidet-immer-staerker-unter-us-zoellen.html, https://orf.at/stories/3409872/, https://www.douane.gouv.fr/en/node/18584 | 2026-11-23 |
+| S2.6 | Tariffs on machinery | changed | The US Supreme Court struck down the IEEPA tariffs on 20 February 2026, and a 10% tariff on all imports followed on 24 February, limited to 150 days; the Section 232 tariffs of up to 50% on the steel and aluminium content remain. VDMA's estimates of the share they reach range from 30% of EU machinery exports to 56% of German ones, depending on date and scope, so the scenario quotes no share. On 2 June 2026 the US proposed up to 10% more on EU goods under Section 301 | https://www.gtai.de/de/trade/usa/branchen/deutsche-maschinenbauer-bleiben-in-den-usa-auf-rekordkurs-1029242, https://www.cio.de/article/4046653/maschinenbau-leidet-immer-staerker-unter-us-zoellen.html, https://orf.at/stories/3409872/, https://www.douane.gouv.fr/en/node/18584 | 2026-11-23 |
 | S3.1 | Buildings Energy Act and heat planning | changed | The Gebäudemodernisierungsgesetz replaced the Buildings Energy Act, passed by Bundestag and Bundesrat on 10 July 2026: the 65% renewables rule for new heating goes; new gas and oil boilers stay allowed but must burn a rising bio share from January 2029, and a green-gas quota for suppliers follows from 2028, its details due in a separate law by 1 December 2026. Federal law wants heat plans from towns over 100,000 inhabitants by mid-2026 and from the rest by mid-2028, but Lower Saxony's climate law makes its roughly 100 regional and middle-order centres finish theirs by 31 December 2026 | https://www.bdew.de/energie/gebaeudemodernisierungsgesetz-ist-beschlossen/, https://www.bundesregierung.de/breg-de/schwerpunkte/wirksam-regieren/neues-gebaeudemodernisierungsgesetz-2430284, https://www.zfk.de/politik/deutschland/heizgesetz-stadtwerke-aenderung-kritik, https://www.haustechnikdialog.de/News/31662/Heizungsgesetz-2026-beschlossen-Das-aendert-sich-, https://www.test.de/Gebaeudeenergiegesetz-Was-Hausbesitzer-wissen-muessen-5655820-0/, https://www.ihk.de/hannover/hauptnavigation/innovation/energie/energiepolitik-recht/waermeplanung-6287230, https://www.umwelt.niedersachsen.de/download/224422 | 2026-11-23 |
 | S3.2 | Smart-meter rollout | changed | The 20% quota for mandatory cases by the end of 2025 was met on average (26.1% by 30 June 2026), yet only 5.9% of 54.1 million metering points have a smart meter; the regulator opened proceedings against 434 operators that missed it; the next quota is 90% of mandatory cases by the end of 2032 | https://bundesnetzagentur.de/SharedDocs/Pressemitteilungen/DE/2026/20260921_Rollout.html, https://www.pv-magazine.de/2026/09/22/smart-meter-rollout-kommt-langsam-voran/ | 2026-11-23 |
 | S3.3 | Dynamic electricity tariffs | verified | Since 1 January 2025 every supplier must offer a dynamic tariff to customers with a smart meter (§ 41a EnWG) | https://www.gesetze-im-internet.de/enwg_2005/__41a.html, https://www.bundesnetzagentur.de/DE/Vportal/Energie/Vertragsarten/DynStromtarife/start.html | 2026-11-23 |
@@ -390,13 +390,14 @@ The canvas, SWOT and PESTEL scenarios of one company must agree, and the Ideator
 
 ### Where the sibling plans differ
 
-Read in the PESTEL and Ideator plans on 23 November 2026, for Victor to pass on. M2 settles one wording at source for all four tools.
+Read in the PESTEL, SWOT and Ideator plans on 23 November 2026, for Victor to pass on. M2 settles one wording at source for all four tools.
 
-| Fact | This plan | PESTEL plan | Ideator plan |
-|---|---|---|---|
-| Heat-plan deadline for Auental's town (S3) | 31 December 2026, from Lower Saxony's climate law for its regional and middle-order centres | 31 December 2026 | 2028, the federal date for towns under 100,000 |
-| Smart meters (S3) | 5.9% of all meters at 30 June 2026 (regulator, 21 September 2026) | 5.5% at the end of 2025, from an earlier Bundestag answer | 5.9% |
-| US tariffs on machinery (S2) | IEEPA tariffs struck down, 10% on all imports since 24 February 2026, metal content up to 50%, no share quoted | metal content up to 50%, about 40% of exports hit | a 15% cap under the EU–US framework, metal content up to 50% |
+| Fact | This plan | PESTEL plan | SWOT plan | Ideator plan |
+|---|---|---|---|---|
+| Heat-plan deadline for Auental's town (S3) | 31 December 2026, from Lower Saxony's climate law for its regional and middle-order centres | 31 December 2026 | 31 December 2026 | 2028, the federal date for towns under 100,000 |
+| Smart meters (S3) | 5.9% of all meters at 30 June 2026 (regulator, 21 September 2026) | 5.5% at the end of 2025, from an earlier Bundestag answer | 23.3% of mandatory cases at the end of 2025, no share of all meters | 5.9% |
+| US tariffs on machinery (S2) | IEEPA tariffs struck down; 10% on all imports for 150 days from 24 February 2026; metal content up to 50%; no share quoted | metal content up to 50%, about 40% of exports hit | metal content up to 50%; the 10% duty expired on 24 July and Section 301 duties followed | a 15% cap under the EU–US framework, metal content up to 50% |
+| URLs the Scout didn't find | dropped in code, no extra request (D13) | the brief's `is_error` round | the brief's `is_error` round | no web research in version 1 |
 
 ## 10. The live run
 
@@ -645,7 +646,8 @@ Recommended defaults, with three new decisions. Each default goes into TECH_NOTE
 9. **The Strategyzer credit.** The terms ask for the text and link Strategyzer.com under every canvas; the canvas licence, CC BY-SA 3.0, also asks for a licence link and a note that the work was changed. Section 3 adds both.
 10. **Firefox and Safari.** They print no margin boxes; the fixed footer of 9.1 is needed, switched on by `@supports not at-rule(@bottom-left)`, with a test that Chromium prints it once per page.
 11. **The key store.** Section 5.9 says `js/session.js` alone holds the key; section 4.1 makes the key store a shared part. The key goes into a shared `js/keystore.js`, everything else stays in `js/session.js`, both in memory only. The Ideator's plan raises the same point.
-12. **German labels.** Two of nine are confirmed against the German edition; if Victor has the book, a glance at Key partners settles Schlüsselpartner against Schlüsselpartnerschaften.
+12. **Diagnostics.** Section 5.5 shows the exchange rate in Diagnostics, which the sisters dropped (the Sovereignty Assessment's lean test bans it). The rate goes into the guide's row for Session cost instead.
+13. **German labels.** Two of nine are confirmed against the German edition; if Victor has the book, a glance at Key partners settles Schlüsselpartner against Schlüsselpartnerschaften.
 
 ## 17. Design review
 
@@ -674,12 +676,12 @@ Cuts 1 and 2 change the live-run dialog, a shared part. They hold only if Victor
 
 **Fix list** (ranked, applied to sections 7 and 10):
 
-1. Ask for the key when the agents start, not before. "Run it live" switches to LIVE and the empty canvas; "Start the agents" opens the dialog, whose estimate prices the canvas actually entered. Nobody types a key before seeing what they would get.
+1. Keep the key for last, in the order section 5.3 of the brief sets: "Run it live" switches to LIVE and the empty canvas, and "Start the agents" opens the dialog, whose estimate prices the canvas actually entered. Nobody types a key before seeing what they would get.
 2. The live dialog fits 1280 × 720 without scrolling; `layout` measures it.
 3. Waiting is designed: the stepper shows the agent at work, what it does in one line and the seconds passed, with Abort beside it; a step's items appear once its answer has passed its checks.
 4. A stopped or failed run keeps the steps done, marks the rest "not run" with the reason, and its Summary offers the report of what is done.
 5. Start shows the three companies as three cards, S1 selected.
-6. The empty live canvas shows the tool's own question in each block, in grey, so a stranger knows what to type.
+6. The empty live canvas shows each block's question from section 6.1 of the brief in grey, so a stranger knows what to type.
 
 **Back of the fence:** printing in Firefox and Safari (fixed footer, no page numbers; one real print each before release); the HTML report offline with system fonts (read every page in M4); every API error message in both languages (/humanizer and /ux-heuristics in M3); the "Check for updates" banner (names the as-of date and what to check); switching language after a run (the interface changes, the analysis keeps its language and says so).
 
@@ -713,7 +715,7 @@ Every file of the Data Quality Agent 2.2.0 (DQ, `831f050`) and the Sovereignty A
 | DQ | `js/format.js` | skip |  | English only; SA's bilingual format is the base |
 | DQ | `js/history.js` | skip |  | Exception history of the world |
 | DQ | `js/human.js` | adapt | `js/pipeline.js` | The queue a step waits on until the person decides |
-| DQ | `js/keystore.js` | replace | `js/session.js` | Writes the key to session storage; here the key lives in one module variable (5.3) |
+| DQ | `js/keystore.js` | replace | `js/keystore.js` | Writes the key to session storage; the shared key store here holds it in one module variable (5.3) |
 | DQ | `js/kpis.js` | adapt | `js/kpis.js` | Tiles that answer first and strike the old value through; this tool's three figures |
 | DQ | `js/labels.js` | skip |  | Console narration labels; there is no console |
 | DQ | `js/live_dialog.js` | adapt | `js/live_dialog.js` | Frame check, free key check and Forget key; adds the three settings, research, cap, acknowledgement and estimate; key in memory |
