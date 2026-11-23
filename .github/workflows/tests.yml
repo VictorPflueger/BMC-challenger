@@ -1,0 +1,65 @@
+# Runs every suite on every push and pull request. The tool has no build step and no dependencies;
+# Playwright is installed here only for the browser suites (tests/README.md). ViciDesign is checked out
+# next to the tool at the commit vici/ was copied from, so the suites run Vici's own checks and compare
+# vici/ with it byte for byte. Victor's website sits next to it for the page-icon test, and the three
+# sibling tools for the parity test of the shared parts.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the run still in progress.
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Engine, schemas, KPIs, policy, storage, Vici's checks, docs, and the page in Chromium
+    # Pinned image: Playwright 1.56's system dependencies are known to install on Ubuntu 24.04.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: app
+      - uses: actions/checkout@v4
+        with:
+          repository: VictorPflueger/ViciDesign
+          ref: 484b49a4e282601891cc096d5271afff046a5577
+          path: ViciDesign
+          fetch-depth: 0
+      # Victor's website, for the page icon (its card for this tool is added with 1.0.0), and the
+      # siblings, for the parity test: public repositories, cloned shallow next to the tool.
+      - name: Victor's website and the sibling tools
+        run: |
+          for repo in VIP SWOT-challenger PESTEL-challenger PrototypeIdeator; do
+            git clone -q --depth 1 "https://github.com/VictorPflueger/$repo" "$GITHUB_WORKSPACE/$repo"
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache the Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.56.0-chromium-${{ runner.os }}
+      - run: npm install -g playwright@1.56.0 && npx playwright install --with-deps chromium
+      # The hygiene check reads its private term list from the HYGIENE_TERMS secret if the repository
+      # has one; without it only the generic checks run (tests/hygiene.mjs).
+      - name: All suites
+        working-directory: app
+        run: NODE_PATH="$(npm root -g)" node tests/run-all.mjs --require-vici
+        env:
+          HYGIENE_TERMS: ${{ secrets.HYGIENE_TERMS }}
+          BMC_TEST_OUT: ${{ runner.temp }}/bmc-challenger-tests
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: ${{ runner.temp }}/bmc-challenger-tests
+          retention-days: 14

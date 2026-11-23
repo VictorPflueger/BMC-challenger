@@ -1,0 +1,88 @@
+{
+  "about": "The golden cases of PLAN.md section 5 (brief section 11), with the Watch correction Victor approved on 23 November 2026, and the boundary cases M1 adds. Written before js/risk.js and js/engine.js; tests/engine.mjs reads them and never changes them.",
+  "B0": [
+    { "impact": 1, "likelihood": 1, "score": 1, "band": "low" },
+    { "impact": 2, "likelihood": 2, "score": 4, "band": "low" },
+    { "impact": 1, "likelihood": 5, "score": 5, "band": "medium" },
+    { "impact": 3, "likelihood": 3, "score": 9, "band": "medium" },
+    { "impact": 2, "likelihood": 5, "score": 10, "band": "high" },
+    { "impact": 3, "likelihood": 5, "score": 15, "band": "high" },
+    { "impact": 4, "likelihood": 4, "score": 16, "band": "critical" },
+    { "impact": 5, "likelihood": 5, "score": 25, "band": "critical" }
+  ],
+  "B1": {
+    "issues": [
+      { "id": "I1", "impact": 4, "likelihood": 4, "blocks": ["value", "segments"], "eur_year_low": 2000000, "eur_year_high": 6000000, "band": "critical", "expected": "2800000", "expected_en": "€2.8m" },
+      { "id": "I2", "impact": 3, "likelihood": 3, "blocks": ["channels"], "eur_year_low": 500000, "eur_year_high": 1500000, "band": "medium", "expected": "500000", "expected_en": "€500k" },
+      { "id": "I3", "impact": 5, "likelihood": 2, "blocks": ["costs", "resources", "partners"], "eur_year_low": 1000000, "eur_year_high": 3000000, "band": "high", "expected": "600000", "expected_en": "€600k" },
+      { "id": "I4", "impact": 2, "likelihood": 2, "blocks": ["relationships"], "eur_year_low": 100000, "eur_year_high": 300000, "band": "low", "expected": "60000", "expected_en": "€60k" },
+      { "id": "I5", "impact": 3, "likelihood": 5, "blocks": ["revenue", "value"], "eur_year_low": 1500000, "eur_year_high": 2500000, "band": "high", "expected": "1800000", "expected_en": "€1.8m" }
+    ],
+    "decisions": [
+      { "issue": "I1", "choice": "mitigate", "impact": 3, "likelihood": 2, "eur_year_low": 1000000, "eur_year_high": 3000000 },
+      { "issue": "I2", "choice": "accept" },
+      { "issue": "I3", "choice": "mitigate", "impact": 3, "likelihood": 1, "eur_year_low": 400000, "eur_year_high": 800000 },
+      { "issue": "I4", "choice": "accept" },
+      { "issue": "I5", "choice": "advantage", "likelihood": 3, "eur_year_low": 1000000, "eur_year_high": 3000000 }
+    ],
+    "blocks": [
+      { "id": "partners", "health_before": 80, "health_after": 95, "state_before": "under pressure", "state_after": "watch" },
+      { "id": "activities", "health_before": 100, "health_after": 100, "state_before": "clear", "state_after": "clear" },
+      { "id": "resources", "health_before": 80, "health_after": 95, "state_before": "under pressure", "state_after": "watch" },
+      { "id": "value", "health_before": 45, "health_after": 70, "state_before": "under pressure", "state_after": "under pressure" },
+      { "id": "relationships", "health_before": 95, "health_after": 95, "state_before": "watch", "state_after": "watch" },
+      { "id": "channels", "health_before": 90, "health_after": 90, "state_before": "under pressure", "state_after": "under pressure" },
+      { "id": "segments", "health_before": 65, "health_after": 90, "state_before": "under pressure", "state_after": "under pressure" },
+      { "id": "costs", "health_before": 80, "health_after": 95, "state_before": "under pressure", "state_after": "watch" },
+      { "id": "revenue", "health_before": 80, "health_after": 80, "state_before": "under pressure", "state_after": "under pressure" }
+    ],
+    "figures": [
+      { "name": "At stake a year", "key": "at_stake", "exact": "5760000", "en": "€5.8m", "de": "5,8 Mio. €" },
+      { "name": "Left a year", "key": "left", "exact": "3020000", "en": "€3.0m", "de": "3,0 Mio. €" },
+      { "name": "Upside a year", "key": "upside", "exact": "1000000", "en": "€1.0m", "de": "1,0 Mio. €" },
+      { "name": "Resilience before", "key": "resilience.before", "exact": "715/9", "en": "79", "de": "79" },
+      { "name": "Resilience after", "key": "resilience.after", "exact": "810/9", "en": "90", "de": "90" },
+      { "name": "Blocks under pressure before", "key": "pressure.before", "exact": "7", "en": "7 of 9", "de": "7 von 9" },
+      { "name": "Blocks under pressure after", "key": "pressure.after", "exact": "4", "en": "4 of 9", "de": "4 von 9" }
+    ]
+  },
+  "B2": {
+    "about": "B1 with I4 marked not monetisable, the same decision.",
+    "not_monetisable": ["I4"],
+    "figures": [
+      { "name": "At stake a year", "key": "at_stake", "exact": "5700000", "en": "€5.7m on 4 of 5 issues", "de": "5,7 Mio. € auf 4 von 5 Schwachstellen" },
+      { "name": "Left a year", "key": "left", "exact": "2960000", "en": "€3.0m on 4 of 5 issues", "de": "3,0 Mio. € auf 4 von 5 Schwachstellen" }
+    ]
+  },
+  "boundaries": {
+    "money": [
+      { "eur": 0, "en": "€0", "de": "0 €" },
+      { "eur": 999, "en": "€999", "de": "999 €" },
+      { "eur": 999.5, "en": "€1k", "de": "1 Tsd. €" },
+      { "eur": 1000, "en": "€1k", "de": "1 Tsd. €" },
+      { "eur": 1500, "en": "€2k", "de": "2 Tsd. €" },
+      { "eur": 60000, "en": "€60k", "de": "60 Tsd. €" },
+      { "eur": 999499, "en": "€999k", "de": "999 Tsd. €" },
+      { "eur": 999500, "en": "€1.0m", "de": "1,0 Mio. €" },
+      { "eur": 999950, "en": "€1.0m", "de": "1,0 Mio. €" },
+      { "eur": 1150000, "en": "€1.2m", "de": "1,2 Mio. €" },
+      { "eur": 1250000, "en": "€1.3m", "de": "1,3 Mio. €" },
+      { "eur": 2960000, "en": "€3.0m", "de": "3,0 Mio. €" },
+      { "eur": 1250000000, "en": "€1,250.0m", "de": "1.250,0 Mio. €" }
+    ],
+    "health_floor": {
+      "about": "Three critical issues on one block take 105 points; health stops at 0.",
+      "issues": [
+        { "id": "X1", "impact": 4, "likelihood": 4, "blocks": ["costs"], "eur_year_low": 0, "eur_year_high": 0 },
+        { "id": "X2", "impact": 5, "likelihood": 4, "blocks": ["costs"], "eur_year_low": 0, "eur_year_high": 0 },
+        { "id": "X3", "impact": 5, "likelihood": 5, "blocks": ["costs"], "eur_year_low": 0, "eur_year_high": 0 }
+      ],
+      "block": "costs", "health": 0, "resilience": "800/9"
+    },
+    "zero_width": {
+      "about": "A range of zero width: the midpoint is the amount itself.",
+      "issue": { "id": "Z1", "impact": 3, "likelihood": 3, "blocks": ["channels"], "eur_year_low": 1000000, "eur_year_high": 1000000 },
+      "expected": "500000", "en": "€500k", "de": "500 Tsd. €"
+    }
+  }
+}
