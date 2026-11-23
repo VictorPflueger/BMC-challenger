@@ -79,6 +79,7 @@ BMC-challenger/
 │   └── reference.js      frozen reference figures of the three scenarios
 ├── schemas/
 │   ├── strategy-challenge-1.json   SHARED handoff schema, the canonical file
+│   ├── strategy-challenge-1.js     SHARED the same schema as a module
 │   └── index.js          every schema as an ES module (the page can't fetch JSON)
 ├── tools/check-scenarios.mjs
 ├── tests/                Node and Playwright suites (section 12)
@@ -99,11 +100,11 @@ Two changes to shared files, made once so that all four tools can copy them unch
 
 | Tool | Repository | State on 2026-11-23 | Shared parts taken |
 |---|---|---|---|
-| SWOT Challenger | VictorPflueger/SWOT-challenger | 56a199e, Phase 0 plan only (PLAN.md, README.md, .nojekyll), pushed two minutes after this plan's bootstrap | none; no shared file yet |
+| SWOT Challenger | VictorPflueger/SWOT-challenger | 617b122, its M1 merged at 20:44 UTC with `js/risk.js`, `data/kpis.js`, `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js`; its plan (56a199e) came two minutes after this plan's bootstrap | all four, byte for byte, in this tool's M1 |
 | PESTEL Challenger | VictorPflueger/PESTEL-challenger | a223844, Phase 0 plan only (PLAN.md, README.md, .nojekyll) | none; no shared file yet |
 | Prototype Ideator | VictorPflueger/PrototypeIdeator | 0aefaf6, Phase 0 plan only (PLAN.md, README.md, .nojekyll) | none; no shared file yet |
 
-The PESTEL and Ideator plans arrived at 19:20 UTC, during this plan's work, and the SWOT plan at 19:38 UTC, two minutes after its bootstrap. The PESTEL and Ideator plans build `data/kpis.js` and the handoff schema in their M1, the PESTEL plan `js/risk.js` too; the SWOT plan follows the same rule as this one. The brief's rule (4.1) settles the race: before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit; otherwise build it so the next tool can copy it unchanged. `tests/parity.mjs` compares the parts with the first sibling checkout beside the repository that has them, and passes with a note while none has. Section 9 lists the facts on which the four plans differ.
+The PESTEL and Ideator plans arrived at 19:20 UTC, during this plan's work, and the SWOT plan at 19:38 UTC, two minutes after its bootstrap. The PESTEL and Ideator plans build `data/kpis.js` and the handoff schema in their M1, the PESTEL plan `js/risk.js` too; the SWOT plan follows the same rule as this one. The brief's rule (4.1) settles the race: before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit; otherwise build it so the next tool can copy it unchanged. `tests/parity.mjs` compares the parts with the first sibling checkout beside the repository that has them, and passes with a note while none has. The race went to the SWOT Challenger: it merged its M1 a few minutes before this tool's M1 was pushed, so its four shared files are this tool's too, and M1 moved its engine and tests onto them (TECH_NOTES §10). Section 9 lists the facts on which the four plans differ.
 
 ## 3. The canvas
 
