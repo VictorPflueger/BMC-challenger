@@ -4,7 +4,8 @@
 // IndexedDB, the Cache API or a cookie, put in a URL or logged, and a reload or a closed tab ends it.
 // The key alone lives apart, in js/keystore.js, which the four tools share; "Clear everything" empties
 // both. While a live result exists that hasn't been downloaded, the browser asks before the page is
-// left. The same functions as the Prototype Ideator's session.js, with this tool's fields.
+// left. Adapted from the Prototype Ideator's js/session.js (532e0f5): the same functions, with this
+// tool's fields.
 
 import { forgetKey } from "./keystore.js";
 import { APP } from "./config.js";

@@ -458,7 +458,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .live-actions .vc-help { margin: 0; }
 .edit-list { display: grid; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
 .edit-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
-.block-dialog .vc-item__summary > .vc-input { flex: 1 1 12rem; min-width: 0; }
+.block-dialog .item-edit { display: grid; gap: 4px; margin-top: 6px; }
 .turn-bar.vc-callout:has(> .ai-notice) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .live-agent { display: inline-flex; align-items: center; gap: 8px; color: var(--vc-text); font-weight: var(--vc-weight-medium); }
 .steps .vc-step[data-not-run="true"] .vc-step__label { color: var(--vc-text-subtle); }

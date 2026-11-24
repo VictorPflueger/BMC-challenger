@@ -253,8 +253,8 @@ export default {
   "lang.en": "Englisch",
   "lang.de": "Deutsch",
   "item.aiEdited": "KI · bearbeitet",
-  "kpi.cost.live": "bisher ausgegeben, Obergrenze {cap}",
-  "kpi.cost.waitLive": "gemessen, sobald der Lauf beginnt",
+  "kpi.cost.live": "Ausgabegrenze {cap}",
+  "kpi.cost.waitLive": "gemessen ab dem Start",
   "live.name.completer": "Ergänzer",
   "live.name.scout": "Scout",
   "live.name.redteam": "Red Team",
@@ -341,7 +341,8 @@ export default {
   "live.block.empty": "Noch keine Punkte.",
   "live.item.add": "Punkt hinzufügen",
   "live.item.full": "{n} Punkte, so viele fasst ein Baustein höchstens",
-  "live.item.edit": "{item} bearbeiten",
+  "live.item.edit": "In Ihren Worten: {item}",
+  "live.item.words": "In Ihren Worten",
   "live.unchecked": "Ungeprüft",
   "live.unchecked.text": "Die Zahlenprüfung hat diese Texte zweimal zurückgewiesen: {where}.",
   "live.lang.kept": "Die Analyse dieses Laufs bleibt auf {lang}, in der Sprache, in der sie geschrieben wurde.",
@@ -363,5 +364,7 @@ export default {
   "kpi.wait.analyst": "wartet auf den Analysten",
   "kpi.wait.redteam": "wartet auf das Red Team",
   "live.research.off": "Die Websuche ist für diese Organisation abgeschaltet, darum lief der Lauf ohne Recherche weiter. Die Agenten kennen die Welt bis Juni 2026.",
-  "live.complete.hint": "Wählen Sie einen Eintrag, um zu lesen, warum die Agenten ihn ergänzt haben, oder um ihn in Ihren Worten neu zu schreiben. Entfernen Sie, was Sie bezweifeln, mit der Schaltfläche daneben; dieselbe Schaltfläche holt es zurück."
+  "live.complete.hint": "Wählen Sie einen Eintrag, um zu lesen, warum die Agenten ihn ergänzt haben, oder um ihn in Ihren Worten neu zu schreiben. Entfernen Sie, was Sie bezweifeln, mit der Schaltfläche daneben; dieselbe Schaltfläche holt es zurück.",
+  "live.complete.working": "Die Agenten hinterfragen dieses Canvas, wie es ist. Starten Sie neu, um es zu ändern.",
+  "live.complete.stopped": "Der Lauf hat vor dem Hinterfragen angehalten. Starten Sie neu, um das Canvas zu ändern."
 };

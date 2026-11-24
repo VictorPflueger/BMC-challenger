@@ -18,9 +18,9 @@ export function agentOf(body) {
   return m ? AGENTS[m[1]] : "unknown";
 }
 
-/** S1's recorded answers, in English, as each agent returns them. research: whether signals exist. */
-export function s1Answers({ research = false } = {}) {
-  const sc = localise(scenarioById("s1"), "en");
+/** S1's recorded answers, as each agent returns them, in English or German. research: whether signals exist. */
+export function s1Answers({ research = false, lang = "en" } = {}) {
+  const sc = localise(scenarioById("s1"), lang);
   const a = sc.answers;
   const issues = a.issues.map((i) => ({ ...i, evidence: research ? i.evidence : i.evidence.map(() => "general knowledge").slice(0, 1) }));
   const signals = a.signals.map(({ read_on, ...s }) => s);
@@ -81,11 +81,12 @@ const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers
 /**
  * Routes the API in a browser context. script(agent, body, n, all) returns what to answer: an
  * answer(), apiError(), scoutTurn(), { kind: "network" }, { kind: "hold" } (never answers, for Abort),
- * or undefined for the default. models: the ids GET /v1/models lists, or an apiError() for it.
+ * or undefined for the default. models: the ids GET /v1/models lists, or an apiError() for it. lang: the
+ * language of the default answers.
  * Returns { calls, models }: every POST with { agent, body, headers, at, n } and every GET.
  */
-export async function install(context, { script = () => undefined, research = false, models = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"], usage = null } = {}) {
-  const defaults = s1Answers({ research });
+export async function install(context, { script = () => undefined, research = false, models = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"], usage = null, lang = "en" } = {}) {
+  const defaults = s1Answers({ research, lang });
   const calls = [];
   const gets = [];
   const count = {};

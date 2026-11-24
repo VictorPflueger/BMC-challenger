@@ -213,15 +213,16 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
     if (it.source === "added") note.push(h("p", {}, t("item.addedBy", null, lang)));
     if (it.status === "changed") note.push(h("p", {}, t("item.changedBy", null, lang)));
     // In the dialog the text is plain, not a button: the block is already open. While a live run waits
-    // for the review, an AI item's text is a field the person may rewrite.
+    // for the review, an AI item has a field under it where the person may rewrite it.
+    if (ctx.live && toggle && it.source === "ai" && on.edit) note.push(editField(it, lang, on));
     const opener = row.querySelector(".item-open");
-    if (ctx.live && toggle && it.source === "ai" && on.edit) opener.replaceWith(editField(it, lang, on));
-    else opener.replaceWith(...opener.childNodes);
+    opener.replaceWith(...opener.childNodes);
     if (note.length) row.append(h("div", { class: "vc-item__body" }, note));
     return row;
   });
   const issues = step >= STEP.challenge ? run.issues.filter((i) => i.blocks.includes(blockId)) : [];
-  body.replaceChildren(
+  // replaceChildren() writes a null as the text "null": the parts are filtered.
+  body.replaceChildren(...[
     h("p", { class: "block-dialog__question" }, t(`block.${blockId}.question`, null, lang)),
     rows.length ? h("ul", { class: "vc-framework__items block-dialog__items" }, rows) : h("p", { class: "vc-framework__empty" }, t("block.empty", null, lang)),
     issues.length ? h("div", { class: "block-dialog__issues" },
@@ -230,7 +231,7 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
         const r = run[side === "after" ? "after" : "before"].issues.find((x) => x.id === i.id);
         const b = r[side === "after" ? "after" : "before"].band;
         return h("li", {}, h("span", { class: "vc-tag vc-tag--sm band-tag", dataset: { band: b } }, t(`band.${b}`, null, lang)), " ", issueLabel(i));
-      }))) : null);
+      }))) : null].filter(Boolean));
 }
 
 // ---- the panels ---------------------------------------------------------------------------------------
@@ -260,9 +261,17 @@ function panelComplete(ctx) {
     h("div", { class: "panel-head" },
       h("h2", { class: "panel-title" }, t("p.complete.title", null, lang)),
       h("p", { class: "panel-note" }, t("p.complete.count", { kept, n: items.length }, lang))),
-    h("p", { class: "complete-hint" }, reached > STEP.complete || (ctx.live && ctx.live.status !== "review") ? t("p.complete.locked", null, lang) : t(ctx.live ? "live.complete.hint" : "p.complete.hint", null, lang)),
+    h("p", { class: "complete-hint" }, t(completeHint(ctx), null, lang)),
     h("ul", { class: "vc-framework__legend" }, mark("entered"), mark("ai", "sparkle"), mark("removed", "minus"))
   ];
+}
+
+/** What the review says under its title: how to review, or why the canvas can no longer change. */
+function completeHint({ reached, live }) {
+  if (reached > STEP.complete) return "p.complete.locked"; // the Red team has answered
+  if (!live) return "p.complete.hint";
+  if (live.status === "review") return "live.complete.hint";
+  return live.status === "working" ? "live.complete.working" : "live.complete.stopped";
 }
 
 function sourceLine(url, ctx) {
@@ -507,7 +516,7 @@ export function renderPanel(el, ctx, on) {
         : step === STEP.assess ? panelAssess(ctx, on)
           : step === STEP.adapt ? panelAdapt(ctx, on)
             : panelSummary(ctx, on);
-  el.replaceChildren(...parts);
+  el.replaceChildren(...parts.filter(Boolean));
   el.dataset.step = String(step);
 }
 

@@ -3,8 +3,9 @@
 //            estimate, lang; PLAN.md §2) of at most 1,800 lines together; the rest of js/ is the
 //            engine, the formats, the configuration, the schemas' validator and, from 0.3.0, the client
 //   app      at most 6,500 lines of JavaScript in js/ (the dictionaries in js/i18n/ apart) and one
-//            stylesheet of at most 450 lines; vici/ is Vici's, tests/ and tools/ aren't the app
-//   network  no module makes requests before the live client of 0.3.0, and then only js/anthropic.js;
+//            stylesheet of at most 480 lines (450 until 0.3.0 brought the live screens); vici/ is
+//            Vici's, tests/ and tools/ aren't the app
+//   network  no module makes requests but the live client, and in it only js/anthropic.js;
 //            no module and not the page names another host to call, and the security policy connects
 //            to api.anthropic.com only
 //   cuts     what the design review cut stays out (PLAN.md §17): the Resilience tile, a method dialog,

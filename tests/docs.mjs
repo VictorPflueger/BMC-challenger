@@ -9,7 +9,11 @@
 //   - REVIEW.md names every file whose header says it was copied, adapted or taken from elsewhere, and
 //     every file it names exists;
 //   - tests/README.md lists every suite tests/run-all.mjs runs, and the count;
-//   - every repository path a document names (in backticks or as a relative link) exists.
+//   - every repository path a document names (in backticks or as a relative link) exists;
+//   - from 0.3.0 (G17 of M3): TECH_NOTES.md §2 gives each API fact the live client rests on with its
+//     source, read on 24 November 2026; REVIEW.md names each file of the shared live client with the
+//     commit it came from; README.md says where a live run sends its requests and what it costs, and
+//     its costs are the estimate js/estimate.js gives for Tidewell Lines.
 // Adapted from the Sovereignty Assessment's tests/docs.mjs.
 // Usage: node tests/docs.mjs
 import fs from "node:fs";
@@ -20,10 +24,10 @@ import { APP_ROOT } from "./lib/harness.mjs";
 
 const { APP } = await import(pathToFileURL(path.join(APP_ROOT, "js/config.js")).href);
 const DOCS = {
-  "README.md": { max: 900, sections: ["What it does", "What is real and what is simulated", "The canvas", "Run it", "Tests", "The documents", "Part of a set of four", "Author"], version: `version ${APP.version}` },
+  "README.md": { max: 900, sections: ["What it does", "What is real and what is simulated", "A live run", "The canvas", "Run it", "Tests", "The documents", "Part of a set of four", "Author"], version: `version ${APP.version}` },
   "DESIGN.md": { max: 700, sections: ["Who it is for and where it is seen", "The screen", "Colour", "Words and languages", "The figures", "What stayed and what went"], version: `Version ${APP.version}` },
   "DATA_SOURCES.md": { max: 1200, urlsFree: true, sections: ["The Business Model Canvas", "The German names of the blocks", "The sector KPI library", "The exchange rate", "The fictional companies"], version: `Version ${APP.version}` },
-  "TECH_NOTES.md": { numbered: 11, version: `Version ${APP.version}` },
+  "TECH_NOTES.md": { numbered: 13, version: `Version ${APP.version}` },
   "REVIEW.md": { sections: ["Copied unchanged", "Copied with a new header", "Adapted", "Written for this tool"], version: `Version ${APP.version}` },
   "tests/README.md": { sections: ["What runs", "Setup for the browser suites", "The private term list", "The golden cases"] },
   "vici/README.md": {},
@@ -59,6 +63,54 @@ if (!sources.includes(`> ${CREDIT}`)) problems.push("DATA_SOURCES.md does not qu
 for (const u of ["https://strategyzer.com/legal/usage-of-our-tools", "https://creativecommons.org/licenses/by-sa/3.0/", "https://www.strategyzer.com"]) if (!sources.includes(u)) problems.push(`DATA_SOURCES.md does not link ${u}`);
 if (!/read on 23 November 2026 at https:\/\/strategyzer\.com\/legal\/usage-of-our-tools/.test(sources)) problems.push("DATA_SOURCES.md does not give the date Strategyzer's terms were read");
 if (!/Read on \d{1,2} [A-Z][a-z]+ \d{4} at https:\/\/platform\.claude\.com\/docs\/en\/about-claude\/models\/overview and https:\/\/platform\.claude\.com\/docs\/en\/about-claude\/pricing/.test(text["TECH_NOTES.md"] || "")) problems.push("TECH_NOTES.md does not log the date the models and prices were read");
+
+// The live client's facts, files and costs (G17 of M3).
+const API_PAGES = [
+  "https://platform.claude.com/docs/en/about-claude/models/overview",
+  "https://platform.claude.com/docs/en/about-claude/pricing",
+  "https://platform.claude.com/docs/en/build-with-claude/effort",
+  "https://platform.claude.com/docs/en/build-with-claude/thinking",
+  "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+  "https://platform.claude.com/docs/en/build-with-claude/token-counting",
+  "https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool",
+  "https://platform.claude.com/docs/en/api/errors",
+  "https://platform.claude.com/docs/en/api/rate-limits"
+];
+/** The facts of TECH_NOTES §2: each page in a row of its table, under a heading read on that day. */
+function factProblems(notes) {
+  const out = [];
+  const sec = (notes.match(/^## 2\. [\s\S]*?(?=^## 3\. )/m) || [""])[0];
+  if (!/read again on 24 November 2026 at each source below/.test(sec) || !/\| Source, read on 24 November 2026 \|/.test(sec)) out.push("TECH_NOTES.md §2 does not say its facts were read on 24 November 2026");
+  for (const u of API_PAGES) if (!sec.split("\n").some((l) => /^\| .+ \| /.test(l) && l.trim().endsWith(`| ${u} |`))) out.push(`TECH_NOTES.md §2 gives no fact from ${u}`);
+  return out;
+}
+problems.push(...factProblems(text["TECH_NOTES.md"] || ""));
+const LIVE_CLIENT = ["js/anthropic.js", "js/sse.js", "js/cost.js", "js/keystore.js"];
+for (const f of LIVE_CLIENT) {
+  const row = (text["REVIEW.md"] || "").split("\n").find((l) => l.startsWith(`| \`${f}\` |`));
+  if (!row || !/\b[0-9a-f]{7,40}\b/.test(row.split("|")[2] || "")) problems.push(`REVIEW.md does not name ${f} with the commit it came from`);
+}
+{
+  const { estimateRun } = await import(pathToFileURL(path.join(APP_ROOT, "js/estimate.js")).href);
+  const { localise, buildRun, recordedChoices } = await import(pathToFileURL(path.join(APP_ROOT, "js/run.js")).href);
+  const { scenarioById } = await import(pathToFileURL(path.join(APP_ROOT, "data/scenarios/index.js")).href);
+  const sc = localise(scenarioById("s1"), "en");
+  const run = buildRun(sc, recordedChoices(sc));
+  const e = (p, research = false) => estimateRun(sc, run, p, { research }).eur;
+  const cents = (v) => `€${v.toFixed(2)}`;
+  const live = ((text["README.md"] || "").match(/^## A live run\n([\s\S]*?)(?=^## )/m) || [])[1] || "";
+  const claims = [
+    [e("fast") < 0.01 && e("balanced") < 0.01, "under €0.01 on Fast and on Balanced"],
+    [true, `about ${cents(e("thorough"))} on Thorough`],
+    [true, `research adds about ${cents(e("balanced", true) - e("balanced"))}`],
+    [true, "`api.anthropic.com` alone, with your key"]
+  ];
+  for (const [holds, words] of claims) if (!holds || !live.includes(words)) problems.push(`README.md's live run does not say "${words}"${holds ? "" : ", which the estimate no longer bears out"}`);
+  counts.push(`README.md's live costs: Fast ${cents(e("fast"))}, Balanced ${cents(e("balanced"))}, Thorough ${cents(e("thorough"))}, research ${cents(e("balanced", true) - e("balanced"))} (estimate for Tidewell Lines)`);
+  // The checks fail on planted faults.
+  if (!factProblems((text["TECH_NOTES.md"] || "").replace(API_PAGES[7], "https://example.com/errors")).some((x) => x.includes("api/errors"))) problems.push("self-test: a missing source in TECH_NOTES.md §2 went unnoticed");
+  if (!factProblems((text["TECH_NOTES.md"] || "").replace("read again on 24 November 2026 at each source below", "read again at each source below")).length) problems.push("self-test: a missing date in TECH_NOTES.md §2 went unnoticed");
+}
 
 // The scenarios' facts (gate G12): every scenario has its as-of date, every fact it names a row in
 // DATA_SOURCES.md with the date read, every source it cites a link there; a scenario 90 days past its date

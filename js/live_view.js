@@ -138,12 +138,16 @@ export function renderBlockEdit(body, title, blockId, ctx, on) {
 }
 
 /**
- * At Complete in a live run, an AI item's text as a field the person may change: it keeps its basis and
- * confidence, and its tag says it was edited. on.edit(id, text).
+ * At Complete in a live run, the field under an AI item where the person may rewrite it: the item keeps
+ * its basis and confidence, and its tag says it was edited. The field's name starts with its visible
+ * label and names the item. on.edit(id, text).
  */
 export function editField(it, lang, on) {
-  return h("input", { class: "vc-input vc-input--sm", type: "text", maxlength: String(LIMITS.itemText), value: it.text, id: `edit-${it.id}`, "aria-label": t("live.item.edit", { item: it.text }, lang), autocomplete: "off",
-    on: { change: (e) => on.edit(it.id, e.target.value) } });
+  const id = `edit-${it.id}`;
+  return h("div", { class: "vc-field item-edit" },
+    h("label", { class: "vc-label", for: id }, t("live.item.words", null, lang)),
+    h("input", { class: "vc-input vc-input--sm", type: "text", maxlength: String(LIMITS.itemText), value: it.text, id, "aria-label": t("live.item.edit", { item: it.text }, lang), autocomplete: "off",
+      on: { change: (e) => on.edit(it.id, e.target.value) } }));
 }
 
 /** Every text a person entered, with where it stands, for the private-data check. */

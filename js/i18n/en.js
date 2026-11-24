@@ -253,8 +253,8 @@ export default {
   "lang.en": "English",
   "lang.de": "German",
   "item.aiEdited": "AI · edited",
-  "kpi.cost.live": "spent so far, of your {cap} cap",
-  "kpi.cost.waitLive": "measured once the run starts",
+  "kpi.cost.live": "of your {cap} cap",
+  "kpi.cost.waitLive": "measured once you start",
   "live.name.completer": "Completer",
   "live.name.scout": "Scout",
   "live.name.redteam": "Red team",
@@ -341,7 +341,8 @@ export default {
   "live.block.empty": "No items yet.",
   "live.item.add": "Add an item",
   "live.item.full": "{n} items, the most a block holds",
-  "live.item.edit": "Edit {item}",
+  "live.item.edit": "In your words: {item}",
+  "live.item.words": "In your words",
   "live.unchecked": "Unchecked",
   "live.unchecked.text": "The figure check refused these texts twice: {where}.",
   "live.lang.kept": "This run's analysis stays in {lang}, the language it was written in.",
@@ -363,5 +364,7 @@ export default {
   "kpi.wait.analyst": "waits for the Analyst",
   "kpi.wait.redteam": "waits for the Red team",
   "live.research.off": "Web search is switched off for this organisation, so the run went on without research. The agents know the world up to June 2026.",
-  "live.complete.hint": "Select an item to read why the agents added it, or to rewrite it in your words. Remove any you doubt with the button beside it; the same button brings it back."
+  "live.complete.hint": "Select an item to read why the agents added it, or to rewrite it in your words. Remove any you doubt with the button beside it; the same button brings it back.",
+  "live.complete.working": "The agents challenge this canvas as it stands. Start again to change it.",
+  "live.complete.stopped": "The run stopped before the challenge. Start again to change this canvas."
 };

@@ -10,14 +10,23 @@
 // above the bar; on the other steps the panel shows its title and may scroll inside, never the page.
 // The guide opens inside the window. The header's and the talk bar's controls are at least 40 px. Each
 // view is saved as a screenshot for a person to look at.
-// Usage: node tests/layout.mjs [s1 s2 s3]
+// A live run against the stand-in adds eleven views to each of the eight sizes, themes and languages
+// (G13 of M3): the empty and the filled Start form, a block being entered, the dialog, the dialog with a
+// private-data warning, an agent at work, the review, the decision, the summary, a run stopped at its
+// budget cap and a run stopped by an error. The same rules hold, with LIVE on the tape, no fictional
+// label and the dialogs inside the window, their buttons in view. With the warning, the dialog's body
+// may scroll, as Vici's live-run dialog says ("the body scrolls, the footer doesn't"), while the warning
+// and the footer stay in view.
+// Usage: node tests/layout.mjs [s1 s2 s3] [--no-live]
 import path from "node:path";
 import { APP_ROOT, launchBrowser, serveStatic, port, context, outDir, NETWORK_NOISE, ONLY } from "./lib/harness.mjs";
+import { install, live, apiError, KEY } from "./lib/standin.mjs";
 
 const SCENARIOS = ONLY.length ? ONLY : ["s1", "s2", "s3"];
 const STEPS = ["start", "complete", "challenge", "assess", "adapt", "summary"];
 const ADAPT = 4;
 const SIZES = [[1280, 720], [1920, 1080]];
+const LIVE = !process.argv.includes("--no-live");
 
 const results = [];
 const check = (ok, what, detail = "") => results.push({ ok: !!ok, what, detail });
@@ -40,7 +49,8 @@ function measure() {
     ".block-name", ".vc-framework__state", ".block-more", ".block-question", ".credit", ".fictional",
     ".panel-title", ".panel-note", ".company-name", ".company-meta", ".issue-pick__title", ".band-tag", ".issue-detail__title",
     ".issue-tab", ".option__kind", ".option__meta", ".option__title", ".option__changes", ".option__effect", ".options__legend",
-    ".summary__col h3", ".vc-callout__title", ".turn-text", ".foot-note", ".cta"
+    ".summary__col h3", ".vc-callout__title", ".turn-text", ".foot-note", ".cta",
+    ".live-public", ".vc-label", ".vc-help", ".live-agent", ".panel-note"
   ].join(", ");
   const cut = [];
   for (const el of all(TEXT)) {
@@ -60,7 +70,8 @@ function measure() {
   const tiles = all(".app-header .kpi").map(box);
   // The controls themselves, not their container: a grid column can shrink under buttons that overflow it.
   const controls = all(".brand, .header-actions > *").filter(shows).map(box);
-  const talkItems = [q("#play"), q("#btn-back"), ...all("#steps .vc-step"), q("#btn-next"), q("#live"), q(".ai-notice")].filter(Boolean).map(box);
+  // Play stands aside in a live run: only what shows is lined up.
+  const talkItems = [q("#play"), q("#btn-back"), ...all("#steps .vc-step"), q("#btn-next"), q("#live"), q(".talk .ai-notice")].filter((el) => el && shows(el)).map(box);
   const labels = all("#steps .vc-step__label").map(box);
   const labelClearance = Math.min(Math.min(...labels.map((l) => l.left)) - box(q("#btn-back") || q("#play")).right, box(q("#btn-next") || q("#live")).left - Math.max(...labels.map((l) => l.right)));
   // Targets of 40 px (brief AC-14) for the header's controls and the talk bar's; the byline's two links
@@ -86,6 +97,8 @@ function measure() {
   const cta = q("#btn-cta");
   return {
     current,
+    live: document.body.dataset.mode === "live",
+    tape: q("#mode-text")?.textContent.trim(),
     scrollX: doc.scrollWidth - doc.clientWidth,
     scrollY: doc.scrollHeight - doc.clientHeight,
     workspaceScroll: workspace.scrollHeight - workspace.clientHeight,
@@ -133,10 +146,119 @@ async function adaptCards(page) {
   return out;
 }
 
+/** The open dialog, if any: inside the window, its body without scrolling, its buttons in view. */
+function measureDialog() {
+  const d = document.querySelector("dialog[open]:not(.vc-guide)");
+  if (!d) return null;
+  const r = d.getBoundingClientRect();
+  const body = d.querySelector(".vc-dialog__body") || d;
+  const buttons = [...d.querySelectorAll(".vc-dialog__footer button, .vc-dialog__footer .vc-tag, .vc-dialog__header button")].filter((el) => el.getClientRects().length);
+  const hidden = buttons.filter((el) => { const b = el.getBoundingClientRect(); return b.top < Math.max(r.top, 0) - 0.5 || b.bottom > Math.min(r.bottom, innerHeight) + 0.5; }).map((el) => (el.textContent.trim() || el.getAttribute("aria-label") || el.className).slice(0, 24));
+  const b = body.getBoundingClientRect();
+  const warning = d.querySelector(".vc-live__warning:not([hidden])");
+  const w = warning ? warning.getBoundingClientRect() : null;
+  return { id: d.id, inside: r.top >= -0.5 && r.left >= -0.5 && r.bottom <= innerHeight + 0.5 && r.right <= innerWidth + 0.5, scroll: body.scrollHeight - body.clientHeight, sideways: d.scrollWidth - d.clientWidth, buttons: buttons.length, hidden,
+    warning: w ? { shown: w.top >= b.top - 0.5 && w.bottom <= b.bottom + 0.5, top: Math.round(w.top), bottom: Math.round(w.bottom), bodyBottom: Math.round(b.bottom) } : null };
+}
+
+/**
+ * A live run against the stand-in, measured at each of its screens. The stand-in answers with S1's
+ * recorded answers in the page's language; `scene` holds the Completer back, makes it costly enough
+ * for a cap of €0.05 to stop the run, or answers it with a billing error.
+ */
+async function liveViews(page, ctx, { base, width, height, theme, lang, shots }) {
+  const scene = { hold: null, cap: false, error: false };
+  await install(ctx, {
+    lang,
+    script: (agent) => {
+      if (scene.error && agent === "completer") return apiError(402, "billing_error", "Your credit balance is too low to access the Anthropic API.");
+      if (scene.hold && agent === "completer") return scene.hold.then(() => undefined);
+      return undefined;
+    },
+    usage: (agent) => (scene.cap && agent === "completer" ? { input_tokens: 1000, output_tokens: 110000 } : {})
+  });
+  const views = [];
+  const shot = async (name, want = {}) => {
+    await page.evaluate(() => document.fonts?.ready);
+    await page.waitForTimeout(300); // a checkbox's tick fades in
+    const m = await page.evaluate(measure);
+    const d = await page.evaluate(measureDialog);
+    await page.screenshot({ path: path.join(shots, `${width}x${height}-${theme}-${lang}-live-${String(views.length).padStart(2, "0")}-${name}.png`) });
+    views.push({ name, m, d, ...want });
+  };
+  const closeDialog = async () => { await page.keyboard.press("Escape"); await page.waitForSelector("dialog[open]:not(.vc-guide)", { state: "detached", timeout: 3000 }).catch(() => {}); };
+
+  await page.goto(`${base}?guide=0&lang=${lang}`);
+  await page.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+  await page.waitForSelector("#boot", { state: "detached", timeout: 5000 }).catch(() => {});
+  await live.enter(page);
+  await shot("start-empty", { step: 0, decides: true });
+  await live.sample(page);
+  await shot("start-filled", { step: 0, decides: true });
+  await page.click("#blk-value"); // the block with the most items of S1's canvas
+  await page.waitForSelector("#block-dialog[open]");
+  await shot("block-entry", { step: 0, dialog: "block-dialog" });
+  await closeDialog();
+  // The dialog as most people see it: the key typed, the acknowledgement ticked. Then at its tallest,
+  // with a private-data warning: Vici's body scrolls there and the footer stays, so the start button,
+  // the AI notice and the warning itself must be in view.
+  await live.openDialog(page);
+  await page.fill("#live-key", KEY);
+  await page.check("#live-ack", { force: true });
+  await shot("dialog", { dialog: "live-dialog" });
+  await closeDialog();
+  await page.fill("#live-line", `${await page.inputValue("#live-line")} Contact: jane.doe@example.com`.slice(0, 140));
+  await live.openDialog(page);
+  await page.fill("#live-key", KEY);
+  await page.check("#live-ack", { force: true });
+  const warned = await page.isVisible("#live-warning");
+  await shot("dialog-warning", { dialog: "live-dialog", tallest: true, warned });
+  // An agent at work: the Completer is held until the view is measured.
+  let release;
+  scene.hold = new Promise((r) => { release = r; });
+  await page.click("#live-start");
+  await page.waitForFunction(() => window.BMC.state.live.status === "working" && window.BMC.state.live.agent === "completer", null, { timeout: 15000 });
+  await page.waitForTimeout(1100);
+  await shot("working", { step: 0, work: true });
+  release();
+  scene.hold = null;
+  await live.waitFor(page, "review");
+  await shot("review", { step: 1, decides: true });
+  await page.click("#btn-cta");
+  await live.waitFor(page, "decision", 30000);
+  await shot("decision", { step: 4, decides: true, adapt: await adaptCards(page) });
+  await page.click("#btn-cta");
+  await live.waitFor(page, "done");
+  await shot("summary", { step: 5 });
+  // Stopped at the budget cap: the Completer's answer costs more than a cap of €0.05 leaves for the Red team.
+  scene.cap = true;
+  await page.click("#btn-cta"); // Start again
+  await live.openDialog(page);
+  await page.$eval("#live-cap", (el) => { el.value = "0.05"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.check("#live-ack", { force: true });
+  await page.click("#live-start");
+  await live.waitFor(page, "review");
+  await page.click("#btn-cta");
+  const capped = await live.waitFor(page, "stopped");
+  await shot("stopped-cap", { stopped: capped.stopped?.cause });
+  scene.cap = false;
+  // Stopped by an error the API returns: a billing error, which is never retried.
+  scene.error = true;
+  await page.click("#btn-cta"); // Start again
+  await live.openDialog(page);
+  await page.check("#live-ack", { force: true });
+  await page.click("#live-start");
+  const failed = await live.waitFor(page, "stopped");
+  await shot("stopped-error", { stopped: failed.stopped?.cause });
+  scene.error = false;
+  return views;
+}
+
 const server = await serveStatic(APP_ROOT, port(9180));
 const browser = await launchBrowser();
 const shots = await outDir("layout");
 let views = 0;
+let liveCount = 0;
 try {
   for (const [width, height] of SIZES) for (const theme of ["light", "dark"]) for (const lang of ["en", "de"]) {
     const size = `${width} × ${height}, ${theme}, ${lang === "en" ? "English" : "German"}`;
@@ -217,6 +339,52 @@ try {
     check(!problems.panel.length, `${size}: where the person decides (Start, Complete, Adapt) the panel shows everything without scrolling`, problems.panel.slice(0, 4).join("; "));
     check(!problems.scrolls.length, `${size}: the panels of Challenge, Assess and Summary show everything without scrolling`, problems.scrolls.slice(0, 6).join("; "));
     check(adaptChecked >= SCENARIOS.length * 5 && !problems.adapt.length, `${size}: at Adapt every option of every issue, Accept included, shows in full above the bar (${adaptChecked} issues)`, problems.adapt.slice(0, 4).join("; "));
+    // ---- the live run --------------------------------------------------------------------------------
+    if (LIVE) {
+      const lv = await liveViews(page, ctx, { base: server.base, width, height, theme, lang, shots });
+      liveCount += lv.length;
+      views += lv.length;
+      const bad = { fit: [], header: [], talk: [], tape: [], targets: [], small: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], stepper: [], dialog: [], states: [] };
+      for (const v of lv) {
+        const { m, d } = v;
+        const at = `live ${v.name}`;
+        const vh = m.viewport.height;
+        if (!(m.scrollX <= 0 && m.scrollY <= 0 && m.workspaceScroll <= 1)) bad.fit.push(`${at} (x ${m.scrollX}, y ${m.scrollY}, workspace ${m.workspaceScroll})`);
+        if (!(m.header.height <= (height <= 720 ? 112 : 120) && !m.tilesOverlapActions && !m.tilesOverlapEachOther)) bad.header.push(`${at} (${Math.round(m.header.height)} px)`);
+        if (!(Math.max(...m.talkTops) - Math.min(...m.talkTops) <= 4 && m.talkRight <= m.viewport.width && m.labelClearance >= 8)) bad.talk.push(`${at} (centres ${m.talkTops.join(", ")}, clearance ${Math.round(m.labelClearance)})`);
+        if (!(m.live && m.tape && m.fictional === null)) bad.tape.push(`${at} (live ${m.live}, tape "${m.tape}", fictional ${m.fictional ? "shown" : "hidden"})`);
+        if (m.canvasSmall.length) bad.targets.push(`${at}: ${m.canvasSmall.slice(0, 4).join(", ")}`);
+        if (m.small.length) bad.small.push(`${at}: ${m.small.join(", ")}`);
+        if (!(m.credit.bottom <= vh && m.credit.top >= m.canvas.bottom - 1 && m.byline.bottom <= m.canvas.top)) bad.credit.push(at);
+        if (!v.dialog && !(m.bar && m.cta && m.bar.bottom <= vh + 0.5 && m.cta.bottom <= vh + 0.5 && m.bar.top >= m.panel.bottom - 1)) bad.bar.push(`${at} (bar ${m.bar ? `${Math.round(m.bar.top)}–${Math.round(m.bar.bottom)}` : "missing"}, action ${m.cta ? "shown" : "missing"}, window ${vh})`);
+        if (m.cut.length) bad.cut.push(`${at}: ${m.cut.slice(0, 4).join("; ")}`);
+        if (m.panelScroll > 1) (v.decides ? bad.panel : bad.scrolls).push(`${at} (${m.panelScroll} px)`);
+        if (v.step !== undefined && m.current !== v.step) bad.stepper.push(`${at} (the stepper marks ${m.current + 1}, not ${v.step + 1})`);
+        if (v.dialog && !(d && d.id === v.dialog && d.inside && (v.tallest || d.scroll <= 1) && d.sideways <= 0 && d.buttons > 0 && !d.hidden.length && (!v.tallest || d.warning?.shown))) bad.dialog.push(`${at}: ${JSON.stringify(d)}`);
+        if (v.adapt) for (const a of v.adapt) {
+          const out = a.cards.filter((c) => c.top < a.panelTop - 0.5 || c.bottom > a.panelBottom + 0.5 || c.bottom > a.barTop + 0.5);
+          if (a.cards.length < 2 || out.length) bad.panel.push(`${at} issue ${a.issue}: ${a.cards.length} cards, ${out.length} cut`);
+        }
+      }
+      const by = (n) => lv.find((v) => v.name === n) || {};
+      if (!by("dialog-warning").warned) bad.states.push("the dialog showed no private-data warning");
+      if (by("stopped-cap").stopped !== "cap") bad.states.push(`the cap run stopped with ${by("stopped-cap").stopped}`);
+      if (by("stopped-error").stopped !== "billing") bad.states.push(`the error run stopped with ${by("stopped-error").stopped}`);
+      if (!by("working").work || !by("working").m?.cta) bad.states.push("no Abort while the agent worked");
+      const names = lv.map((v) => v.name).join(", ");
+      check(lv.length === 11 && !bad.states.length, `${size}: the live run shows its eleven screens (${names})`, bad.states.join("; "));
+      check(!bad.fit.length, `${size}: every live screen fits the window, no scrolling sideways or down`, bad.fit.slice(0, 4).join("; "));
+      check(!bad.header.length && !bad.talk.length, `${size}: on every live screen the header keeps one band and the talk bar one line`, [...bad.header, ...bad.talk].slice(0, 4).join("; "));
+      check(!bad.tape.length, `${size}: every live screen says LIVE on the tape and hides the fictional label`, bad.tape.slice(0, 4).join("; "));
+      check(!bad.targets.length && !bad.small.length, `${size}: on every live screen the canvas's targets are at least 32 px and the header's and talk bar's 40 px`, [...bad.targets, ...bad.small].slice(0, 4).join("; "));
+      check(!bad.credit.length, `${size}: on every live screen the byline stands above the canvas and the credit under it`, bad.credit.slice(0, 4).join("; "));
+      check(!bad.bar.length, `${size}: on every live screen the bar and its action are in view`, bad.bar.slice(0, 4).join("; "));
+      check(!bad.cut.length, `${size}: no text is cut off on a live screen, items' first lines on the canvas apart`, bad.cut.slice(0, 4).join(" | "));
+      check(!bad.panel.length, `${size}: where the person decides in a live run (the Start form, the review, the decision) the panel shows everything without scrolling`, bad.panel.slice(0, 4).join("; "));
+      check(!bad.scrolls.length, `${size}: the other live panels show everything without scrolling`, bad.scrolls.slice(0, 6).join("; "));
+      check(!bad.stepper.length, `${size}: the stepper marks the live step shown`, bad.stepper.slice(0, 4).join("; "));
+      check(!bad.dialog.length, `${size}: the block dialog and the live-run dialog sit inside the window without scrolling, every button in view; with a private-data warning the body may scroll, as Vici's pattern says, the warning and the footer in view`, bad.dialog.slice(0, 4).join("; "));
+    }
     check(!errors.length && !outside.length, `${size}: no errors, no request to another site`, [...errors, ...outside].slice(0, 4).join(" | "));
     await ctx.close();
   }
@@ -244,6 +412,6 @@ try {
 
 for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.ok && r.detail ? `\n      ${r.detail}` : ""}`);
 const failed = results.filter((r) => !r.ok).length;
-console.log(`\n${results.length - failed}/${results.length} layout checks passed on ${views} views. Screenshots: ${shots}`);
+console.log(`\n${results.length - failed}/${results.length} layout checks passed on ${views} views (${liveCount} of a live run). Screenshots: ${shots}`);
 if (!failed) console.log("LAYOUT OK");
 process.exit(failed ? 1 : 0);
