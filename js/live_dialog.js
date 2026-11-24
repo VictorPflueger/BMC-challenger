@@ -13,7 +13,7 @@ import { presetById, modelById, DEFAULT_PRESET, BUDGET, ANTHROPIC } from "./conf
 import { scanInputs } from "./privacy.js";
 import { causeOf } from "./api_messages.js";
 import { fmtCents } from "./format.js";
-import { h } from "./dom.js";
+import { h, icon } from "./dom.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,7 +70,7 @@ export function setupLiveDialog({ estimate, fields, onStart }) {
   }
   function say(text) {
     error.hidden = !text;
-    error.textContent = text || "";
+    error.replaceChildren(...(text ? [icon("error"), h("span", {}, text)] : []));
   }
 
   show.addEventListener("click", () => {
@@ -79,7 +79,8 @@ export function setupLiveDialog({ estimate, fields, onStart }) {
     show.setAttribute("aria-pressed", String(reveal));
     show.setAttribute("aria-label", t(reveal ? "live.key.hide" : "live.key.show"));
   });
-  key.addEventListener("input", () => { say(""); ready(); });
+  // A pasted value that can't be a Claude key says so, rather than leaving the start button dimmed.
+  key.addEventListener("input", () => { const v = key.value.trim(); say(v.length >= 12 && !looksLikeKey(v) ? t("live.key.shape") : ""); ready(); });
   key.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (!start.disabled) start.click(); } });
   ack.addEventListener("change", ready);
   for (const r of presets) r.addEventListener("change", drawEstimate);
@@ -103,12 +104,14 @@ export function setupLiveDialog({ estimate, fields, onStart }) {
     start.textContent = label;
     if (!res.ok) {
       const err = new ApiError({ status: res.status, type: res.error?.type || "network_error", message: res.error?.message || "" });
-      if (["key", "permission", "cors"].includes(causeOf(err))) { forgetKey(); drawKey(); }
+      const refused = ["key", "permission", "cors"].includes(causeOf(err));
+      if (refused) { forgetKey(); drawKey(); }
       say(t(`err.${causeOf(err)}`, { detail: "" }));
       ready();
+      (refused ? key : start).focus(); // a refused key is asked for again
       return;
     }
-    if (res.missing?.includes(p.model)) { say(t("err.model", { detail: "" })); ready(); return; }
+    if (res.missing?.includes(p.model)) { say(t("err.model", { detail: "" })); ready(); start.focus(); return; }
     d.close("start");
     onStart({ preset: p.id, research: research.checked, capEur: Math.min(BUDGET.maxEur, Math.max(BUDGET.minEur, Number(cap.value) || BUDGET.defaultEur)), lang: getLang() });
   });

@@ -126,7 +126,11 @@ export async function start() {
       state.applied = false; state.reached = STEP.adapt; render(); armAttention();
     },
     steps: () => { drawStepsDialog(); els.stepsDialog.showModal(); },
-    form: (key, value) => setForm({ [key]: value }, { quiet: true }),
+    form: (key, value) => {
+      setForm({ [key]: value }, { quiet: true });
+      // The missing-name note goes as soon as there is a name.
+      if (key === "name" && value.trim()) { const err = $("live-name-error"); if (err && !err.hidden) { err.hidden = true; $("live-name").removeAttribute("aria-invalid"); } }
+    },
     items: (block, texts, redraw = false, focus = -1) => {
       setBlock(block, texts);
       if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); if (focus >= 0) $(`edit-${block}-${focus}`)?.focus(); }
@@ -137,7 +141,8 @@ export async function start() {
       for (const [b, items] of Object.entries(sc.entered.blocks)) setBlock(b, items.map((it) => it.text));
       render();
     },
-    clear: () => { clearEverything(); state.step = 0; render(); },
+    // An agent at work is stopped first: its answer would belong to a run that no longer exists.
+    clear: () => { live.abort(); clearEverything(); state.step = 0; render(); },
     bar: (action) => {
       if (isLive()) return liveAction(action);
       if (action === "start") { begin(STEP.complete); play(); }
@@ -169,11 +174,17 @@ export async function start() {
     else if (action === "simulation") setMode("simulation");
     else go(state.step + 1);
   }
+  // Each mode comes back where it was left: the simulation at the step the presenter was on, a live run
+  // at the step its agents have reached (front, which the session listener below moves on).
+  let simStep = 0;
+  let front = 0;
+  let pending = 0;
   /** Simulation or live: the tape, the button that switches, and what only the simulation shows. */
   function setMode(mode) {
     pause();
+    if (!isLive()) simStep = state.step;
     updateSession({ mode });
-    state.step = 0;
+    if (mode === "live") { front = run().reached; state.step = Math.min(front, STEP.summary); } else state.step = simStep;
     drawMode();
     syncUrl();
     render();
@@ -190,8 +201,6 @@ export async function start() {
   els.live.addEventListener("click", () => setMode(isLive() ? "simulation" : "live"));
   // The screen follows the agents: when a step's answer arrives and the person was at the front of the
   // run, the new step shows.
-  let front = 0;
-  let pending = 0;
   onSessionChange(() => {
     if (!isLive()) return;
     const r = run();
@@ -293,7 +302,10 @@ export async function start() {
     fitSummary(els.panel);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
-    if (state.openBlock && els.dialog.open) openBlock(state.openBlock, ctx);
+    // A block being entered redraws itself when a line comes or goes; redrawn from here as well, it
+    // would replace the field under the person's fingers while they type.
+    const entering = lv && ctx.step === STEP.start && ctx.live.status === "idle";
+    if (state.openBlock && els.dialog.open && !entering) openBlock(state.openBlock, ctx);
     const target = findKey(focus);
     if (target && !target.disabled) target.focus({ preventScroll: true });
     fill(P.on && !waits() ? P.at / readMs() : 0);

@@ -118,18 +118,26 @@ export function liveBar(ctx, on) {
 
 /**
  * The block dialog where a person enters a block's items before a live run: one field a line, at most
- * eight, each at most 90 characters, with Remove and Add an item. on.items(block, texts).
+ * eight, each at most 90 characters, with Remove and Add an item. Enter goes to the next line, or adds
+ * one at the end. on.items(block, texts, redraw, focus).
  */
 export function renderBlockEdit(body, title, blockId, ctx, on) {
   const { lang } = ctx;
   const items = ctx.live.entered.blocks[blockId] || [];
   title.textContent = t(`block.${blockId}.name`, null, lang);
   const texts = items.map((it) => it.text);
+  const full = texts.length >= LIMITS.itemsPerBlock;
+  const enter = (e, i) => {
+    if (e.key !== "Enter" || e.isComposing) return;
+    e.preventDefault();
+    texts[i] = e.target.value;
+    if (i + 1 < texts.length) body.querySelector(`#edit-${blockId}-${i + 1}`)?.focus();
+    else if (!full && e.target.value.trim()) { texts.push(""); on.items(blockId, texts, true, texts.length - 1); }
+  };
   const rows = texts.map((text, i) => h("li", { class: "edit-row" },
     h("input", { class: "vc-input", type: "text", maxlength: String(LIMITS.itemText), value: text, id: `edit-${blockId}-${i}`, "aria-label": t("live.item.label", { n: i + 1 }, lang), autocomplete: "off",
-      on: { change: (e) => { texts[i] = e.target.value; on.items(blockId, texts); } } }),
+      on: { change: (e) => { texts[i] = e.target.value; on.items(blockId, texts); }, keydown: (e) => enter(e, i) } }),
     h("button", { type: "button", class: "vc-icon-button", "aria-label": t("live.item.remove", { item: text || String(i + 1) }, lang), on: { click: () => { texts.splice(i, 1); on.items(blockId, texts, true); } } }, icon("close"))));
-  const full = texts.length >= LIMITS.itemsPerBlock;
   body.replaceChildren(
     h("p", { class: "block-dialog__question" }, t(`block.${blockId}.question`, null, lang)),
     notice(lang),

@@ -54,6 +54,14 @@ try {
     await p.check("#live-ack", { force: true });
     steps.push(await disabled(p));
     check(JSON.stringify(steps) === "[true,true,true,false]", "Start stays disabled without a key that looks valid or without the tick, and wakes with both", JSON.stringify(steps));
+    // A pasted value that can't be a Claude key says why Start stays dimmed; a short start doesn't yet.
+    await p.fill("#live-key", "sk-proj-0123456789abcdefghijklmnopqrstuvwxyz");
+    const shape = await p.evaluate(() => ({ hidden: document.getElementById("live-error").hidden, text: document.getElementById("live-error").textContent }));
+    await p.fill("#live-key", "sk-ant");
+    const short = await p.$eval("#live-error", (e) => e.hidden);
+    await p.fill("#live-key", KEY);
+    const fixed = await p.$eval("#live-error", (e) => e.hidden);
+    check(!shape.hidden && shape.text === EN["live.key.shape"] && short && fixed, "a pasted value that can't be a Claude key says so, and the note goes when the key looks right", JSON.stringify({ shape, short, fixed }));
     const field = await p.$eval("#live-key", (i) => ({ type: i.type, ac: i.getAttribute("autocomplete"), op: i.hasAttribute("data-1p-ignore"), lp: i.getAttribute("data-lpignore"), sc: i.getAttribute("spellcheck"), form: !!i.closest("form"), forms: document.querySelectorAll("form").length }));
     check(field.type === "password" && field.ac === "off" && field.op && field.lp === "true" && field.sc === "false" && !field.form && field.forms === 0, "the key field is a password field in no form, with autocomplete off and the ignore marks", JSON.stringify(field));
     await p.click("#live-key-show");
@@ -94,8 +102,9 @@ try {
     await live.openDialog(p);
     await live.start(p);
     await p.waitForFunction(() => !document.getElementById("live-error").hidden, null, { timeout: 10000 });
-    const err = await p.evaluate(() => ({ text: document.getElementById("live-error").textContent, open: document.getElementById("live-dialog").open }));
-    check(err.open && err.text === EN[`err.${cause}`] && api.calls.length === 0, `${what} stops in the dialog with its message and sends no message`, JSON.stringify({ err, calls: api.calls.length }));
+    const err = await p.evaluate(() => ({ text: document.getElementById("live-error").textContent, open: document.getElementById("live-dialog").open, focus: document.activeElement?.id }));
+    const focus = cause === "key" ? "live-key" : "live-start";
+    check(err.open && err.text === EN[`err.${cause}`] && api.calls.length === 0 && err.focus === focus, `${what} stops in the dialog with its message, sends no message and puts the focus on ${focus === "live-key" ? "the key field" : "the start button"}`, JSON.stringify({ err, calls: api.calls.length }));
     await ctx.close();
   }
 

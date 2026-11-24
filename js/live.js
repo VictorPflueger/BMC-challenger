@@ -9,6 +9,9 @@
 //                    the run waits for the decision
 //   apply()          the Writer, then the summary
 //   abort()          stops the agent at work
+//
+// The agents write only to the run they started. Clear everything or a new run replaces the session's
+// run; an answer that arrives for the old one is dropped, and its pipeline ends without a word.
 
 import { session, updateRun, resetRun, markResult } from "./session.js";
 import { getKey, redactSecrets } from "./keystore.js";
@@ -28,6 +31,17 @@ import { band } from "./risk.js";
 const AGENT_STEP = { completer: STEP.complete, scout: STEP.challenge, redteam: STEP.challenge, analyst: STEP.assess, strategist: STEP.adapt, writer: STEP.summary };
 let controller = null;
 let ledger = null;
+let current = null;
+
+/** Thrown when the run an agent works for is no longer the session's: its pipeline ends quietly. */
+class Superseded extends Error {}
+
+/** Writes to the run this module started, or ends its pipeline once that run was cleared or replaced. */
+function put(patch) {
+  if (session().run !== current) throw new Superseded();
+  updateRun(patch);
+}
+const ours = () => session().run === current;
 
 /** Today as YYYY-MM-DD, the date the Scout's sources were read. */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -93,10 +107,10 @@ function newLedger(modelId) {
   const tracker = createCostTracker(modelId);
   let repairs = RUN.repairs;
   return {
-    add(usage) { const snap = tracker.add(usage); updateRun({ cost: snap }); return snap; },
+    add(usage) { const snap = tracker.add(usage); put({ cost: snap }); return snap; },
     spentUsd: () => tracker.snapshot().usd,
     repairsLeft: () => repairs,
-    useRepair() { repairs -= 1; updateRun({ repairs: RUN.repairs - repairs }); }
+    useRepair() { repairs -= 1; put({ repairs: RUN.repairs - repairs }); }
   };
 }
 
@@ -116,16 +130,16 @@ function context() {
       if (e.type === "repair") console.info(TAG, `The ${e.agent}'s answer broke ${e.problems.length} rule(s) and went back once.`);
       if (e.type === "retry") console.info(TAG, `The API answered ${e.status || "nothing"}; trying again in ${(e.waitMs / 1000).toFixed(1)} s.`);
       if (e.type === "cut") console.info(TAG, `Near the budget cap: the ${e.agent} may write ${e.maxTokens} tokens at most.`);
-      if (e.type === "answer") updateRun({ seconds: { ...session().run.seconds, [e.agent]: Math.round(e.ms / 100) / 10 } });
+      if (e.type === "answer") put({ seconds: { ...session().run.seconds, [e.agent]: Math.round(e.ms / 100) / 10 } });
     }
   };
 }
 
 /** Runs one agent in the open: who works, since when; its answer or a stop. */
 async function step(agent, schemaName, input, check) {
-  updateRun({ status: "working", agent, startedAt: Date.now() });
+  put({ status: "working", agent, startedAt: Date.now() });
   const out = await runAgent(agent, schemaName, input, { ...context(), check });
-  if (out.unchecked.length) updateRun({ unchecked: [...session().run.unchecked, ...out.unchecked.map((where) => ({ step: AGENT_STEP[agent], where }))] });
+  if (out.unchecked.length) put({ unchecked: [...session().run.unchecked, ...out.unchecked.map((where) => ({ step: AGENT_STEP[agent], where }))] });
   return out.answer;
 }
 
@@ -140,13 +154,14 @@ function stop(e, agent) {
 }
 
 async function guarded(fn) {
-  controller = new AbortController();
+  const mine = new AbortController();
+  controller = mine;
   try {
     await fn();
   } catch (e) {
-    stop(e, session().run.agent);
+    if (!(e instanceof Superseded) && ours()) stop(e, session().run.agent);
   } finally {
-    controller = null;
+    if (controller === mine) controller = null;
   }
 }
 
@@ -154,6 +169,7 @@ async function guarded(fn) {
 export async function start(settings) {
   const s = session();
   resetRun({ settings: { ...settings }, lang: settings.lang });
+  current = session().run;
   const preset = presetById(settings.preset);
   ledger = newLedger(preset.model);
   console.info(TAG, `Live run on ${preset.model}, ${preset.effort} effort${settings.research ? ", with research" : ""}, cap €${settings.capEur.toFixed(2)}.`);
@@ -162,7 +178,7 @@ export async function start(settings) {
     const sc = liveScenario();
     const answer = await step("completer", "Completion", inputFor("completer", { lang: settings.lang, company: { ...sc.company, sector: s.form.sector }, entered: s.entered }),
       (a) => G.completionProblems(a, { entered: s.entered, sectors: SECTORS.map((x) => x.id), evidence: evidence(sc) }));
-    updateRun({ answers: { ...session().run.answers, completion: answer }, reached: STEP.complete, status: "review", agent: null });
+    put({ answers: { ...session().run.answers, completion: answer }, reached: STEP.complete, status: "review", agent: null });
     markResult();
     console.info(TAG, `The Completer added ${answer.items.length} items.`);
   });
@@ -171,33 +187,34 @@ export async function start(settings) {
 /** After the review: research when on, then the Red team, the Analyst and the Strategist. */
 export async function challenge() {
   const r = session().run;
+  current = r;
   await guarded(async () => {
     const lang = r.lang;
     let sc = liveScenario();
     let run = liveRun();
     if (r.settings.research) {
-      updateRun({ status: "working", agent: "scout", startedAt: Date.now() });
+      put({ status: "working", agent: "scout", startedAt: Date.now() });
       const res = await runScout(inputFor("scout", { lang, company: sc.company, completed: run.kept }), context());
       const signals = res.signals.map((x) => ({ ...x, read_on: today() }));
-      updateRun({ answers: { ...session().run.answers, signals }, research: { ran: !res.disabled, disabled: res.disabled, dropped: res.dropped } });
+      put({ answers: { ...session().run.answers, signals }, research: { ran: !res.disabled, disabled: res.disabled, dropped: res.dropped } });
       if (res.disabled) console.info(TAG, "Web search is switched off for this organisation; the run goes on without research.");
       else console.info(TAG, `The Scout reported ${signals.length} source(s)${res.dropped ? `, ${res.dropped} dropped` : ""}.`);
       sc = liveScenario();
     }
     const issues = await step("redteam", "Issues", inputFor("redteam", { lang, company: sc.company, completed: run.kept, signals: sc.answers.signals, research: r.settings.research }),
       (a) => G.issuesProblems(a, { canvas: run.kept, signals: sc.answers.signals, evidence: evidence(sc) }));
-    updateRun({ answers: { ...session().run.answers, issues: issues.issues }, reached: STEP.challenge });
+    put({ answers: { ...session().run.answers, issues: issues.issues }, reached: STEP.challenge });
     console.info(TAG, `The Red team found ${issues.issues.length} issue(s).`);
     sc = liveScenario();
     const impacts = await step("analyst", "Impacts", inputFor("analyst", { lang, company: sc.company, completed: run.kept, issues: sc.answers.issues }),
       (a) => G.impactsProblems(a, { issues: sc.answers.issues, sector: sc.company.sector, evidence: evidence(sc) }));
-    updateRun({ answers: { ...session().run.answers, impacts }, reached: STEP.assess });
+    put({ answers: { ...session().run.answers, impacts }, reached: STEP.assess });
     console.info(TAG, `The Analyst priced ${impacts.impacts.filter((i) => i.monetisable).length} of ${impacts.impacts.length} issue(s).`);
     sc = liveScenario();
     run = liveRun();
     const responses = await step("strategist", "Responses", inputFor("strategist", { lang, company: sc.company, completed: run.kept, issues: sc.answers.issues, impacts }),
       (a) => G.responsesProblems(a, { issues: run.issues, canvas: run.kept, evidence: evidence(sc) }));
-    updateRun({ answers: { ...session().run.answers, responses: responses.responses }, reached: STEP.adapt, status: "decision", agent: null });
+    put({ answers: { ...session().run.answers, responses: responses.responses }, reached: STEP.adapt, status: "decision", agent: null });
     console.info(TAG, `The Strategist offered ${responses.responses.reduce((n, x) => n + x.options.length, 0)} option(s).`);
   });
 }
@@ -216,6 +233,7 @@ function factTexts(run, lang) {
 /** After the decision: the Writer writes the summary. */
 export async function apply() {
   const r = session().run;
+  current = r;
   updateRun({ applied: true });
   await guarded(async () => {
     const sc = liveScenario();
@@ -223,7 +241,7 @@ export async function apply() {
     const facts = factTexts(run, r.lang);
     const summary = await step("writer", "Summary", inputFor("writer", { lang: r.lang, company: sc.company, issues: run.issues, options: run.options, facts }),
       (a) => G.summaryProblems(a, { facts: Object.keys(run.facts), evidence: evidence(sc) }));
-    updateRun({ answers: { ...session().run.answers, summary }, reached: STEP.summary, status: "done", agent: null });
+    put({ answers: { ...session().run.answers, summary }, reached: STEP.summary, status: "done", agent: null });
     markResult();
     const c = session().run.cost;
     console.info(TAG, `The Writer wrote the summary. The run cost $${c.usd.toFixed(4)} (€${c.eur.toFixed(4)}) in ${c.requests} request(s).`);
