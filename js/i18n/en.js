@@ -93,7 +93,7 @@ export default {
   "kpi.pressure.found": "found by the challenge",
   "kpi.pressure.after": "after your choices",
   "kpi.cost.estimate": "estimated for a live run",
-  "kpi.cost.estimateResearch": "a live run with research",
+  "kpi.cost.estimateResearch": "estimated, with research",
 
   // the canvas
   "item.entered": "Entered",

@@ -7,8 +7,9 @@
 // credit and "Fictional company, illustrative figures" stand under the canvas; the bar under the story,
 // with its action, is in view; no text is cut off. An item's text on the canvas is the one exception the
 // brief makes (§4.3): at 1280 × 720 it shows its first line, at 1920 × 1080 two, and a click opens the
-// block with every item in full. Every block but the four half-height ones shows at least one of its items
-// and the selected issue's own (TECH_NOTES §9), and a planted empty block is caught. At Adapt every option of every issue, Accept included, shows in full
+// block with every item in full. Every block shows at least one of its items, the selected issue's own and
+// its count when it hides any, but the four half-height blocks on a screen up to 900 px high (TECH_NOTES
+// §9); a planted empty block is caught. At Adapt every option of every issue, Accept included, shows in full
 // above the bar; on the other steps the panel shows its title and may scroll inside, never the page.
 // The guide opens inside the window. Every target is at its size (the rule in TECH_NOTES §9 and the
 // measure below): 40 px; 32 px on the canvas and in the panel, 44 px there with a touch screen; Vici's guide
@@ -73,7 +74,9 @@ function measure() {
     if (holder && holder.matches(".block")) {
       const b = holder.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      if (r.bottom > b.bottom - 1 || r.right > b.right + 0.5) cut.push(`${label} ends outside the block ${holder.dataset.block}`);
+      // A control's transparent border makes its target bigger, not its text: the box the eye sees counts.
+      const rim = { bottom: parseFloat(cs.borderBottomColor === "rgba(0, 0, 0, 0)" ? cs.borderBottomWidth : 0) || 0, right: parseFloat(cs.borderRightColor === "rgba(0, 0, 0, 0)" ? cs.borderRightWidth : 0) || 0 };
+      if (r.bottom - rim.bottom > b.bottom - 1 || r.right - rim.right > b.right + 0.5) cut.push(`${label} ends outside the block ${holder.dataset.block}`);
     }
   }
   const header = q(".app-header");
@@ -131,8 +134,10 @@ function measure() {
     // Its items, those in view, and the selected issue's own (data-rank 2) with those of them in view.
     const lis = [...el.querySelectorAll(".vc-framework__items > li")];
     const inView = lis.filter((li) => !li.hidden && shows(li));
+    const more = el.querySelector(".block-more");
     return { id: el.dataset.block, ...b, headCut: out, head: head ? Math.round(head.getBoundingClientRect().height) : 0,
-      items: lis.length, shown: inView.length, issueItems: lis.filter((li) => li.dataset.rank === "2").length, issueShown: inView.filter((li) => li.dataset.rank === "2").length };
+      items: lis.length, shown: inView.length, issueItems: lis.filter((li) => li.dataset.rank === "2").length, issueShown: inView.filter((li) => li.dataset.rank === "2").length,
+      count: !!more && !more.hidden && shows(more) };
   });
   const workspace = q(".workspace");
   const current = all("#steps .vc-step").findIndex((li) => li.querySelector("button")?.getAttribute("aria-current") === "step");
@@ -350,10 +355,11 @@ try {
     check(!guideTargets.length, `${size}: in the guide every target is at least 24 px, as Vici draws its own guide`, guideTargets.slice(0, 4).join("; "));
 
     const problems = { fit: [], stepper: [], header: [], talk: [], clearance: [], targets: [], blocks: [], heads: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], adapt: [], items: [] };
-    // The four half-height blocks may keep only their name, state and count on a short screen; every other
-    // block shows at least one item, and the selected issue's own (TECH_NOTES §9).
+    // On a screen up to 900 px high the four half-height blocks may keep only their name and state; every
+    // other block, and at 1920 × 1080 every block, shows at least one item, the selected issue's own, and
+    // its count when it hides any (TECH_NOTES §9).
     const HALF = new Set(["activities", "resources", "relationships", "channels"]);
-    const emptied = (m) => m.blocks.filter((b) => !HALF.has(b.id) && ((b.items && !b.shown) || (b.issueItems && !b.issueShown))).map((b) => `${b.id} (${b.shown} of ${b.items} in view${b.issueItems ? `, the issue's ${b.issueShown} of ${b.issueItems}` : ""})`);
+    const emptied = (m) => m.blocks.filter((b) => !(HALF.has(b.id) && m.viewport.height <= 900) && ((b.items && !b.shown) || (b.issueItems && !b.issueShown) || (b.shown < b.items && !b.count))).map((b) => `${b.id} (${b.shown} of ${b.items} in view${b.issueItems ? `, the issue's ${b.issueShown} of ${b.issueItems}` : ""}${b.shown < b.items && !b.count ? ", no count" : ""})`);
     let plantedCaught = null;
     const inlineLinks = new Set();
     let adaptChecked = 0;
@@ -416,7 +422,7 @@ try {
     check(!problems.cut.length, `${size}: no text is cut off, items' first lines on the canvas apart`, problems.cut.slice(0, 4).join(" | "));
     check(!problems.panel.length, `${size}: where the person decides (Start, Complete, Adapt) the panel shows everything without scrolling`, problems.panel.slice(0, 4).join("; "));
     check(!problems.scrolls.length, `${size}: the panels of Challenge, Assess and Summary show everything without scrolling`, problems.scrolls.slice(0, 6).join("; "));
-    check(!problems.items.length && plantedCaught, `${size}: on every step every block but the four half-height ones shows at least one of its items, and the selected issue's own; a planted empty block is caught`, problems.items.slice(0, 4).join("; ") || (plantedCaught ? "" : "the planted empty Revenue streams went unnoticed"));
+    check(!problems.items.length && plantedCaught, `${size}: on every step every block${height <= 900 ? " but the four half-height ones" : ""} shows at least one of its items, the selected issue's own and its count when it hides any; a planted empty block is caught`, problems.items.slice(0, 4).join("; ") || (plantedCaught ? "" : "the planted empty Revenue streams went unnoticed"));
     // The report dialog at S1's Summary: inside the window, nothing sideways, the downloads and the
     // Ideator link in view in its footer, the pages at size scrolling inside its body.
     await page.goto(`${server.base}?guide=0&lang=${lang}&scenario=s1&step=5`);

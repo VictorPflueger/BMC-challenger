@@ -63,6 +63,15 @@ try {
   check(next === "edit-partners-1" && typed.join("|") === "Port terminals in Hamburg|Bunker suppliers", "typing a block's items key by key keeps every key, Enter adds the next line, and Escape keeps what was typed", JSON.stringify({ next, typed }));
 
   await live.sample(p);
+  // A scenario's company is fictional: the label stands under the canvas, and goes as the name is changed.
+  const label = () => p.evaluate(() => { const f = document.querySelector(".fictional"); return !f.hidden && f.getClientRects().length > 0; });
+  const sampled = await label();
+  const company = await p.inputValue("#live-name");
+  await p.fill("#live-name", `${company} Holding`);
+  const renamed = await label();
+  await p.fill("#live-name", company);
+  const back = await label();
+  check(sampled && !renamed && back, "the scenario's company shows the fictional label under the canvas; renamed, the label goes as the name is typed, and comes back with the name", JSON.stringify({ sampled, renamed, back }));
   await live.openDialog(p);
   await live.start(p);
   await live.waitFor(p, "review");

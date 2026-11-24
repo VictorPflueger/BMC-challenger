@@ -44,7 +44,6 @@ export async function start() {
   // (1600 × 900 too) the Summary's first steps are no taller than the Writer's columns, so the canvas keeps
   // its room; the rest open from "+2 more".
   const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
-  const short = matchMedia("(max-height: 960px) and (min-width: 961px)");
   const params = new URLSearchParams(location.search);
   const state = {
     scenarioId: scenarioById(params.get("scenario")) ? params.get("scenario") : SIM.defaultScenario,
@@ -135,8 +134,9 @@ export async function start() {
     steps: () => { drawStepsDialog(); els.stepsDialog.showModal(); },
     form: (key, value) => {
       setForm({ [key]: value }, { quiet: true });
-      // The missing-name note goes as soon as there is a name.
+      // The missing-name note goes as soon as there is a name; a scenario's company renamed is no longer fictional.
       if (key === "name" && value.trim()) { const err = $("live-name-error"); if (err && !err.hidden) { err.hidden = true; $("live-name").removeAttribute("aria-invalid"); } }
+      if (key === "name") els.fictional.hidden = !live.sampleKept();
     },
     items: (block, texts, redraw = false, focus = -1) => {
       setBlock(block, texts);
@@ -353,10 +353,10 @@ export async function start() {
     const old = !lv && (Date.now() - new Date(`${ctx.sc.as_of}T12:00:00`).getTime()) / 86400000 > SIM.staleDays;
     els.stale.hidden = !old;
     els.stale.querySelector(".stale-text").textContent = lv ? "" : staleWords(ctx.sc, ctx.lang);
-    els.fictional.hidden = lv && !ctx.sc.company.fictional;
+    els.fictional.hidden = lv && !live.sampleKept();
     renderSteps();
     drawPlay();
-    fitSummary(els.panel, short.matches);
+    fitSummary(els.panel);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
     // A block being entered redraws itself when a line comes or goes; redrawn from here as well, it
@@ -378,13 +378,12 @@ export async function start() {
     if (notes.length) els.panel.prepend(...notes);
   }
   new ResizeObserver(() => fitCanvas(els.canvas)).observe(els.canvas);
-  const refit = () => { fitSummary(els.panel, short.matches); fitCanvas(els.canvas); };
+  const refit = () => { fitSummary(els.panel); fitCanvas(els.canvas); };
   window.addEventListener("resize", refit);
   document.fonts?.ready.then(refit);
   // Where the canvas is tight, Vici's compact framework view shows each item's first line.
   const compact = () => els.canvas.classList.toggle("vc-framework--compact", tight.matches);
   tight.addEventListener("change", () => { compact(); refit(); });
-  short.addEventListener("change", refit);
   compact();
   /** Every first step of the chosen responses, in the dialog the summary's "+2 more" opens. */
   function drawStepsDialog() { els.stepsBody.replaceChildren(h("ul", { class: "first-steps" }, firstSteps(context()))); }

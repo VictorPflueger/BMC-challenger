@@ -93,7 +93,7 @@ export default {
   "kpi.pressure.found": "beim Hinterfragen",
   "kpi.pressure.after": "nach Ihrer Wahl",
   "kpi.cost.estimate": "Schätzung für Live-Lauf",
-  "kpi.cost.estimateResearch": "Live-Lauf mit Recherche",
+  "kpi.cost.estimateResearch": "geschätzt, mit Recherche",
 
   // das Canvas
   "item.entered": "Eingetragen",

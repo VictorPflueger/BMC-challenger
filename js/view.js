@@ -205,7 +205,8 @@ export function fitCanvas(el) {
     if (!shown && wide && !tight) { area.classList.add("block--side"); fit(); }
     // With no item in view the list keeps no height; a count that would fall outside the block stays hidden.
     list.hidden = shown === 0;
-    if (!more.hidden && more.getBoundingClientRect().bottom > area.getBoundingClientRect().bottom - 2) more.hidden = true;
+    // Its target reaches past the chip (a transparent border); what counts is the chip the eye sees.
+    if (!more.hidden && more.getBoundingClientRect().bottom - parseFloat(getComputedStyle(more).borderBottomWidth || "0") > area.getBoundingClientRect().bottom - 1) more.hidden = true;
     more.setAttribute("aria-label", t("block.moreLabel", { n: items.length - shown, block: blockName(area.dataset.block) }));
   }
 }
@@ -515,12 +516,11 @@ function panelSummary(ctx, on) {
 
 /**
  * Shows as many first steps as the summary has room for, in the issues' order, then "+2 more", which
- * opens them all. Where the canvas is tight (tight: true, at 1280 × 720) the room ends where the Writer's
- * tallest column ends, so the first steps never make the panel taller than the summary itself and the
- * canvas keeps the height its blocks' names and states need. Run after the panel is in the page and on
- * every resize.
+ * opens them all. The room ends where the Writer's tallest column ends (tight, the default), so the first
+ * steps never make the panel taller than the summary itself and the canvas keeps the room its blocks
+ * need. Run after the panel is in the page and on every resize.
  */
-export function fitSummary(panel, tight = false) {
+export function fitSummary(panel, tight = true) {
   const list = panel.querySelector(".first-steps");
   const more = panel.querySelector(".summary-more");
   if (!list || !more) return;

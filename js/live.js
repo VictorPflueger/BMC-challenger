@@ -74,8 +74,7 @@ export function liveScenario() {
     source: "live",
     as_of: today(),
     facts: [],
-    // A run of a scenario's company, filled in from it and its name kept, is a run of a fictional company.
-    company: { name: s.form.name.trim(), sector: completion.sector || s.form.sector || "general", country: s.form.country.trim(), description: s.form.description.trim(), fictional: !!s.sample && scenarioById(s.sample)?.company.name === s.form.name.trim() },
+    company: { name: s.form.name.trim(), sector: completion.sector || s.form.sector || "general", country: s.form.country.trim(), description: s.form.description.trim(), fictional: sampleKept(s) },
     entered: s.entered,
     answers: {
       completion,
@@ -87,6 +86,11 @@ export function liveScenario() {
     },
     choices: { removed: [], decisions: [] }
   };
+}
+
+/** A run of a scenario's company, filled in from it with its name kept, is a run of a fictional company. */
+export function sampleKept(s = session()) {
+  return !!s.sample && scenarioById(s.sample)?.company.name === s.form.name.trim();
 }
 
 /** The run as it stands, built like a scenario's. */
