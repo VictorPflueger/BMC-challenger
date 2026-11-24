@@ -68,7 +68,8 @@ function prose(step, answer, { facts = [], evidence = {} }, audit, notes) {
 /**
  * The Completer's answer. entered: the canvas the person entered, { blocks: { id: [items] } }.
  * Refused: a block the answer gives more than three new items, a block that ends with fewer than two
- * or more than eight, an empty or over-long text or basis, a sector the library doesn't know.
+ * or more than eight, an empty or over-long text or basis, an item that repeats one the team entered in
+ * its block, a sector the library doesn't know.
  */
 export function completionProblems(answer, { entered, sectors = [], evidence = {} } = {}) {
   const refusals = [];
@@ -85,6 +86,8 @@ export function completionProblems(answer, { entered, sectors = [], evidence = {
   }
   items.forEach((it, i) => {
     if (!filled(it.text) || chars(it.text) > LIMITS.itemText) refusals.push(`item ${i + 1}: the text must have 1 to ${LIMITS.itemText} characters`);
+    // The team's items stay theirs (brief 6.7): an item that repeats one of them in its block is refused.
+    if (filled(it.text) && (entered?.blocks?.[it.block] || []).some((e) => normalise(e.text).toLowerCase() === normalise(it.text).toLowerCase())) refusals.push(`item ${i + 1}: repeats the team's item "${it.text}" in ${it.block}; never repeat, change or remove their items`);
     if (!filled(it.basis) || chars(it.basis) > LIMITS.itemBasis) refusals.push(`item ${i + 1}: the basis must have 1 to ${LIMITS.itemBasis} characters`);
   });
   prose("complete", { items }, { evidence }, audit, notes);

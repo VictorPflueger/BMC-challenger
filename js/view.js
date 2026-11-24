@@ -464,9 +464,9 @@ function panelSummary(ctx, on) {
   const col = (title, ...body) => h("section", { class: "summary__col" }, h("h2", { class: "panel-title" }, title), body);
   return [
     h("div", { class: "summary" },
-      col(t("p.summary.findings", null, lang), h("ol", {}, s.findings.map((f) => h("li", {}, writerText(f, run, lang))))),
-      col(t("p.summary.recommendation", null, lang), h("p", {}, writerText(s.recommendation, run, lang))),
-      col(t("p.summary.assumptions", null, lang), h("ul", {}, s.assumptions.map((a) => h("li", {}, writerText(a, run, lang))))),
+      col(t("p.summary.findings", null, lang), h("ol", {}, s.findings.map((f) => h("li", {}, writerText(f, run, ctx.live?.lang || lang))))),
+      col(t("p.summary.recommendation", null, lang), h("p", {}, writerText(s.recommendation, run, ctx.live?.lang || lang))),
+      col(t("p.summary.assumptions", null, lang), h("ul", {}, s.assumptions.map((a) => h("li", {}, writerText(a, run, ctx.live?.lang || lang))))),
       col(t("p.summary.next", null, lang),
         steps.length ? h("ul", { class: "first-steps" }, steps) : h("p", {}, t("p.summary.noSteps", null, lang)),
         steps.length ? h("button", { type: "button", class: "block-more summary-more", id: "summary-more", hidden: true, on: { click: () => on.steps?.() } }) : null))

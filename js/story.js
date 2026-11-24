@@ -60,8 +60,9 @@ export function stepWords(ctx) {
         : { title: t("st.adapt.title", { n: before.count }, lang), lead: t("st.adapt.lead", null, lang) };
     default:
       return {
-        title: writerText(sc.answers.summary.headline, run, lang),
-        lead: writerText(sc.answers.summary.situation, run, lang)
+        // A live run's summary keeps the language it was written in, its figures too.
+        title: writerText(sc.answers.summary.headline, run, ctx.live?.lang || lang),
+        lead: writerText(sc.answers.summary.situation, run, ctx.live?.lang || lang)
       };
   }
 }

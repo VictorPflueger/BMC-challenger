@@ -112,6 +112,8 @@ export async function install(context, { script = () => undefined, research = fa
     const use = usage ? usage(agent, body, n) : {};
     const text = r.content.filter((b) => b.type === "text").map((b) => b.text).join("");
     const usageOut = { input_tokens: use.input_tokens ?? tok(body), output_tokens: use.output_tokens ?? tok(text || r.content), web_search_requests: use.web_search_requests ?? u.web_search_requests ?? 0 };
+    calls[calls.length - 1].usage = usageOut;
+    calls[calls.length - 1].content = r.content;
     return route.fulfill({ status: 200, headers: { ...CORS, "content-type": "text/event-stream", "request-id": `req_${agent}_${n}` }, body: sse({ model: body.model, content: r.content, stop: r.stop || "end_turn", usage: usageOut }) });
   });
   return { calls, gets, defaults };

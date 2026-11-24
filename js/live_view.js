@@ -17,7 +17,8 @@ const notice = (lang) => h("p", { class: "vc-help live-public" }, icon("info"), 
 
 /** The Start panel of a live run: the company, the notice, and a scenario's canvas to start from. */
 export function panelLiveStart(ctx, on) {
-  const { lang, form, started, sample } = ctx.live;
+  const { lang } = ctx;
+  const { form, started, sample } = ctx.live;
   const lock = started ? { disabled: true } : {};
   const input = (id, key, max, extra = {}) => h("input", { class: "vc-input", id, type: "text", maxlength: String(max), value: form[key], autocomplete: "off", ...lock, ...extra, on: { input: (e) => on.form(key, e.target.value) } });
   const sector = h("select", { class: "vc-select", id: "live-sector", ...lock, on: { change: (e) => on.form("sector", e.target.value) } },
