@@ -34,8 +34,8 @@ try {
   await p.goto(`${server.base}?guide=0`);
   await p.waitForSelector('html[data-boot="ready"]');
   await live.enter(p);
-  const start = await p.evaluate(() => ({ tape: document.getElementById("mode-text").textContent, fictional: document.querySelector(".fictional").hidden, play: document.getElementById("play").hidden, form: !!document.getElementById("live-name"), url: location.search }));
-  check(start.tape === EN["p.mode.live"] && start.fictional && start.play && start.form && !/scenario|step/.test(start.url), "Run it live puts LIVE on the tape, opens the Start form, hides Play and the fictional label, and keeps the address bare", JSON.stringify(start));
+  const start = await p.evaluate(() => ({ tape: document.getElementById("mode-text").textContent, tip: document.getElementById("tip-mode").textContent, fictional: document.querySelector(".fictional").hidden, play: document.getElementById("play").hidden, form: !!document.getElementById("live-name"), url: location.search }));
+  check(start.tape === EN["p.mode.live"] && start.tip === EN["p.mode.tip.live"] && start.fictional && start.play && start.form && !/scenario|step/.test(start.url), "Run it live puts LIVE on the tape with its own tooltip, opens the Start form, hides Play and the fictional label, and keeps the address bare", JSON.stringify(start));
   const waiting = await tiles(p);
   check(waiting.stake.main === "…" && waiting.stake.note === EN["kpi.wait.analyst"] && waiting.pressure.main === "…" && waiting.pressure.note === EN["kpi.wait.redteam"] && waiting.cost.main === "…", "before the agents answer, each tile shows … and what it waits for", JSON.stringify(waiting));
 
@@ -105,8 +105,8 @@ try {
   // ---- the language stays the run's --------------------------------------------------------------------------
   await p.click('.lang-option[data-lang="de"]');
   await p.waitForTimeout(300);
-  const de = await p.evaluate(() => ({ step: document.querySelector("#steps .vc-step:nth-child(1) .vc-step__label")?.textContent || "", title: document.getElementById("step-title").textContent, panel: document.getElementById("panel").textContent, next: document.getElementById("btn-cta")?.textContent.trim() }));
-  check(de.title === headline && de.panel.includes(DE["live.lang.kept"].replace("{lang}", DE["lang.en"])) && de.next === DE["live.again"], "switched to German, the interface changes, the analysis stays in English and says so", JSON.stringify({ ...de, panel: de.panel.slice(0, 120) }));
+  const de = await p.evaluate(() => ({ step: document.querySelector("#steps .vc-step:nth-child(1) .vc-step__label")?.textContent || "", title: document.getElementById("step-title").textContent, panel: document.getElementById("panel").textContent, next: document.getElementById("btn-cta")?.textContent.trim(), tape: document.getElementById("mode-text").textContent, tip: document.getElementById("tip-mode").textContent }));
+  check(de.title === headline && de.panel.includes(DE["live.lang.kept"].replace("{lang}", DE["lang.en"])) && de.next === DE["live.again"] && de.tape === DE["p.mode.live"] && de.tip === DE["p.mode.tip.live"], "switched to German, the interface changes (the tape and its tooltip too), the analysis stays in English and says so", JSON.stringify({ ...de, panel: de.panel.slice(0, 120) }));
   await p.click('.lang-option[data-lang="en"]');
 
   // ---- the browser asks before leaving ----------------------------------------------------------------------

@@ -5,10 +5,12 @@
 // minimum; a run that can't go on stops before the request, says "Stopped at your budget cap after
 // <step>", sends nothing more, marks the rest not run and keeps what is done in its record (the report
 // of M4 prints it on every page); the meter equals the usage of every answer times its price plus $0.01
-// a search, at 0.894, within 1e-9; the Session cost tile shows the spend with the cap in its note.
+// a search, at 0.894, within 1e-9; the Session cost tile shows the spend with the cap in its note; the
+// run's last console line gives each agent's requests, tokens, searches, seconds and cost, which add up
+// to the meter, and nothing the person entered (what Victor sends back after his live runs, G26).
 // Prints LIVE BUDGET OK. Usage: node tests/live-budget.mjs
 import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
-import { install, live } from "./lib/standin.mjs";
+import { install, live, KEY } from "./lib/standin.mjs";
 import { fitToCap, worstCaseUsd } from "../js/budget.js";
 import { MODELS, AGENT_TOKENS, FX_USD_EUR } from "../js/config.js";
 import EN from "../js/i18n/en.js";
@@ -50,12 +52,28 @@ try {
   // ---- the meter, on two settings with research ---------------------------------------------------------
   for (const preset of ["balanced", "thorough"]) {
     const { ctx, p, api } = await page({ research: true });
+    const lines = [];
+    p.on("console", (m) => lines.push(m.text()));
     const end = await live.full(p, { preset, research: true });
     const usd = spent(api.calls);
     const tile = await p.evaluate(() => ({ main: document.querySelector("#kpi-cost .kpi-main").textContent, note: document.querySelector("#kpi-cost .kpi-note").textContent }));
     check(end.status === "done" && Math.abs(end.cost.usd - usd) < 1e-9 && Math.abs(end.cost.eur - usd * 0.894) < 1e-9 && end.cost.requests === api.calls.length,
       `${preset}: the meter equals usage times price plus $0.01 a search, at 0.894, within 1e-9 ($${usd.toFixed(6)})`, JSON.stringify({ meter: end.cost, usd }));
     check(/€0\.50/.test(tile.note) && tile.main !== "…", `${preset}: the Session cost tile shows the spend with the cap in its note`, JSON.stringify(tile));
+    // The measured line: per agent, what its requests reported; together, the meter.
+    const line = lines.find((l) => l.includes("Measured: ")) || "";
+    let m = null;
+    try { m = JSON.parse(line.slice(line.indexOf("Measured: ") + 10)); } catch { /* no line */ }
+    const agents = [...new Set(api.calls.map((c) => c.agent))];
+    const perAgent = m && agents.every((a) => {
+      const calls = api.calls.filter((c) => c.agent === a);
+      const st = m.steps[a];
+      return st && st.requests === calls.length && st.output === calls.reduce((n, c) => n + c.usage.output_tokens, 0) && st.input === calls.reduce((n, c) => n + c.usage.input_tokens, 0) && st.searches === calls.reduce((n, c) => n + c.usage.web_search_requests, 0) && st.seconds >= 0;
+    });
+    const sum = m ? Object.values(m.steps).reduce((n, st) => n + st.usd, 0) : NaN;
+    const clean = !line.includes(KEY) && !line.includes("Tidewell") && !line.includes("Bremen");
+    check(m && m.setting === preset && m.research === true && m.status === "done" && perAgent && Math.abs(sum - usd) < 1e-5 && Math.abs(m.usd - usd) < 1e-6 && clean,
+      `${preset}: the run's last console line gives each agent's requests, tokens, searches, seconds and cost, adding up to the meter, and nothing the person entered`, line.slice(0, 300));
     await ctx.close();
   }
 

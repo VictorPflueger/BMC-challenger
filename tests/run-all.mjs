@@ -21,7 +21,7 @@ const SUITES = [
   { id: "prompts", what: "the six agents' prompts: under 600 words, the shared rules first, schemas within the limits, the estimate built from them", file: "tests/prompts.mjs", browser: false },
   { id: "policy", what: "the security policy exactly as the brief has it, nothing loaded from elsewhere, no inline script or style", file: "tests/policy.mjs", browser: false },
   { id: "decisions", what: "the four decisions after 0.2.0, settled with Vici first: theme script, first lines, German words, recorded", file: "tests/decisions.mjs", browser: false },
-  { id: "lean", what: "the presenter's size, no request before the live client, the design review's cuts, the docs' length", file: "tests/lean.mjs", browser: false },
+  { id: "lean", what: "the presenter's size, requests only from the live client, the design review's cuts, the docs' length", file: "tests/lean.mjs", browser: false },
   { id: "hygiene", what: "no client, prospect, contact or meeting named in any published file", file: "tests/hygiene.mjs", browser: false },
   { id: "parity", what: "the shared parts equal every sibling that has them", file: "tests/parity.mjs", browser: false },
   { id: "docs", what: "the documents: sections, length, version, every path they name", file: "tests/docs.mjs", browser: false },

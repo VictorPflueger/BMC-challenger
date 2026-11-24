@@ -15,7 +15,7 @@
 
 import { session, updateRun, resetRun, markResult } from "./session.js";
 import { getKey, redactSecrets } from "./keystore.js";
-import { createCostTracker } from "./cost.js";
+import { createCostTracker, normalizeUsage, usageCostUsd } from "./cost.js";
 import { presetById, RUN, APP, KNOWLEDGE_CUTOFF } from "./config.js";
 import { inputFor } from "./prompts.js";
 import { runAgent, StopError } from "./pipeline.js";
@@ -130,7 +130,15 @@ function context() {
       if (e.type === "repair") console.info(TAG, `The ${e.agent}'s answer broke ${e.problems.length} rule(s) and went back once.`);
       if (e.type === "retry") console.info(TAG, `The API answered ${e.status || "nothing"}; trying again in ${(e.waitMs / 1000).toFixed(1)} s.`);
       if (e.type === "cut") console.info(TAG, `Near the budget cap: the ${e.agent} may write ${e.maxTokens} tokens at most.`);
-      if (e.type === "answer") put({ seconds: { ...session().run.seconds, [e.agent]: Math.round(e.ms / 100) / 10 } });
+      if (e.type === "answer") {
+        const run = session().run;
+        const was = run.usage[e.agent] || { requests: 0, input: 0, output: 0, searches: 0, usd: 0, seconds: 0 };
+        const u = normalizeUsage(e.usage);
+        put({
+          seconds: { ...run.seconds, [e.agent]: Math.round(e.ms / 100) / 10 },
+          usage: { ...run.usage, [e.agent]: { requests: was.requests + 1, input: was.input + u.input_tokens, output: was.output + u.output_tokens, searches: was.searches + u.web_search_requests, usd: was.usd + usageCostUsd(presetById(run.settings.preset).model, e.usage), seconds: Math.round((was.seconds + e.ms / 1000) * 10) / 10 } }
+        });
+      }
     }
   };
 }
@@ -143,6 +151,18 @@ async function step(agent, schemaName, input, check) {
   return out.answer;
 }
 
+/**
+ * What the run measured, as one console line for the presenter and for the estimate's next check
+ * (G26 of M3): the setting, then per agent its requests, tokens, searches, cost and seconds, and the
+ * totals. Counts and times only: nothing the person entered, nothing an agent wrote, never the key.
+ */
+function logMeasured() {
+  const r = session().run;
+  const p = presetById(r.settings.preset);
+  const steps = Object.fromEntries(Object.entries(r.usage).map(([a, u]) => [a, { ...u, usd: Math.round(u.usd * 1e6) / 1e6 }]));
+  console.info(TAG, `Measured: ${JSON.stringify({ setting: p.id, model: p.model, effort: p.effort, research: !!r.settings.research, cap_eur: r.settings.capEur, status: r.status, repairs: r.repairs, usd: Math.round(r.cost.usd * 1e6) / 1e6, eur: Math.round(r.cost.eur * 1e6) / 1e6, requests: r.cost.requests, steps })}`);
+}
+
 /** Ends the run early with what is done: why, and at which step. */
 function stop(e, agent) {
   const cause = e instanceof StopError ? (e.kind === "cap" ? "cap" : "repair") : causeOf(e);
@@ -150,6 +170,7 @@ function stop(e, agent) {
   const detail = cause === "invalid" ? redactSecrets(String(e?.message || "")).slice(0, 160) : "";
   updateRun({ status: "stopped", agent: null, stopped: { cause, step: at, agent, detail, problems: e?.problems || [] } });
   console.info(TAG, cause === "aborted" ? `Stopped by Abort at the ${agent}; the steps done stay.` : `Stopped at the ${agent}: ${cause}. The steps done stay.`);
+  logMeasured();
   if (session().run.reached > 0) markResult();
 }
 
@@ -245,6 +266,7 @@ export async function apply() {
     markResult();
     const c = session().run.cost;
     console.info(TAG, `The Writer wrote the summary. The run cost $${c.usd.toFixed(4)} (€${c.eur.toFixed(4)}) in ${c.requests} request(s).`);
+    logMeasured();
   });
 }
 

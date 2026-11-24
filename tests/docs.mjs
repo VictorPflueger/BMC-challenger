@@ -56,6 +56,14 @@ for (const [f, rule] of Object.entries(DOCS)) {
   if (rule.version && !t.includes(rule.version)) problems.push(`${f} does not name "${rule.version}"`);
 }
 if (text["README.md"] && !text["README.md"].includes(LIVE_URL)) problems.push(`README.md does not link the published site (${LIVE_URL})`);
+// The guides say which version this is, in their What is real chapter.
+{
+  const page = fs.readFileSync(path.join(APP_ROOT, "index.html"), "utf8");
+  for (const head of ["This version", "Diese Version"]) {
+    const row = (page.match(new RegExp(`<th scope="row">${head}</th><td>([^<]*)</td>`)) || [])[1] || "";
+    if (!row.startsWith(`${APP.version} `)) problems.push(`index.html's guide row "${head}" does not open with ${APP.version} ("${row.slice(0, 40)}")`);
+  }
+}
 
 // The canvas's credit, the licence and the dates.
 const sources = text["DATA_SOURCES.md"] || "";

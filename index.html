@@ -32,7 +32,7 @@
     <div class="header-actions">
       <span class="vc-tooltip-anchor">
         <span class="vc-tag vc-tag--lg mode-tag" id="mode-tag" data-mode="simulation" tabindex="0" aria-describedby="tip-mode"><span id="mode-text" data-i18n="p.mode.simulation">SIMULATION</span></span>
-        <span class="vc-tooltip vc-tooltip--bottom" role="tooltip" id="tip-mode" data-i18n="p.mode.tip">Plays recorded agent answers through the real engine: no model is called. Run it live, with your own Claude key, arrives in 0.3.0.</span>
+        <span class="vc-tooltip vc-tooltip--bottom" role="tooltip" id="tip-mode" data-i18n="p.mode.tip">Plays recorded agent answers through the real engine: no model is called. Run it live works on your company with your own Claude key.</span>
       </span>
       <!-- One guide per language, each with its own button; js/lang.js shows the page's. -->
       <button type="button" class="vc-button vc-button--secondary guide-open" data-vc-guide-open="guide-en" lang="en"><span class="vc-icon vc-icon--info" aria-hidden="true"></span>How it works</button>
@@ -88,8 +88,8 @@
   </div>
 
   <!-- The talk track's bar: Play, Pause or Replay on one button, then the six steps between Back and Next,
-       then Run it live with the AI notice beside it (Vici, Presenting step by step). Run it live arrives
-       in 0.3.0. -->
+       then Run it live with the AI notice beside it (Vici, Presenting step by step). In a live run Play
+       stands aside and Run it live reads Back to the simulation. -->
   <nav class="talk" aria-label="Steps of the run" data-i18n-attr="aria-label:p.talk">
     <button type="button" class="vc-button vc-button--secondary play" id="play" data-state="play"><span class="vc-icon vc-icon--play" aria-hidden="true"></span><span id="play-text">Play</span></button>
     <button type="button" class="vc-button vc-button--ghost stepbar-back" id="btn-back" disabled><span class="vc-icon vc-icon--chevron-left" aria-hidden="true"></span><span data-i18n="p.back">Back</span></button>
@@ -176,7 +176,7 @@
           <input class="vc-input" id="live-key" type="password" autocomplete="off" spellcheck="false" data-1p-ignore data-lpignore="true" aria-describedby="live-key-note" placeholder="sk-ant-…">
           <button type="button" class="vc-icon-button" id="live-key-show" aria-controls="live-key" aria-pressed="false" aria-label="Show key" data-i18n-attr="aria-label:live.key.show"><span class="vc-icon vc-icon--eye" aria-hidden="true"></span></button>
         </div>
-        <p class="vc-help" id="live-key-note"><span data-i18n="live.key.note">Needs a key from the Claude Console; a Claude.ai plan doesn't pay for API calls. It stays in this tab's memory and is gone when you close or reload it. A workspace with a monthly spend limit keeps a key safe.</span> <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="live.key.link">Get a key</a></p>
+        <p class="vc-help" id="live-key-note"><span data-i18n="live.key.note">You need a key from the Claude Console; a Claude.ai plan doesn't pay for API calls. The key stays in this tab's memory and is gone when you close the tab or reload the page. A workspace with a monthly spend limit keeps a key safe.</span> <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="live.key.link">Get a key</a></p>
         <p class="vc-live__current" id="live-key-held" hidden><span data-i18n="live.key.held">Key in memory:</span> <span class="vc-live__masked" id="live-key-masked"></span> <button type="button" class="vc-button vc-button--ghost vc-button--sm vc-live__forget" id="live-forget" data-i18n="live.key.forget">Forget key</button></p>
       </section>
       <fieldset class="vc-live__part vc-live__setting">
@@ -235,7 +235,7 @@
       </section>
       <section class="vc-guide__chapter" data-vc-chapter="how" data-vc-nav="How it works">
         <h3>Agents write, code computes every figure</h3>
-        <p class="vc-guide__lead">Five agents each return one structured answer. Code checks each answer, prices every issue by its impact, likelihood and euro range, and works out the three figures at the top.</p>
+        <p class="vc-guide__lead">Five agents, six with research, each return one structured answer. Code checks each answer, prices every issue by its impact, likelihood and euro range, and works out the three figures at the top.</p>
         <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
           <caption>Key figures</caption>
           <thead><tr><th scope="col">Figure</th><th scope="col">What it measures</th><th scope="col" class="vc-num">Tidewell Lines</th></tr></thead>
@@ -256,8 +256,8 @@
             <tr><th scope="row">Fictional</th><td>The three companies and their own figures</td></tr>
             <tr><th scope="row">The canvas</th><td>Adapted from The Business Model Canvas by Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); the questions on each block are this tool's own</td></tr>
             <tr><th scope="row">Kept</th><td>Nothing: your key and your inputs stay in this tab's memory and are gone when you close it</td></tr>
-            <tr><th scope="row">The agents</th><td>Recorded: the simulation plays answers written for each company and checked against the same rules a live run must pass</td></tr>
-            <tr><th scope="row">This version</th><td>0.2.0 plays the three companies; Run it live with your own Claude key arrives in 0.3.0, the report as PDF, HTML and JSON in 0.4.0</td></tr>
+            <tr><th scope="row">The agents</th><td>In the simulation, recorded: answers written for each company and checked against the same rules a live run must pass. In a live run, Claude models working on your own key</td></tr>
+            <tr><th scope="row">This version</th><td>0.3.0 plays the three companies and runs live on your own Claude key; the report as PDF, HTML and JSON arrives in 0.4.0</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -268,8 +268,8 @@
           <li><strong>Point at the key figures.</strong> <span class="vc-guide__say">“Tidewell Lines has <span data-fig="lead.stake">€32.9m</span> a year at stake and <span data-fig="lead.pressure">6 of 9</span> blocks under pressure. A live run like this would cost <span data-fig="lead.cost">≈ €0.05</span>.”</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Start and Complete: the AI's additions.</strong> <span class="vc-guide__say">“The team filled five blocks. The agents added <span data-fig="lead.ai">10</span> items in lilac, and each says what it rests on.”</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Challenge: the first issue.</strong> <span class="vc-guide__say">“Emission allowances raise the cost of every European call, and the source is the Commission's own page.”</span> <span class="vc-guide__time">1 min</span></li>
-          <li><strong>Adapt: choose and apply.</strong> <span class="vc-guide__say">“Pass the cost on, plan both routes, sell an emissions statement: <span data-fig="lead.left">€7.8m</span> is left a year, and <span data-fig="lead.pressureAfter">2 of 9</span> blocks stay under pressure.”</span> <span class="vc-guide__time">1.5 min</span></li>
-          <li><strong>Summary: what to do first.</strong> <span class="vc-guide__say">“Agents wrote the words, code computed every figure, and the canvas credits Strategyzer.”</span> <span class="vc-guide__time">0.5 min</span></li>
+          <li><strong>Adapt: choose and apply.</strong> <span class="vc-guide__say">“Pass the cost on, plan both routes, sell an emissions statement: <span data-fig="lead.left">€7.8m</span> is left a year, and <span data-fig="lead.pressureAfter">2 of 9</span> blocks stay under pressure.”</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Summary, then your company.</strong> <span class="vc-guide__say">“Agents wrote the words, code computed every figure, and the canvas credits Strategyzer. Run it live does the same for your company, on your own Claude key.”</span> <span class="vc-guide__time">1 min</span></li>
         </ol>
       </section>
     </div>
@@ -300,14 +300,14 @@
       </section>
       <section class="vc-guide__chapter" data-vc-chapter="how" data-vc-nav="So funktioniert's">
         <h3>Agenten schreiben, Code rechnet jede Zahl</h3>
-        <p class="vc-guide__lead">Fünf Agenten geben je eine strukturierte Antwort. Code prüft jede Antwort, bewertet jede Schwachstelle nach Auswirkung, Wahrscheinlichkeit und Euro-Spanne und errechnet die drei Kennzahlen oben.</p>
+        <p class="vc-guide__lead">Fünf Agenten, mit Recherche sechs, geben je eine strukturierte Antwort. Code prüft jede Antwort, bewertet jede Schwachstelle nach Auswirkung, Wahrscheinlichkeit und Euro-Spanne und errechnet die drei Kennzahlen oben.</p>
         <div class="vc-table-wrap"><table class="vc-table vc-table--compact">
           <caption>Kennzahlen</caption>
           <thead><tr><th scope="col">Kennzahl</th><th scope="col">Was sie misst</th><th scope="col" class="vc-num">Tidewell Lines</th></tr></thead>
           <tbody>
             <tr><th scope="row">Risiko pro Jahr</th><td>Der erwartete Verlust pro Jahr aus den gefundenen Schwachstellen: die Mitte jeder Euro-Spanne mal ihre Wahrscheinlichkeit. Nach Ihrer Wahl zeigt sie, was bleibt, den alten Wert durchgestrichen</td><td class="vc-num"><span data-fig="lead.stake">32,9 Mio. €</span></td></tr>
             <tr><th scope="row">Bausteine unter Druck</th><td>Wie viele der neun Bausteine eine Schwachstelle der Stufe mittel oder höher tragen</td><td class="vc-num"><span data-fig="lead.pressure">6 von 9</span></td></tr>
-            <tr><th scope="row">Sitzungskosten</th><td>Was die Modellaufrufe kosten: im Live-Lauf gemessen gegen die Obergrenze; in der Simulation geschätzt für einen Live-Lauf desselben Unternehmens mit der Einstellung Balanced, zu 0,894 € je Dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ 0,05 €</span></td></tr>
+            <tr><th scope="row">Sitzungskosten</th><td>Was die Modellaufrufe kosten: im Live-Lauf gemessen gegen die Ausgabegrenze; in der Simulation geschätzt für einen Live-Lauf desselben Unternehmens mit der Einstellung Ausgewogen, zu 0,894 € je Dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ 0,05 €</span></td></tr>
           </tbody>
         </table></div>
       </section>
@@ -321,8 +321,8 @@
             <tr><th scope="row">Fiktiv</th><td>Die drei Unternehmen und ihre eigenen Zahlen</td></tr>
             <tr><th scope="row">Das Canvas</th><td>Angepasst nach dem Business Model Canvas der Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); die Fragen in den Bausteinen stammen von diesem Werkzeug</td></tr>
             <tr><th scope="row">Gespeichert</th><td>Nichts: Ihr Schlüssel und Ihre Eingaben bleiben im Speicher dieses Tabs und sind weg, wenn Sie ihn schließen</td></tr>
-            <tr><th scope="row">Die Agenten</th><td>Aufgezeichnet: Die Simulation spielt Antworten ab, die für jedes Unternehmen geschrieben und nach denselben Regeln geprüft sind, die ein Live-Lauf erfüllen muss</td></tr>
-            <tr><th scope="row">Diese Version</th><td>0.2.0 spielt die drei Unternehmen ab; Live starten mit Ihrem eigenen Claude-Schlüssel kommt mit 0.3.0, der Bericht als PDF, HTML und JSON mit 0.4.0</td></tr>
+            <tr><th scope="row">Die Agenten</th><td>In der Simulation aufgezeichnet: Antworten, die für jedes Unternehmen geschrieben und nach denselben Regeln geprüft sind, die ein Live-Lauf erfüllen muss. Im Live-Lauf Claude-Modelle, die mit Ihrem eigenen Schlüssel arbeiten</td></tr>
+            <tr><th scope="row">Diese Version</th><td>0.3.0 spielt die drei Unternehmen ab und läuft live mit Ihrem eigenen Claude-Schlüssel; der Bericht als PDF, HTML und JSON kommt mit 0.4.0</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -333,8 +333,8 @@
           <li><strong>Auf die Kennzahlen zeigen.</strong> <span class="vc-guide__say">„Bei Tidewell Lines stehen <span data-fig="lead.stake">32,9 Mio. €</span> im Jahr auf dem Spiel, <span data-fig="lead.pressure">6 von 9</span> Bausteinen stehen unter Druck. Ein Live-Lauf wie dieser kostet <span data-fig="lead.cost">≈ 0,05 €</span>.“</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Start und Ergänzen: was die KI hinzufügt.</strong> <span class="vc-guide__say">„Das Team hat fünf Bausteine gefüllt. Die Agenten haben <span data-fig="lead.ai">10</span> Einträge in Lila ergänzt, und jeder sagt, worauf er beruht.“</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Hinterfragen: die erste Schwachstelle.</strong> <span class="vc-guide__say">„Emissionszertifikate verteuern jeden Anlauf in Europa, und die Quelle ist die Seite der Kommission selbst.“</span> <span class="vc-guide__time">1 min</span></li>
-          <li><strong>Anpassen: wählen und anwenden.</strong> <span class="vc-guide__say">„Kosten weitergeben, beide Routen planen, eine Emissionsbescheinigung verkaufen: Es bleiben <span data-fig="lead.left">7,8 Mio. €</span> im Jahr, und <span data-fig="lead.pressureAfter">2 von 9</span> Bausteinen bleiben unter Druck.“</span> <span class="vc-guide__time">1,5 min</span></li>
-          <li><strong>Fazit: was zuerst zu tun ist.</strong> <span class="vc-guide__say">„Die Agenten haben die Worte geschrieben, Code hat jede Zahl gerechnet, und das Canvas nennt Strategyzer als Quelle.“</span> <span class="vc-guide__time">0,5 min</span></li>
+          <li><strong>Anpassen: wählen und anwenden.</strong> <span class="vc-guide__say">„Kosten weitergeben, beide Routen planen, eine Emissionsbescheinigung verkaufen: Es bleiben <span data-fig="lead.left">7,8 Mio. €</span> im Jahr, und <span data-fig="lead.pressureAfter">2 von 9</span> Bausteinen bleiben unter Druck.“</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Fazit, dann Ihr Unternehmen.</strong> <span class="vc-guide__say">„Die Agenten haben die Worte geschrieben, Code hat jede Zahl gerechnet, und das Canvas nennt Strategyzer als Quelle. Live starten macht dasselbe für Ihr Unternehmen, mit Ihrem eigenen Claude-Schlüssel.“</span> <span class="vc-guide__time">1 min</span></li>
         </ol>
       </section>
     </div>

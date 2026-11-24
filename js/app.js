@@ -194,6 +194,7 @@ export async function start() {
     const lv = isLive();
     els.mode.dataset.mode = lv ? "live" : "simulation";
     els.modeText.textContent = t(lv ? "p.mode.live" : "p.mode.simulation");
+    $("tip-mode").textContent = t(lv ? "p.mode.tip.live" : "p.mode.tip");
     els.liveText.textContent = t(lv ? "p.live.back" : "p.live");
     els.play.hidden = lv;
     document.body.dataset.mode = lv ? "live" : "simulation";

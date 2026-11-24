@@ -30,7 +30,8 @@ export function blankRun() {
     stopped: null,             // { cause, step, message } once the run stops early
     cost: { usd: 0, eur: 0, requests: 0, input_tokens: 0, output_tokens: 0, web_searches: 0 },
     repairs: 0,
-    seconds: {}                // agent → seconds its request took
+    seconds: {},               // agent → seconds its request took
+    usage: {}                  // agent → { requests, input, output, searches, usd, seconds }, all its requests
   };
 }
 
