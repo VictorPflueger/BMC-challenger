@@ -2,11 +2,11 @@
 
 Find where a business model breaks, and rebuild it.
 
-Live at <https://victorpflueger.github.io/BMC-challenger/>. This is version 0.2.0, the simulation: three fictional companies play through the six steps in English and German, with Play, the key figures and the talk track. Run it live arrives in 0.3.0 and the report in 0.4.0; [PLAN.md](PLAN.md) has the milestones.
+Live at <https://victorpflueger.github.io/BMC-challenger/>. This is version 0.3.0: three fictional companies play through the six steps in English and German without a key, and Run it live sets six agents to work on your company with your own Claude API key. The report arrives in 0.4.0; [PLAN.md](PLAN.md) has the milestones.
 
 ## What it does
 
-A person names a company and fills in as much of its Business Model Canvas as they know. AI agents complete the nine blocks, mark the blocks under pressure in red and estimate what each issue costs a year, using the KPIs of the company's sector. For each issue they propose a way to mitigate it or turn it into an advantage, and they write a management summary. The person keeps or removes the AI's items and picks one response per issue. Code, not the model, computes every figure. The report downloads as a PDF, as an HTML file and as a JSON file for the Prototype Ideator.
+A person names a company and fills in as much of its Business Model Canvas as they know. AI agents complete the nine blocks, mark the blocks under pressure in red and estimate what each issue costs a year, using the KPIs of the company's sector. For each issue they propose a way to mitigate it or turn it into an advantage, and they write a management summary. The person keeps or removes the AI's items and picks one response per issue. Code, not the model, computes every figure. From 0.4.0 the report downloads as a PDF, as an HTML file and as a JSON file for the Prototype Ideator.
 
 Three key figures stand at the top right: what the issues put at stake a year, how many of the nine blocks are under pressure, and what a live run of the same company would cost. They answer first: before anything plays, they show the company's figures, and after the decision each keeps its old value struck through beside the new one.
 
@@ -14,9 +14,15 @@ Three key figures stand at the top right: what the issues put at stake a year, h
 
 The simulation plays three fictional companies without a key: Tidewell Lines, a container carrier; Arvento Drives, a maker of industrial drives; and Auental Energie, a municipal utility. Each is a run of the five agents written by hand and checked by the same rules a live run must pass. Their own figures are invented and illustrative; what they meet in the world, such as a law or a price, is real and shows its source and the date it was read ([DATA_SOURCES.md](DATA_SOURCES.md)). Any choice works: the engine computes every figure from the choices made, not from the recording.
 
-A live run takes your company and your own Claude API key. You choose the setting and a budget cap. The key and everything you enter stay in the tab's memory and are gone when you close or reload it, so you keep a result only by downloading it. The browser remembers two choices and nothing else: the theme and the language.
+A live run takes your company and your own Claude API key. The key and everything you enter stay in the tab's memory and are gone when you close or reload it; from 0.4.0 you keep a result by downloading it. The browser remembers two choices and nothing else: the theme and the language.
 
 Public information only: never enter confidential, personal or otherwise protected data.
+
+## A live run
+
+Run it live opens a form for the company and its canvas, block by block; "Start from Tidewell Lines's canvas" fills both. The dialog takes your key, a setting and a budget cap. Six agents then work in turn, one request each: the Completer fills the gaps, the Scout reads recent news if you switch research on, the Red team finds the issues, the Analyst puts a figure on them, the Strategist proposes the responses and the Writer sums up. The run waits for you twice: to review the AI's items and to choose a response per issue.
+
+Each request goes from your browser to `api.anthropic.com` alone, with your key, and carries the company, the canvas and what the agents before it found. For a canvas the size of Tidewell Lines', a run is estimated at under €0.01 on Fast and on Balanced, both Haiku 5.5, and about €0.12 on Thorough, Sonnet 5.5; research adds about €0.05 for up to five web searches. The run stops before any request that could pass your cap. [TECH_NOTES.md](TECH_NOTES.md) §12 and §13 have the details.
 
 ## The canvas
 
@@ -24,7 +30,7 @@ The Business Model Canvas comes from [Strategyzer.com](https://www.strategyzer.c
 
 ## Run it
 
-The tool is static HTML, CSS and JavaScript modules, with no build step and no dependency. Serve the folder over http, for example with `python -m http.server 8000`, and open <http://localhost:8000>. Browsers don't run its modules from a file. `?lang=de` opens it in German, `?guide=0` keeps the guide closed and `?scenario=s2&step=4` opens the second company at Adapt, played up to there with the recorded choices. Space plays and pauses; the arrow keys and a clicker move between the steps.
+The tool is static HTML, CSS and JavaScript modules, with no build step and no dependency. Serve the folder over http, for example with `python -m http.server 8000`, and open <http://localhost:8000>; browsers don't run its modules from a file. `?lang=de` opens it in German, `?guide=0` keeps the guide closed and `?scenario=s2&step=4` opens the second company at Adapt, played up to there with the recorded choices. Space plays and pauses; the arrow keys and a clicker move between the steps.
 
 ## Tests
 

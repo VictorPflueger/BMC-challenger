@@ -1,6 +1,6 @@
 # Data sources
 
-Version 0.2.0. Where the tool's data comes from, with the date each source was read. The three simulated companies are fictional; the laws, prices and market facts they meet are real, each checked at its source on the day the scenario was written and listed below under "The scenarios' facts". `tools/check-scenarios.mjs` fails when a scenario cites a fact or a source this file lacks.
+Version 0.3.0. Where the tool's data comes from, with the date each source was read. The three simulated companies are fictional; the laws, prices and market facts they meet are real, each checked at its source on the day the scenario was written and listed below under "The scenarios' facts". `tools/check-scenarios.mjs` fails when a scenario cites a fact or a source this file lacks.
 
 ## The Business Model Canvas
 

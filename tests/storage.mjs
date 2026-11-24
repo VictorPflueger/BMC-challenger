@@ -12,13 +12,20 @@
 //            an item removed and another answer chosen), keeps only those keys with their expected values,
 //            no database, cache, cookie or service worker, and its address names nothing but the scenario,
 //            the step, the language and the guide.
-// After a live run with a planted key, only the allowed keys may remain: that part arrives with the
-// live client in 0.3.0. Each scanner and the judge first prove on planted examples that they catch
-// what they look for.
-// Usage: node tests/storage.mjs [--static]
+//   live     a whole live run against the stand-in (lib/standin.mjs) with a planted key, research and a
+//            decision other than the one recommended leaves only those keys (Vici's storedKeyProblems
+//            agrees), and the key is in no storage, no address the page opened, no request body, no
+//            console message and nothing in the DOM; a reload forgets the key and the run.
+// Vici's storageProblems() also judges every script (G15 of M3). Each scanner and the judge first prove
+// on planted examples that they catch what they look for. Vici's functions come from a ViciDesign
+// checkout (VICI_DIR, or ../ViciDesign); without one the suite says so and skips them, unless
+// --require-vici is given or it runs on GitHub Actions.
+// Usage: node tests/storage.mjs [--static] [--require-vici]
 import fs from "node:fs";
 import path from "node:path";
-import { APP_ROOT, launchBrowser, serveStatic, port, context, KEYS } from "./lib/harness.mjs";
+import { pathToFileURL } from "node:url";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, KEYS, REQUIRE_VICI, viciDir } from "./lib/harness.mjs";
+import { install, live, KEY } from "./lib/standin.mjs";
 
 const passes = [];
 const failures = [];
@@ -148,6 +155,23 @@ check(declared.length === 1 && declared[0][0] === "lang" && declared[0][1] === L
 check(KEYS.lang === LANG && Object.keys(KEYS).length === 1, "the test harness names the same key");
 check(/var seen = function \(l\) \{ return "vc-guide:" \+ window\.location\.pathname \+ "#guide-" \+ l; \};/.test(read("js/lang.js")) && /sessionStorage\.setItem\(seen\(lang\), "1"\)/.test(read("js/lang.js")), "js/lang.js notes the guide under Vici's key vc-guide:<path>#guide-<lang> = 1");
 check(/localStorage\.getItem\("bmc\.lang"\)/.test(read("js/lang.js")) && /localStorage\.getItem\('vc-theme'\)/.test(read("vici/dist/vici-theme.js")) && /<script src="vici\/dist\/vici-theme\.js"><\/script>/.test(read("index.html")), "the early scripts read the same keys as the modules: js/lang.js and Vici's vici-theme.js, which index.html loads");
+// The live client holds the key in a module variable: js/keystore.js touches no store at all.
+check(!uses(read("js/keystore.js")).length && /^let key = null;$/m.test(stripComments(read("js/keystore.js"))), "js/keystore.js holds the key in one variable and touches no browser store");
+
+// ---- Vici's rule -----------------------------------------------------------------------------------------
+const vdir = viciDir();
+const vlib = vdir ? await import(pathToFileURL(path.join(vdir, "scripts", "lib", "storage.mjs")).href) : null;
+if (!vlib) {
+  if (REQUIRE_VICI) check(false, "Vici's storage rule: no ViciDesign checkout in VICI_DIR or next to this repository");
+  else console.log("SKIP  Vici's storageProblems and storedKeyProblems: no ViciDesign checkout in VICI_DIR or next to this repository");
+} else {
+  const { storageProblems, storedKeyProblems } = vlib;
+  check(storageProblems({ "js/live.js": "localStorage.setItem('run', x)" }, { allow: [] }).length === 1 && storageProblems({ "js/x.js": "document.cookie = k" }).length === 1, "control: Vici's storageProblems catches storage in a module not allowed it and any cookie");
+  check(storedKeyProblems({ local: ["bmc.key"], session: ["bmc.run"], cookie: "k=v" }, { prefix: "bmc" }).length === 3, "control: Vici's storedKeyProblems catches a stray local key, a stray session key and a cookie");
+  const sources = Object.fromEntries([...scripts, "index.html"].map((f) => [f, read(f)]));
+  const s = storageProblems(sources, { allow: Object.keys(ALLOWED) });
+  check(!s.length, `Vici's storageProblems finds nothing in ${Object.keys(sources).length} files${s.length ? `: ${s.join("; ")}` : ""}`);
+}
 
 // ---- browser -------------------------------------------------------------------------------------------
 async function inBrowser() {
@@ -259,7 +283,129 @@ async function inBrowser() {
   }
 }
 
-if (!process.argv.includes("--static")) await inBrowser();
+/** Everything the browser holds for the page: storage with values, databases, caches, cookies, workers. */
+async function readState(page, ctx) {
+  return {
+    ...(await page.evaluate(async () => {
+      const dump = (s) => Object.fromEntries(Array.from({ length: s.length }, (_, i) => s.key(i)).map((k) => [k, s.getItem(k)]));
+      return {
+        local: dump(localStorage),
+        session: dump(sessionStorage),
+        databases: indexedDB.databases ? (await indexedDB.databases()).map((d) => d.name) : [],
+        caches: self.caches ? await caches.keys() : [],
+        cookie: document.cookie,
+        workers: navigator.serviceWorker ? (await navigator.serviceWorker.getRegistrations()).length : 0,
+        name: window.name
+      };
+    })),
+    cookies: (await ctx.cookies()).map((c) => c.name)
+  };
+}
+
+/** Where a planted key could leak, each as text: the places a scan reads. */
+const leaks = (places, secret) => Object.entries(places).filter(([, text]) => String(text).includes(secret)).map(([where]) => where);
+{
+  const clean = leaks({ storage: '{"vc-theme":"dark"}', console: "[BMC] Live run on claude-haiku-5-5" }, KEY);
+  const caught = leaks({ storage: "{}", console: `oops ${KEY}`, dom: `<p data-k="${KEY}">` }, KEY);
+  check(!clean.length && caught.join() === "console,dom", "self-test: the leak scan passes clean text and finds a planted key in a console line and a DOM attribute");
+}
+
+// ---- a live run --------------------------------------------------------------------------------------------
+async function liveRun() {
+  const server = await serveStatic(APP_ROOT, port(8760));
+  const browser = await launchBrowser();
+  try {
+    const { context: ctx, outside: blocked } = await context(browser, { width: 1920, height: 1080 });
+    const api = await install(ctx, { research: true });
+    const page = await ctx.newPage();
+    const consoleLines = [];
+    const errors = [];
+    const requests = [];
+    page.on("console", (m) => consoleLines.push(`${m.type()}: ${m.text()}`));
+    page.on("pageerror", (e) => errors.push(String(e)));
+    page.on("request", (r) => requests.push({ url: r.url(), body: r.postData() || "" }));
+    page.on("framenavigated", (f) => { if (f === page.mainFrame()) requests.push({ url: f.url(), body: "" }); });
+    await page.goto(`${server.base}?guide=0`);
+    await page.waitForSelector("html[data-boot='ready']");
+
+    // The run: the sample canvas, research on, the review kept, the challenge, another answer than
+    // the recommended one for the first issue, applied, the summary.
+    await live.enter(page);
+    await live.sample(page);
+    await live.openDialog(page);
+    await live.start(page, { key: KEY, preset: "balanced", research: true });
+    await live.waitFor(page, "review");
+    await page.click("#btn-cta");
+    await live.waitFor(page, "decision", 30000);
+    const cards = page.locator(".options__cards label.option");
+    const checked = await cards.evaluateAll((all) => all.map((c) => c.querySelector("input").checked));
+    const pick = checked.indexOf(false);
+    let choseOther = pick >= 0;
+    if (choseOther) { await cards.nth(pick).click(); choseOther = await cards.nth(pick).locator("input").isChecked(); }
+    await page.click("#btn-cta");
+    const done = await live.waitFor(page, "done");
+    const scout = api.calls.filter((c) => c.agent === "scout");
+    check(done.reached === 5 && done.research?.ran === true && scout.length > 0 && choseOther, `a live run with research and a decision of its own reaches the summary (${api.calls.map((c) => c.agent).join(" ")})`);
+
+    // What the browser keeps.
+    const st = await readState(page, ctx);
+    const problems = judge(st);
+    check(!problems.length, `after the live run the browser keeps only the allowed entries${problems.length ? `: ${problems.join(", ")}` : ""}`);
+    const vlib = vdir ? await import(pathToFileURL(path.join(vdir, "scripts", "lib", "storage.mjs")).href) : null;
+    if (vlib) {
+      const p = vlib.storedKeyProblems({ local: Object.keys(st.local), session: Object.keys(st.session), databases: st.databases, caches: st.caches, cookie: st.cookie }, { prefix: "bmc" });
+      check(!p.length, `Vici's storedKeyProblems finds nothing after the live run${p.length ? `: ${p.join("; ")}` : ""}`);
+    }
+
+    // Where the key could have gone.
+    const dom = await page.evaluate(() => document.documentElement.outerHTML + "\n" + [...document.querySelectorAll("input, textarea, output")].map((el) => el.value ?? "").join("\n"));
+    const sentTo = new Set(api.calls.map((c) => c.headers["x-api-key"]));
+    const places = {
+      "local or session storage": JSON.stringify([st.local, st.session]),
+      "the address": page.url(),
+      "an address the page opened": requests.map((r) => r.url).join("\n"),
+      "a request body": requests.map((r) => r.body).join("\n"),
+      "a console message": consoleLines.join("\n"),
+      "a page error": errors.join("\n"),
+      "the DOM, its attributes or a field's value": dom
+    };
+    const found = leaks(places, KEY);
+    check(sentTo.size === 1 && sentTo.has(KEY) && !found.length, `the key went only in the x-api-key header of ${api.calls.length} requests to api.anthropic.com and is in no storage, address, request body, console message or DOM attribute${found.length ? `; found in ${found.join(", ")}` : ""}`);
+    check(consoleLines.some((l) => l.includes("Live run on claude-haiku-5-5")) && consoleLines.some((l) => l.includes("The Scout reported")), `the console scan reads the run's own lines (${consoleLines.length} lines)`);
+    const issue = api.defaults.redteam.issues[0].title;
+    const run = JSON.stringify([st.local, st.session]) + decodeURIComponent(page.url());
+    check(issue.length > 12 && !run.includes(issue) && !run.includes(api.defaults.sc.company.name), `nothing of the run reaches storage or the address, such as the company or the issue "${issue.slice(0, 40)}"`);
+
+    // The scan on the real page: a planted attribute and a console line are found, then removed.
+    await page.evaluate((k) => { document.body.dataset.planted = k; console.log(`planted ${k}`); }, KEY);
+    await page.waitForTimeout(100);
+    const planted = leaks({ dom: await page.evaluate(() => document.documentElement.outerHTML), console: consoleLines.join("\n") }, KEY);
+    check(planted.join() === "dom,console", `a key planted in the real page is caught in the DOM and the console (${planted.join(", ")})`);
+    await page.evaluate(() => { delete document.body.dataset.planted; });
+
+    // A reload ends everything: the key, the run, the form.
+    page.on("dialog", (d) => d.accept());
+    await page.reload();
+    await page.waitForSelector("html[data-boot='ready']");
+    const after = await page.evaluate(() => ({ mode: window.BMC.state.mode, live: window.BMC.state.live.status, reached: window.BMC.state.live.reached }));
+    await live.enter(page);
+    const form = await page.$eval("#live-name", (el) => el.value);
+    await page.fill("#live-name", "Test company");
+    await live.openDialog(page);
+    const asks = await page.evaluate(() => !document.getElementById("live-key-row").hidden && document.getElementById("live-key-held").hidden && document.getElementById("live-key").value === "");
+    const reloaded = judge(await readState(page, ctx));
+    check(after.mode === "simulation" && after.live === "idle" && after.reached === 0 && form === "" && asks && !reloaded.length, `a reload forgets the key, the run and the form, and the browser still keeps only the allowed entries (${JSON.stringify(after)})`);
+
+    check(!blocked.length, `no request of the live run left this site but the stand-in's api.anthropic.com (${blocked.length})`);
+    check(!errors.length, `no page errors in the live run${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    await ctx.close();
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+}
+
+if (!process.argv.includes("--static")) { await inBrowser(); await liveRun(); }
 
 for (const p of passes) console.log(`PASS  ${p}`);
 for (const f of failures) console.log(`FAIL  ${f}`);

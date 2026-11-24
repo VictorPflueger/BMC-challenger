@@ -18,6 +18,7 @@ import { fmtMoney, fmtRange, fmtChange, fmtBaseline, fmtDate } from "./format.js
 import { band as bandOf, riskScore } from "./risk.js";
 import { kpiById, SECTORS } from "../data/kpis.js";
 import { GENERAL_KNOWLEDGE } from "./guards.js";
+import { editField, notice } from "./live_view.js";
 
 const blockName = (id) => t(`block.${id}.name`);
 const issueLabel = (i) => `${i.id.slice(1)}. ${i.title}`;
@@ -62,7 +63,7 @@ function itemRow(it, { status, word, current, lang, toggle = null, rank = 0 }) {
   // sparkle says "AI" (the legend names the mark); an added item's "Added" already says it adapts; a
   // challenged item keeps its warning mark, and the block's own tag names the worst band.
   const sparkle = source === "ai" && !status;
-  if (source === "ai") states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--source", sparkle ? "tag-quiet" : ""] }, t("item.ai", null, lang)));
+  if (source === "ai") states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--source", sparkle && !it.edited ? "tag-quiet" : ""] }, it.edited ? t("item.aiEdited", null, lang) : t("item.ai", null, lang)));
   else if (source === "added") states.push(h("span", { class: "vc-tag vc-tag--sm vc-item__state vc-item__state--source" }, t("item.added", null, lang)));
   else states.push(h("span", { class: "vc-item__state vc-visually-hidden" }, t("item.entered", null, lang)));
   if (status) states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--status", (source === "added" && status === "addressed") || status === "challenged" ? "tag-quiet" : ""] }, word));
@@ -72,7 +73,7 @@ function itemRow(it, { status, word, current, lang, toggle = null, rank = 0 }) {
   return h("li", { class: "vc-item", dataset: { source, item: it.id, rank: String(rank), ...(status ? { status } : {}) }, "aria-current": current ? "true" : null },
     h("div", { class: "vc-item__summary" },
       h("span", { class: "vc-item__mark", "aria-hidden": "true" }, mark),
-      h("button", { type: "button", class: "vc-item__text item-open", dataset: { open: it.block || blockOf(it.id) } }, text),
+      h("button", { type: "button", class: "item-open", dataset: { open: it.block || blockOf(it.id) } }, h("span", { class: "vc-item__text" }, text)),
       h("span", { class: "vc-item__states" }, states),
       toggle ? h("button", { type: "button", class: "vc-icon-button item-toggle", "aria-pressed": String(removed), "aria-label": t(removed ? "p.complete.keepLabel" : "p.complete.removeLabel", { item: it.text }, lang), title: t(removed ? "p.complete.keep" : "p.complete.remove", null, lang), on: { click: () => toggle(it.id) } }, icon(removed ? "undo" : "close")) : null));
 }
@@ -106,7 +107,7 @@ function itemState(it, ctx, challenged) {
 /** The canvas of the step into its container: nine blocks in the classic layout. */
 export function renderCanvas(el, ctx, on = {}) {
   const { run, step, lang } = ctx;
-  const toggle = step === STEP.complete && ctx.reached === STEP.complete ? on.toggleItem : null;
+  const toggle = step === STEP.complete && ctx.reached === STEP.complete && (!ctx.live || ctx.live.status === "review") ? on.toggleItem : null;
   const { blocks, side } = canvasOf(ctx);
   const challenged = step >= STEP.challenge ? challengedItems(run) : new Map();
   const selected = step === STEP.challenge || step === STEP.adapt ? run.issues.find((i) => i.id === ctx.selectedIssue) : null;
@@ -199,7 +200,7 @@ export function fitCanvas(el) {
 /** The dialog's body: every item of the block in full, with its source, basis and confidence, and its issues. */
 export function renderBlock(body, title, blockId, ctx, on = {}) {
   const { run, step, lang } = ctx;
-  const toggle = step === STEP.complete && ctx.reached === STEP.complete ? on.toggleItem : null;
+  const toggle = step === STEP.complete && ctx.reached === STEP.complete && (!ctx.live || ctx.live.status === "review") ? on.toggleItem : null;
   const { blocks, side } = canvasOf(ctx);
   title.textContent = blockName(blockId);
   const challenged = step >= STEP.challenge ? challengedItems(run) : new Map();
@@ -211,15 +212,20 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
     if (it.source === "ai") note.push(h("p", {}, h("strong", {}, t("item.basis", null, lang)), " ", it.basis, " · ", t(`conf.${it.confidence}`, null, lang)));
     if (it.source === "added") note.push(h("p", {}, t("item.addedBy", null, lang)));
     if (it.status === "changed") note.push(h("p", {}, t("item.changedBy", null, lang)));
-    // In the dialog the text is plain, not a button: the block is already open.
+    // In the dialog the text is plain, not a button: the block is already open. While a live run waits
+    // for the review, an AI item has a field under it where the person may rewrite it.
+    if (ctx.live && toggle && it.source === "ai" && on.edit) note.push(editField(it, lang, on));
     const opener = row.querySelector(".item-open");
-    opener.replaceWith(h("span", { class: "vc-item__text" }, ...opener.childNodes));
+    opener.replaceWith(...opener.childNodes);
     if (note.length) row.append(h("div", { class: "vc-item__body" }, note));
     return row;
   });
   const issues = step >= STEP.challenge ? run.issues.filter((i) => i.blocks.includes(blockId)) : [];
-  body.replaceChildren(
+  const typing = ctx.live && toggle && on.edit && items.some((it) => it.source === "ai");
+  // replaceChildren() writes a null as the text "null": the parts are filtered.
+  body.replaceChildren(...[
     h("p", { class: "block-dialog__question" }, t(`block.${blockId}.question`, null, lang)),
+    typing ? notice(lang) : null,
     rows.length ? h("ul", { class: "vc-framework__items block-dialog__items" }, rows) : h("p", { class: "vc-framework__empty" }, t("block.empty", null, lang)),
     issues.length ? h("div", { class: "block-dialog__issues" },
       h("h3", {}, t("block.issues", null, lang)),
@@ -227,7 +233,7 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
         const r = run[side === "after" ? "after" : "before"].issues.find((x) => x.id === i.id);
         const b = r[side === "after" ? "after" : "before"].band;
         return h("li", {}, h("span", { class: "vc-tag vc-tag--sm band-tag", dataset: { band: b } }, t(`band.${b}`, null, lang)), " ", issueLabel(i));
-      }))) : null);
+      }))) : null].filter(Boolean));
 }
 
 // ---- the panels ---------------------------------------------------------------------------------------
@@ -257,9 +263,17 @@ function panelComplete(ctx) {
     h("div", { class: "panel-head" },
       h("h2", { class: "panel-title" }, t("p.complete.title", null, lang)),
       h("p", { class: "panel-note" }, t("p.complete.count", { kept, n: items.length }, lang))),
-    h("p", { class: "complete-hint" }, reached > STEP.complete ? t("p.complete.locked", null, lang) : t("p.complete.hint", null, lang)),
+    h("p", { class: "complete-hint" }, t(completeHint(ctx), null, lang)),
     h("ul", { class: "vc-framework__legend" }, mark("entered"), mark("ai", "sparkle"), mark("removed", "minus"))
   ];
+}
+
+/** What the review says under its title: how to review, or why the canvas can no longer change. */
+function completeHint({ reached, live }) {
+  if (reached > STEP.complete) return "p.complete.locked"; // the Red team has answered
+  if (!live) return "p.complete.hint";
+  if (live.status === "review") return "live.complete.hint";
+  return live.status === "working" ? "live.complete.working" : "live.complete.stopped";
 }
 
 function sourceLine(url, ctx) {
@@ -461,9 +475,9 @@ function panelSummary(ctx, on) {
   const col = (title, ...body) => h("section", { class: "summary__col" }, h("h2", { class: "panel-title" }, title), body);
   return [
     h("div", { class: "summary" },
-      col(t("p.summary.findings", null, lang), h("ol", {}, s.findings.map((f) => h("li", {}, writerText(f, run, lang))))),
-      col(t("p.summary.recommendation", null, lang), h("p", {}, writerText(s.recommendation, run, lang))),
-      col(t("p.summary.assumptions", null, lang), h("ul", {}, s.assumptions.map((a) => h("li", {}, writerText(a, run, lang))))),
+      col(t("p.summary.findings", null, lang), h("ol", {}, s.findings.map((f) => h("li", {}, writerText(f, run, ctx.live?.lang || lang))))),
+      col(t("p.summary.recommendation", null, lang), h("p", {}, writerText(s.recommendation, run, ctx.live?.lang || lang))),
+      col(t("p.summary.assumptions", null, lang), h("ul", {}, s.assumptions.map((a) => h("li", {}, writerText(a, run, ctx.live?.lang || lang))))),
       col(t("p.summary.next", null, lang),
         steps.length ? h("ul", { class: "first-steps" }, steps) : h("p", {}, t("p.summary.noSteps", null, lang)),
         steps.length ? h("button", { type: "button", class: "block-more summary-more", id: "summary-more", hidden: true, on: { click: () => on.steps?.() } }) : null))
@@ -504,7 +518,7 @@ export function renderPanel(el, ctx, on) {
         : step === STEP.assess ? panelAssess(ctx, on)
           : step === STEP.adapt ? panelAdapt(ctx, on)
             : panelSummary(ctx, on);
-  el.replaceChildren(...parts);
+  el.replaceChildren(...parts.filter(Boolean));
   el.dataset.step = String(step);
 }
 

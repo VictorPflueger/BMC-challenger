@@ -4,14 +4,14 @@
 // opens by itself once per tab and again from the header; the header holds the three key figures, which
 // answer first: before anything runs they show what is at stake for the first company and what a live
 // run would cost; Play, the six steps and Run it live stand in the talk bar, the steps after Start waiting
-// for the run and Run it live for the live client of 0.3.0, with the AI notice beside it; the Strategyzer
+// for the run, and Run it live ready from 0.3.0 with the AI notice beside it; the Strategyzer
 // credit stands under the canvas in both languages; the dark theme starts as cleanly as the light one;
 // nothing leaves this site; and a start that fails says so on the loading screen, in the page's language,
 // with what to do.
 // Usage: node tests/shell.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE, exit } from "./lib/harness.mjs";
 
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const EN = (await mod("js/i18n/en.js")).default;
@@ -89,7 +89,7 @@ try {
   }));
   check(talk.steps.map((s) => s.id).join() === "start,complete,challenge,assess,adapt,summary", `the talk bar has the six steps in order (${talk.steps.map((s) => s.id).join(", ")})`);
   check(talk.steps[0]?.current === "step" && !talk.steps[0].disabled && talk.steps.slice(1).every((s) => s.disabled), "Start is the current step; the other five wait until the run starts");
-  check(talk.play === false && talk.live === true, "Play is ready; Run it live is there and disabled until the live client of 0.3.0");
+  check(talk.play === false && talk.live === false, "Play is ready, and so is Run it live (from 0.3.0)");
   check(talk.notice === EN["p.ai"] && await visible(page, ".ai-notice"), `the lilac AI notice stands beside Run it live ("${talk.notice}")`);
   const credit = await page.evaluate(() => {
     const c = document.querySelector(".stage .canvas + .credit-row > .credit");
@@ -169,4 +169,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} shell checks passed.`);
 if (!failed) console.log("SHELL OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

@@ -8,7 +8,7 @@
 // Usage: node tests/presenter.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE, exit } from "./lib/harness.mjs";
 
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const { SCENARIOS } = await mod("data/scenarios/index.js");
@@ -48,7 +48,7 @@ try {
     const sc = localise(src, lang);
     const before = buildRun(sc, { removed: new Set(), decisions: new Map() }).before;
     const t0 = await tiles();
-    const shell = await page.evaluate(() => ({ mode: document.getElementById("mode-text").textContent, fictional: document.querySelector(".fictional")?.textContent.trim(), visible: !!document.querySelector(".fictional")?.getClientRects().length, key: !!document.querySelector('input[type="password"], input[autocomplete="off"][name*="key" i]') }));
+    const shell = await page.evaluate(() => ({ mode: document.getElementById("mode-text").textContent, fictional: document.querySelector(".fictional")?.textContent.trim(), visible: !!document.querySelector(".fictional")?.getClientRects().length, key: [...document.querySelectorAll('input[type="password"], input[autocomplete="off"][name*="key" i]')].some((i) => i.getClientRects().length > 0) }));
     check(shell.mode === "SIMULATION" && shell.fictional === D["p.fictional"] && shell.visible && !shell.key, `${at}: the header says SIMULATION, "${D["p.fictional"]}" stands under the canvas, and nothing asks for a key`, JSON.stringify(shell));
     check(nb(t0["kpi-stake"].value) === nb(money(before.atStake, lang)) && nb(t0["kpi-pressure"].value) === nb(fmtPressure(before.pressure.before, before.pressure.of, lang)) && /^≈ /.test(t0["kpi-cost"].value) && !t0["kpi-stake"].struck,
       `${at}: before anything runs the tiles show the engine's figures (${nb(t0["kpi-stake"].value)}, ${nb(t0["kpi-pressure"].value)}, ${nb(t0["kpi-cost"].value)})`, JSON.stringify(t0));
@@ -129,4 +129,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} presenter checks passed.`);
 if (!failed) console.log("PRESENTER OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

@@ -77,11 +77,19 @@ export function port(base) {
  * A browser context for the tool: the given viewport, language and colour scheme, every request that
  * leaves 127.0.0.1 blocked and recorded. Returns { context, outside }.
  */
-export async function context(browser, { width = 1280, height = 720, locale = "en-GB", colorScheme = "light" } = {}) {
-  const ctx = await browser.newContext({ viewport: { width, height }, locale, colorScheme });
+export async function context(browser, { width = 1280, height = 720, locale = "en-GB", colorScheme = "light", hasTouch = false } = {}) {
+  const ctx = await browser.newContext({ viewport: { width, height }, locale, colorScheme, hasTouch });
   const outside = [];
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => { outside.push(route.request().url()); return route.abort("blockedbyclient"); });
   return { context: ctx, outside };
+}
+
+/**
+ * Ends a suite once everything it printed has left: process.exit() right after console.log can cut the
+ * last lines, its success token among them, when stdout is a pipe that is read slowly.
+ */
+export function exit(code) {
+  process.stdout.write("", () => process.exit(code));
 }
 
 /** Console noise that blocked outside requests cause. */

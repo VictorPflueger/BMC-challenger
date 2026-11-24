@@ -40,7 +40,9 @@ const SAME_ALLOWED = new Map([
   ["app.name", "the tool's name"],
   ["p.byline.tip", "\"Website\" is German too"],
   ["p.step.start", "\"Start\" is German too"],
-  ["p.play.pause", "\"Pause\" is German too"]
+  ["p.play.pause", "\"Pause\" is German too"],
+  ["live.name.scout", "the Scout is the agent's name in both"],
+  ["live.name.analyst", "\"Analyst\" is German too"]
 ]);
 const same = en.filter((k) => EN[k] === DE[k] && /\p{L}{4,}/u.test(EN[k]) && !/^[\p{Lu}\s-]+$/u.test(EN[k]) && !/^\{/.test(EN[k]));
 const untranslated = same.filter((k) => !SAME_ALLOWED.has(k));
@@ -102,7 +104,14 @@ const FAMILIES = {
   "p.assess.key.": { values: ["low", "medium", "high", "critical", "sm", "lg"], file: "js/view.js" },
   "p.assess.col.": { values: ["issue", "impact", "likelihood", "score", "band", "stake"], file: "js/view.js" },
   "p.play.": { values: ["play", "pause", "replay"], file: "js/app.js" },
-  "next.": { values: ["complete", "challenge", "assess", "adapt", "summary"], file: "js/story.js" }
+  "next.": { values: ["complete", "challenge", "assess", "adapt", "summary"], file: "js/story.js" },
+  "live.agent.": { values: ["completer", "scout", "redteam", "analyst", "strategist", "writer"], file: "js/live_view.js" },
+  "live.name.": { values: ["completer", "scout", "redteam", "analyst", "strategist", "writer"], file: "js/live_view.js" },
+  "err.": { values: ["key", "cors", "billing", "permission", "model", "credit", "limit", "invalid", "spend", "rate", "busy", "server", "timeout", "network", "aborted"], file: "js/live_view.js" },
+  "live.preset.": { values: ["fast.help", "balanced.help", "thorough.help"], file: "js/live_dialog.js" },
+  "live.private.": { values: ["email", "iban", "phone", "word"], file: "js/live_dialog.js" },
+  "lang.": { values: ["en", "de"], file: "js/live_dialog.js" },
+  "kpi.wait.": { values: ["analyst", "redteam"], file: "js/story.js" }
 };
 const families = [];
 for (const [prefix, { values, file }] of Object.entries(FAMILIES)) {
@@ -147,7 +156,11 @@ const ALLOWED = [
 ];
 // js/guards.js writes to the model, not to a person: its refusals and the repair turn go back to the
 // agent in English, as the prompts do (brief 5.2, PLAN.md §4). The screen never shows them.
-const MODEL_FACING = new Set(["js/guards.js"]);
+// So do js/prompts.js (the agents' prompts), js/pipeline.js (the repair turn) and js/scout.js (the
+// tool the Scout reports through). js/anthropic.js is the set's shared client, copied unchanged from the
+// Prototype Ideator: its messages stay inside the error it raises, and js/api_messages.js words every
+// error a person sees from the dictionaries.
+const MODEL_FACING = new Set(["js/guards.js", "js/prompts.js", "js/pipeline.js", "js/scout.js", "js/anthropic.js"]);
 const DEV_ONLY = /\bconsole\.(log|info|warn|error|debug)\(/;
 function strays(file, src) {
   const found = [];

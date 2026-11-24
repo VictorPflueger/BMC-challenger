@@ -39,7 +39,7 @@ BMC-challenger/
 ├── css/app.css           shell on Vici tokens, canvas grid and block states, panel, print styles
 ├── js/
 │   ├── main.js           entry: language, scenario check, start, boot screen
-│   ├── theme.js          theme before paint (sisters' file, unchanged)
+│   ├── (no theme.js)     Vici's vici/dist/vici-theme.js sets the theme before paint (TECH_NOTES §9)
 │   ├── lang.js           language and its guide before vici.js (key bmc.lang)
 │   ├── config.js         APP, CSP, API settings, MODELS and prices, PRESETS, BUDGET, STORAGE
 │   ├── i18n/             index.js, en.js, de.js: identical keys

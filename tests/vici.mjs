@@ -43,6 +43,17 @@ const standards = [];
 const control = (ok, what) => controls.push([!!ok, what]);
 const check = (ok, what) => standards.push([!!ok, what]);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// A value written as text by mistake: "null", "undefined", "NaN" or "[object Object]" where a person reads.
+const LEAK = /\b(?:null|undefined|NaN)\b|\[object Object\]/g;
+const leaks = (p) => p.evaluate((src) => document.body.innerText.match(new RegExp(src, "g")) || [], LEAK.source);
+// Standing requirement 7: wherever a person can type, the page says "Public information only". A field
+// counts when it shows and takes text; its open dialog or the panel must carry the words, any other
+// field its own parent.
+const PUBLIC = { en: "Public information only", de: "Nur öffentliche Informationen" };
+const unnoticed = (p, lang) => p.evaluate((words) => [...document.querySelectorAll('input:not([type]), input[type="text"], input[type="password"], input[type="email"], textarea')]
+  .filter((el) => el.getClientRects().length && !el.disabled)
+  .filter((el) => !(el.closest("dialog[open]") || el.closest("#panel") || el.parentElement).innerText.includes(words))
+  .map((el) => el.id || el.className || el.tagName), PUBLIC[lang]);
 
 // The ids of the tool's data: the KPI library's KPIs, with and without their sector ("general.ebit_margin"
 // and "ebit_margin"), and its sectors, where they are not plain words, and the item ids of the handoff
@@ -74,7 +85,8 @@ const w = writingProblems(html);
 check(!w.length, `index.html keeps Vici's writing rules${w.length ? `: ${w.join("; ")}` : ""}`);
 const a = aiNoticeProblems(html);
 check(canRunLive(html) && !a.length, `the page can start a live run and says "${AI_NOTICE.en}"${a.length ? `: ${a.join("; ")}` : ""}`);
-check(new RegExp(`id="live" data-vc-live[^>]*>[\\s\\S]*?</button>\\s*<span class="vc-tag vc-tag--feature[^"]*"[^>]*>[\\s\\S]{0,160}${esc(AI_NOTICE.en)}</span>`).test(html), "the AI notice stands in a lilac tag right beside Run it live");
+check(new RegExp(`id="live"[^>]*>[\\s\\S]*?</button>\\s*<span class="vc-tag vc-tag--feature[^"]*"[^>]*>[\\s\\S]{0,160}${esc(AI_NOTICE.en)}</span>`).test(html), "the AI notice stands in a lilac tag right beside Run it live");
+check(new RegExp(`<footer class="vc-dialog__footer vc-live__footer">\\s*<span class="vc-tag vc-tag--feature"[^>]*>[\\s\\S]{0,160}${esc(AI_NOTICE.en)}</span></span>\\s*<button[^>]*id="live-start"`).test(html), "the AI notice stands in a lilac tag right beside Start the live run, in the dialog's footer");
 const DE = (await mod("js/i18n/de.js")).default;
 const EN = (await mod("js/i18n/en.js")).default;
 check(EN["p.ai"] === AI_NOTICE.en && DE["p.ai"] === AI_NOTICE.de, `the German page says "${AI_NOTICE.de}"`);
@@ -100,6 +112,11 @@ try {
     await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
     await p.waitForTimeout(400);
     const view = await p.content();
+    if (lang === "en") {
+      await p.evaluate(() => document.getElementById("panel").append(Object.assign(document.createElement("p"), { textContent: "Cost: null" })));
+      control((await leaks(p)).join() === "null", "control: the leak scan finds a value written as \"null\" on the page");
+      await p.evaluate(() => document.getElementById("panel").lastElementChild.remove());
+    }
     // The page in one language shows one guide: the other is out of its way (lang.js takes its
     // data-vc-guide-auto and its button), so Vici's guide check sees the page as a one-language page.
     const other = lang === "en" ? "de" : "en";
@@ -148,6 +165,7 @@ try {
       await opener.click();
       await p.waitForSelector("#block-dialog[open]", { timeout: 3000 });
       const dialog = await p.$eval("#block-dialog", (el) => el.outerHTML);
+      problems.push(...(await leaks(p)).map((x) => `"${x}" shows as text, the opened block included`));
       problems.push(...frameworkProblems(dialog).map((x) => `dialog framework: ${x}`), ...writingProblems(`<html lang="${lang === "de" ? "de" : "en-GB"}"><body>${dialog}</body></html>`).map((x) => `dialog writing: ${x}`));
       await p.keyboard.press("Escape");
       if (errors.length) problems.push(...errors.splice(0).map((x) => `page error: ${x}`));
@@ -156,12 +174,116 @@ try {
     }
     await context.close();
   }
-  check(screens === 36 && !stepProblems.length, `every step of the three scenarios in both languages (${screens} screens) keeps Vici's framework view, the writing rules and names, not ids, the opened block included${stepProblems.length ? `: ${stepProblems.slice(0, 8).join("; ")}` : ""}`);
+  check(screens === 36 && !stepProblems.length, `every step of the three scenarios in both languages (${screens} screens) keeps Vici's framework view, the writing rules and names, not ids, and writes no "null" or "undefined" as text, the opened block included${stepProblems.length ? `: ${stepProblems.slice(0, 8).join("; ")}` : ""}`);
   check(matrices === 6, `the risk matrix stands at Assess in every scenario and language and keeps Vici's rule (${matrices} of 6)`);
   // The two checks fail on this page's own markup, planted with a mistake.
   const canvasDemo = planted || "";
   control(riskMatrixProblems(canvasDemo.replace(/(<[^>]*\bvc-risk__cell\b[^>]*data-band=")[a-z]+/, "$1nope")).length > 0, "control: riskMatrixProblems catches a cell out of its band on the Assess screen");
   control(frameworkProblems(canvasDemo.replace(/(<[^>]*class="[^"]*vc-framework__state--status[^"]*"[^>]*>)[\s\S]*?(<\/span>\s*<\/p>)/, "$1$2")).length > 0, "control: frameworkProblems catches a block under pressure whose state lost its mark and words");
+
+  // A live run against the stand-in (tests/lib/standin.mjs), in both languages: every screen keeps the
+  // writing rules and names, not record ids, and says the AI notice; the canvas keeps Vici's framework
+  // view, editable at Start and under review; each control that sets agents to work has the notice in a
+  // lilac tag beside it; the risk matrix keeps its rule; the dialog keeps Vici's live-run rule as it opens;
+// and every field a person can type in has "Public information only" beside it.
+  const { liveDialogProblems } = await lib("live.mjs");
+  const { install, live, apiError, KEY } = await import(pathToFileURL(path.join(APP_ROOT, "tests", "lib", "standin.mjs")).href);
+  control(liveDialogProblems(html.replace('<input type="checkbox" id="live-ack">', '<input type="checkbox" id="live-ack" checked>')).length > 0, "control: liveDialogProblems catches an acknowledgement ticked in the markup");
+  const ld = liveDialogProblems(html);
+  check(!ld.length, `the live-run dialog as served keeps Vici's rule${ld.length ? `: ${ld.join("; ")}` : ""}`);
+  const liveProblems = [];
+  const liveNames = new Set();
+  let liveScreens = 0;
+  for (const lang of ["en", "de"]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort("blockedbyclient"));
+    const scene = { hold: null, error: false };
+    await install(context, { research: true, lang, script: (agent) => (scene.error && agent === "completer" ? apiError(402, "billing_error", "Your credit balance is too low.") : scene.hold && agent === "completer" ? scene.hold.then(() => undefined) : undefined) });
+    const p = await context.newPage();
+    const errors = [];
+    p.on("pageerror", (e) => errors.push(String(e.message || e)));
+    const notice = lang === "de" ? AI_NOTICE.de : AI_NOTICE.en;
+    /** One screen: the rules on the page; optionally the canvas, a dialog, and the notice beside the bar's action. */
+    const look = async (name, { framework = true, dialog = null, beside = false } = {}) => {
+      await p.waitForTimeout(150);
+      const view = await p.content();
+      const problems = [...writingProblems(view).map((x) => `writing: ${x}`), ...recordIdProblems(view, IDS).map((x) => `ids: ${x}`), ...aiNoticeProblems(view).map((x) => `notice: ${x}`)];
+      if (framework) problems.push(...frameworkProblems(await p.$eval("#canvas", (el) => el.outerHTML)).map((x) => `framework: ${x}`));
+      if (dialog) {
+        const d = await p.$eval(`#${dialog}`, (el) => el.outerHTML);
+        problems.push(...writingProblems(`<html lang="${lang === "de" ? "de" : "en-GB"}"><body>${d}</body></html>`).map((x) => `dialog writing: ${x}`));
+        if (dialog === "live-dialog") problems.push(...liveDialogProblems(d).map((x) => `live dialog: ${x}`));
+        if (dialog === "block-dialog") problems.push(...frameworkProblems(d).map((x) => `dialog framework: ${x}`));
+      }
+      if (beside) {
+        const tag = await p.evaluate(() => { const cta = document.getElementById("btn-cta"); const t = cta?.parentElement.querySelector(".vc-tag--feature"); return t && t.nextElementSibling === cta ? t.textContent.trim() : ""; });
+        if (tag !== notice) problems.push(`the bar's action has no "${notice}" beside it (${tag || "none"})`);
+      }
+      problems.push(...(await leaks(p)).map((x) => `"${x}" shows as text`));
+      const bare = await unnoticed(p, lang);
+      if (bare.length) problems.push(`a person can type in ${bare.join(", ")} with no "Public information only" beside it`);
+      if (errors.length) problems.push(...errors.splice(0).map((x) => `page error: ${x}`));
+      liveProblems.push(...problems.map((x) => `${lang} ${name}: ${x}`));
+      liveNames.add(name);
+      liveScreens += 1;
+    };
+    await p.goto(`${server.base}?guide=0&lang=${lang}`);
+    await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+    await live.enter(p);
+    if (lang === "en") {
+      // Planted in a box of its own at the end of the page, where no redraw of the page reaches it.
+      await p.evaluate(() => { const box = document.createElement("div"); box.id = "planted-box"; box.append(Object.assign(document.createElement("input"), { type: "text", id: "planted-field" })); document.body.append(box); });
+      control((await unnoticed(p, "en")).join() === "planted-field", "control: the notice check finds a field a person can type in without \"Public information only\" beside it");
+      await p.evaluate(() => document.getElementById("planted-box")?.remove());
+    }
+    await look("Start, empty", { beside: true });
+    await live.sample(p);
+    await look("Start, filled", { beside: true });
+    await p.click("#blk-value");
+    await p.waitForSelector("#block-dialog[open]");
+    await look("a block being entered", { dialog: "block-dialog", framework: false });
+    await p.keyboard.press("Escape");
+    await live.openDialog(p);
+    await look("the dialog as it opens", { dialog: "live-dialog" });
+    let release;
+    scene.hold = new Promise((r) => { release = r; });
+    await p.fill("#live-key", KEY);
+    await p.check("#live-ack", { force: true });
+    if (!(await p.isChecked("#live-research"))) await p.click("#live-research", { force: true });
+    await p.click("#live-start");
+    await p.waitForFunction(() => window.BMC.state.live.status === "working", null, { timeout: 15000 });
+    await look("an agent at work");
+    release();
+    scene.hold = null;
+    await live.waitFor(p, "review");
+    await look("the review", { beside: true });
+    await p.locator('#canvas .vc-item[data-source="ai"] .item-open').first().click();
+    await p.waitForSelector("#block-dialog[open]");
+    await look("an AI item under review", { dialog: "block-dialog", framework: false });
+    await p.keyboard.press("Escape");
+    await p.click("#btn-cta");
+    await live.waitFor(p, "decision", 30000);
+    await p.evaluate(() => document.querySelectorAll("#steps .vc-step")[3].querySelector("button").click());
+    await p.waitForTimeout(150);
+    const risk = riskMatrixProblems(await p.content());
+    liveProblems.push(...risk.map((x) => `${lang} Assess: risk: ${x}`));
+    await look("Assess");
+    await p.evaluate(() => document.querySelectorAll("#steps .vc-step")[4].querySelector("button").click());
+    await look("the decision", { beside: true });
+    await p.click("#btn-cta");
+    await live.waitFor(p, "done");
+    await look("the summary");
+    scene.error = true;
+    await p.click("#btn-cta");
+    await live.openDialog(p);
+    await look("the dialog with the key held", { dialog: "live-dialog" });
+    await p.check("#live-ack", { force: true });
+    await p.click("#live-start");
+    await live.waitFor(p, "stopped");
+    await look("a run stopped by an error");
+    await context.close();
+  }
+  check(liveScreens === 24 && !liveProblems.length, `every screen of a live run in both languages (${liveScreens} screens: ${[...liveNames].join(", ")}) keeps the writing rules, names, not ids, the AI notice beside each control that sets agents to work, Vici's framework view, risk matrix and live-run dialog, and writes no "null" or "undefined" as text${liveProblems.length ? `: ${liveProblems.slice(0, 8).join("; ")}` : ""}`);
 
   // ViciDesign's own drive of the guide, over http.
   const r = await new Promise((resolve) => {

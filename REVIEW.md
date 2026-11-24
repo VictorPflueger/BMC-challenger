@@ -1,9 +1,10 @@
 # Review of what was taken
 
-Version 0.2.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
+Version 0.3.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
 
-- ViciDesign at 2759b7a (v1.0.0 on `main`), Victor's design system
+- ViciDesign at 64044bd on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36), the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39) and the PESTEL Challenger's report pages (#40), which this tool's report of 0.4.0 will use
 - the Prototype Ideator at ec368c3, its M1: the fact audit and the DOM helper the set shares
+- the Prototype Ideator at 532e0f5, its `main` after M2: the live client the set shares, which it merged first (ec368c3)
 - the Sovereignty Assessment 2.0.0 at 35c0dea: the newest live client and the bilingual build
 - the Data Quality Agent 2.2.0 at 831f050: the presenter (steps, Play, key figures, live dialog)
 - the SWOT Challenger at 617b122, its M1: the first of the set to merge the shared parts
@@ -12,7 +13,7 @@ Version 0.2.0. Every file this tool took from Vici or a sister prototype, how an
 
 | File | From | Why |
 |---|---|---|
-| `vici/` (19 files, listed in its README) | ViciDesign | Standing requirement 1: Vici's files unchanged, at a named commit; `tests/vici.mjs` and `tests/vici-files.mjs` compare them byte for byte |
+| `vici/` (20 files, listed in its README) | ViciDesign | Standing requirement 1: Vici's files unchanged, at a named commit; `tests/vici.mjs` and `tests/vici-files.mjs` compare them byte for byte |
 | `js/risk.js` | SWOT Challenger | Shared by the set (brief 4.1): bands, probabilities, expected values, the totals and the money format |
 | `data/kpis.js` | SWOT Challenger | Shared: the sector KPI library |
 | `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js` | SWOT Challenger | Shared: the handoff schema, and the same as a module the page can import |
@@ -23,6 +24,10 @@ Version 0.2.0. Every file this tool took from Vici or a sister prototype, how an
 | `tests/hygiene.mjs` | Sovereignty Assessment | No client, prospect, contact or meeting named in a published file |
 | `js/facts.js` (`normalise`, `evidenceCorpus`, `auditText`, `auditState`, `nextAuditState`) | Prototype Ideator | The fact audit, unchanged, so the set of four judges a figure alike; the placeholders and their filling around it are this tool's |
 | `tests/lib/strings.mjs` | Sovereignty Assessment | The string tokenizer behind the language test |
+| `js/anthropic.js` | Prototype Ideator at 532e0f5, merged in ec368c3 | Shared by the set: the key check with GET `/v1/models`, the streaming Messages request, the API's errors as `ApiError` and the retries |
+| `js/sse.js` | Prototype Ideator at 532e0f5, merged in ec368c3 | Shared: the reader of server-sent events with its idle limit |
+| `js/cost.js` | Prototype Ideator at 532e0f5, merged in ec368c3 | Shared: the cost meter, usage times price at 0.894 € to the dollar. The SWOT Challenger's copy differs; the Ideator merged first, so this tool follows it (TECH_NOTES §10) |
+| `js/keystore.js` | Prototype Ideator at 532e0f5, merged in ec368c3 | Shared: the key in one module variable, masked when shown, never stored, and redacted from messages |
 
 ## Copied with a new header
 
@@ -34,16 +39,17 @@ Version 0.2.0. Every file this tool took from Vici or a sister prototype, how an
 
 | File | From | What changed, and why |
 |---|---|---|
-| `index.html` | Vici's blank starter page, with the Data Quality Agent's presenter shell and the Sovereignty Assessment's two guides | This tool's header with three key figures, its talk bar of six steps, the canvas of nine blocks with the Strategyzer credit, the panel and the bar under the story, the block's dialog, and a guide per language with its talk track |
+| `index.html` | Vici's blank starter page, with the Data Quality Agent's presenter shell and the Sovereignty Assessment's two guides | This tool's header with three key figures, its talk bar of six steps, the canvas of nine blocks with the Strategyzer credit, the panel and the bar under the story, the block's dialog, Vici's live-run dialog with this tool's settings, research and cap, and a guide per language with its talk track |
 | `css/app.css` | The shells of both sisters; the bar under the story from the Data Quality Agent 2.2.0 | Their page grid, header, tiles, step bar, loading screen and the bar that says what happens next; the canvas grid in the classic layout and the step panels are new |
 | `js/app.js` | Data Quality Agent 2.2.0 | Its presenter: the steps, Play by reading time, the keys, the address and the focus; this tool's six steps, its turns and its dialog |
 | `js/dom.js` | Prototype Ideator | Elements built with text only, never markup; this tool's icon helper |
+| `js/session.js` | Prototype Ideator at 532e0f5 | The tab's one store of live work, in memory only, with Clear everything and the warning before leaving; this tool's company, canvas, run and choices |
 | `tools/check-scenarios.mjs` | Sovereignty Assessment, its runs_check.js and check-runs.mjs | Its missing languages, differing placeholders, key and thinking patterns and plays; this tool's contract, guardrails, frozen figures and DATA_SOURCES.md |
 | `tests/audit.mjs` | Prototype Ideator, its facts.mjs suite | Its audit cases in both languages; this tool's placeholders and the guardrails of brief 6.7 |
 | `js/main.js` | Sovereignty Assessment | Boots the page and reports a failed module on the loading screen; this tool's names |
 | `js/lang.js` | Sovereignty Assessment | Picks the language before Vici starts; the key is `bmc.lang` |
 | `js/i18n/index.js` | Sovereignty Assessment | Both languages without a reload; its log tag reads `APP.name` and its key `STORAGE.lang` |
-| `js/config.js` | Sovereignty Assessment | The policy constant and the storage prefix; this tool's name, version and single storage key, the models and prices behind the Session cost estimate, the settings and Play's timing |
+| `js/config.js` | Sovereignty Assessment, with the API constants of the Prototype Ideator | The policy constant and the storage prefix; this tool's name, version and single storage key, the API's addresses and headers, the models and prices, the three settings, each agent's tokens, the budget, the estimate and Play's timing |
 | `js/format.js` | Sovereignty Assessment | Intl formats in both languages; money now follows the shared `js/risk.js`, and a sum over part of the issues says so |
 | `tests/policy.mjs` | Data Quality Agent | This tool's policy; the storage checks moved to `tests/storage.mjs`, which is stricter (no key in session storage) |
 | `tests/vici.mjs` | Sovereignty Assessment | This page's figures, controls and record ids, every step of the three scenarios with Vici's framework and risk-matrix checks, and the scenario texts |
@@ -62,3 +68,5 @@ Version 0.2.0. Every file this tool took from Vici or a sister prototype, how an
 ## Written for this tool
 
 `js/engine.js`, `js/canvas.js`, `js/run.js`, `js/story.js`, `js/view.js`, `js/kpis.js`, `js/guards.js`, `js/estimate.js`, the dictionaries, `schemas/index.js`, the three scenarios in `data/scenarios/`, `data/reference.js`, `favicon.svg` and the suites `engine`, `schemas`, `scenarios`, `storage`, `shell`, `presenter`, `play`, `layout` and `parity` with their fixtures are new. The engine calls the shared `js/risk.js` for every total (TECH_NOTES §10).
+
+The live run of 0.3.0 is new too: the agents' prompts (`js/prompts.js`), the pipeline with its repair (`js/pipeline.js`), the Scout's research (`js/scout.js`), the run itself (`js/live.js`), the budget (`js/budget.js`), the errors in plain words (`js/api_messages.js`), the private-data scan (`js/privacy.js`), the dialog's wiring (`js/live_dialog.js`) and the live screens (`js/live_view.js`), with the stand-in for the API (`tests/lib/standin.mjs`) and the suites `prompts`, `decisions` and the eight `live-` suites. The dialog follows Vici's pattern; the client under it is the set's (above).
