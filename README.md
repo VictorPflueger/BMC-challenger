@@ -2,7 +2,7 @@
 
 Find where a business model breaks, and rebuild it.
 
-Live at <https://victorpflueger.github.io/BMC-challenger/>. This is version 1.0.0: three fictional companies play in English and German without a key, Run it live puts six agents to work on your company with your own Claude API key, and every run ends in a report.
+Live at <https://victorpflueger.github.io/BMC-challenger/>. This is version 1.0.0: three fictional companies play in English and German without a key, Run it live puts five agents to work on your company, six with web research, with your own Claude API key, and every run ends in a report.
 
 ## What it does
 
@@ -14,19 +14,19 @@ Three key figures stand top right: what the issues put at stake a year, how many
 
 The simulation plays three fictional companies without a key: Tidewell Lines, a container carrier; Arvento Drives, a maker of industrial drives; and Auental Energie, a municipal utility. Each is a run written by hand and checked by a live run's rules. Their own figures are invented and illustrative; what they meet in the world, such as a law or a price, is real and shows its source and the date it was read ([DATA_SOURCES.md](DATA_SOURCES.md)). Any choice works: the engine computes every figure from the choices made.
 
-A live run takes your company and your own Claude API key. The key and everything you enter stay in the tab's memory and are gone when you close or reload it; you keep a result only by downloading it. The browser remembers two choices and nothing else: the theme and the language.
+A live run takes your company and your own Claude API key. The key and everything you enter stay in the tab's memory and are gone when you close or reload it; you keep a result only by downloading it. The browser keeps the theme and the language, and for this tab alone that the guide has opened; nothing else.
 
 Public information only: never enter confidential, personal or otherwise protected data.
 
 ## A live run
 
-Run it live opens a form for the company and its canvas; "Start from Tidewell Lines's canvas" fills both. The dialog takes your key, a setting and a budget cap. Six agents then work in turn, one request each: the Completer fills the gaps, the Scout reads recent news if you switch research on, the Red team finds the issues, the Analyst puts a figure on them, the Strategist proposes the responses and the Writer sums up. The run waits for you twice: to review the AI's items and to choose a response per issue.
+Run it live opens a form for the company and its canvas; "Start from Tidewell Lines's canvas" fills both. The dialog takes your key, a setting and a budget cap. The agents then work in turn, one request each: the Completer fills the gaps, the Scout reads recent news if you switch research on, the Red team finds the issues, the Analyst puts a figure on them, the Strategist proposes the responses and the Writer sums up. The run waits for you twice: to review the AI's items and to choose a response per issue.
 
-Each request goes from your browser to `api.anthropic.com` alone, with your key, the company, the canvas and the earlier agents' answers. For a canvas the size of Tidewell Lines's, a run is estimated at under €0.01 on Fast and on Balanced, both Haiku 5.5, and about €0.12 on Thorough, Sonnet 5.5; research adds about €0.05 for up to five web searches. The run stops before any request that could pass your cap. [TECH_NOTES.md](TECH_NOTES.md) §12 and §13 have the details.
+Each request goes from your browser to `api.anthropic.com` alone, with your key, the company, the canvas and the earlier agents' answers. For a canvas the size of Tidewell Lines's, a run is estimated at under €0.01 on Fast and on Balanced, both Haiku 5.5, and about €0.12 on Thorough, Sonnet 5.5; research adds about €0.05 on Haiku and €0.10 on Sonnet, its five web searches included. The run stops before any request that could pass your cap; [TECH_NOTES.md](TECH_NOTES.md) §12 and §13 explain.
 
 ## The report
 
-At Summary, Download the report shows every page: the management summary, the canvas before and after the decision, the issues with the risk matrix, the responses and the method. You keep it as a PDF (your browser's Save as PDF, the footer on every page), an HTML file that opens offline or the JSON file the Prototype Ideator reads. A run stopped early gives the report of what is done, and every page says so ([TECH_NOTES.md](TECH_NOTES.md) §14).
+At Summary, Download the report shows every page, from the management summary to the method. You keep it as a PDF (your browser's Save as PDF, the footer on every page), an HTML file that opens offline or the JSON file the Prototype Ideator reads. A run stopped early gives the report of what is done, and every page says so ([TECH_NOTES.md](TECH_NOTES.md) §14).
 
 ## The canvas
 

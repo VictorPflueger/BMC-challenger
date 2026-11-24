@@ -1,6 +1,7 @@
 // The handoff file (brief 4.3 and 10; AC-21): each scenario's file, in English and German, with the recorded
 // choices and with two others (every issue accepted; the other option where an issue has two), passes the
-// shared schema and the references it can't hold, and the Prototype Ideator's own reader reads it. Its
+// shared schema and the references it can't hold, and the Prototype Ideator's own reader reads it; so does
+// the file with any AI item removed, which leaves out a response's change to that item. Its
 // figures are the engine's: at stake, left and upside a year, blocks under pressure and resilience before
 // and after, and each issue's expected value. It holds no key, no prompt and no thinking. Planted defects
 // fail: a missing field, an item id the file doesn't have, a key-shaped string, a band that doesn't match.
@@ -12,7 +13,7 @@ import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { APP_ROOT, exit } from "./lib/harness.mjs";
 import { SCENARIOS } from "../data/scenarios/index.js";
-import { localise, buildRun, recordedChoices } from "../js/run.js";
+import { localise, buildRun, recordedChoices, aiItems } from "../js/run.js";
 import { handoffFor, handoffProblems, countryCode, HANDOFF_SCHEMA } from "../js/handoff.js";
 import { band, expected } from "../js/risk.js";
 import { AGENTS, promptFor } from "../js/prompts.js";
@@ -77,6 +78,31 @@ for (const s of SCENARIOS) {
         check(r.ok && !r.problems.length && sameIssues, `${at}: the Prototype Ideator's reader reads it, every issue with its chosen response${r.problems?.length ? `: ${r.problems.slice(0, 2).join("; ")}` : ""}`);
       }
     }
+  }
+}
+
+// ---- the person removed AI items: the file still saves -------------------------------------------------
+// Each AI item removed alone, then all of them, with the recommended responses and with every issue
+// accepted. A response's change to a removed item no longer applies, so the file leaves it out, as the
+// engine does; the file is never refused for a removal the person made (DEMO_SCRIPT.md's second minute).
+for (const s of SCENARIOS) {
+  for (const lang of ["en", "de"]) {
+    const sc = localise(s, lang);
+    const ai = aiItems(buildRun(sc)).map((it) => it.id);
+    let total = 0;
+    const refused = [];
+    let stale = 0;
+    for (const removedIds of [...ai.map((id) => [id]), ai]) {
+      for (const decisions of [new Map(), new Map(sc.answers.issues.map((i) => [i.id, "accept"]))]) {
+        const run = buildRun(sc, { removed: new Set(removedIds), decisions });
+        const json = JSON.parse(JSON.stringify(handoffFor({ sc, run, lang, mode: "simulation", applied: true, created: CREATED })));
+        total += 1;
+        const problems = handoffProblems(json);
+        if (problems.length) refused.push(`${removedIds.length > 1 ? "all" : removedIds[0]}: ${problems[0]}`);
+        if (json.responses.some((r) => r.changes.some((c) => c.item && removedIds.includes(c.item)))) stale += 1;
+      }
+    }
+    check(!refused.length && !stale, `${s.id} ${lang}: with any AI item removed (${total} cases), the file passes its check and names no removed item${refused.length ? `: ${refused.slice(0, 2).join("; ")}` : ""}`);
   }
 }
 

@@ -25,7 +25,7 @@ const SUITES = [
   { id: "hygiene", what: "no client, prospect, contact or meeting named in any published file", file: "tests/hygiene.mjs", browser: false },
   { id: "parity", what: "the shared parts equal every sibling that has them", file: "tests/parity.mjs", browser: false },
   { id: "docs", what: "the documents: sections, length, version, every path they name; the demo scripts against the engine and the talk track", file: "tests/docs.mjs", browser: false },
-  { id: "handoff", what: "the handoff file of each scenario in both languages and three choices: the shared schema, its references, the engine's figures, the Prototype Ideator's reader", file: "tests/handoff.mjs", browser: false },
+  { id: "handoff", what: "the handoff file of each scenario in both languages and three choices, and with AI items removed: the shared schema, its references, the engine's figures, the Prototype Ideator's reader", file: "tests/handoff.mjs", browser: false },
   { id: "storage", what: "nothing is kept: storage only for the theme, the language and the guide's note, in the code and in the browser, a played run and a live run with a planted key included", file: "tests/storage.mjs", browser: true, vici: true },
   { id: "shell", what: "the page in Chromium: English first, the switch without a reload, the guide, the figures, the talk bar, the credit", file: "tests/shell.mjs", browser: true },
   { id: "presenter", what: "each scenario played offline in both languages with other choices: tiles, canvas and summary agree with the engine; no block named in the other language", file: "tests/presenter.mjs", browser: true },

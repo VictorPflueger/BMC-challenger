@@ -117,7 +117,9 @@ export function handoffFor({ sc, run, lang, mode, model = null, applied = false,
     };
   });
   // Every option offered, the chosen one marked once the person applied the decision; an accepted issue
-  // gets its accept response then. A residual needs a euro range, so an issue without one has none.
+  // gets its accept response then. A residual needs a euro range, so an issue without one has none. A change
+  // to an AI item the person removed no longer applies: the file leaves it out, as buildRun skips it.
+  const held = new Set(areas.flatMap((a) => a.items.map((i) => i.id)));
   const responses = [];
   for (const o of run.options) {
     const issue = run.issues.find((i) => i.id === o.issue);
@@ -131,7 +133,7 @@ export function handoffFor({ sc, run, lang, mode, model = null, applied = false,
         title: opt.title,
         first_step: opt.first_step,
         owner: opt.owner,
-        changes: opt.changes.map((c) => ({
+        changes: opt.changes.filter((c) => c.action === "add" || held.has(c.item)).map((c) => ({
           area: c.block,
           action: c.action,
           ...(c.action === "add" ? {} : { item: c.item }),
@@ -173,7 +175,7 @@ export function handoffFor({ sc, run, lang, mode, model = null, applied = false,
       sector,
       country: countryCode(sc.company.country),
       description: sc.company.description || "",
-      fictional: mode !== "live"
+      fictional: mode !== "live" || !!sc.company.fictional
     },
     framework: { type: "bmc", areas },
     issues,

@@ -140,12 +140,15 @@ export async function start() {
     },
     items: (block, texts, redraw = false, focus = -1) => {
       setBlock(block, texts);
-      if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); if (focus >= 0) $(`edit-${block}-${focus}`)?.focus(); }
+      if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); (focus >= 0 ? $(`edit-${block}-${focus}`) : $("edit-add"))?.focus(); }
     },
+    // The scenario's company and canvas replace what was entered, so two companies never mix; the run
+    // knows it is of a fictional company (session.sample).
     sample: () => {
       const sc = local(state.scenarioId, getLang());
       setForm({ name: sc.company.name, sector: sc.company.sector, country: t(`country.${sc.company.country}`), description: sc.company.description });
-      for (const [b, items] of Object.entries(sc.entered.blocks)) setBlock(b, items.map((it) => it.text));
+      for (const b of Object.keys(session().entered.blocks)) setBlock(b, (sc.entered.blocks[b] || []).map((it) => it.text));
+      updateSession({ sample: state.scenarioId });
       render();
     },
     // An agent at work is stopped first: its answer would belong to a run that no longer exists.
@@ -336,7 +339,7 @@ export async function start() {
     const own = lv && (ctx.step === STEP.start || ctx.step > ctx.reached);
     words = own ? liveWords(ctx) : stepWords(ctx);
     els.title.textContent = words.title;
-    els.lead.textContent = words.lead;
+    els.lead.replaceChildren(...(words.ai ? [h("span", { class: "vc-tag vc-tag--sm vc-tag--feature" }, icon("sparkle"), t("item.ai")), " "] : []), words.lead);
     document.body.dataset.step = STEPS[state.step];
     renderCanvas(els.canvas, ctx, on);
     if (lv && ctx.step === STEP.start) els.panel.replaceChildren(...panelLiveStart(ctx, on).filter(Boolean));
@@ -350,7 +353,7 @@ export async function start() {
     const old = !lv && (Date.now() - new Date(`${ctx.sc.as_of}T12:00:00`).getTime()) / 86400000 > SIM.staleDays;
     els.stale.hidden = !old;
     els.stale.querySelector(".stale-text").textContent = lv ? "" : staleWords(ctx.sc, ctx.lang);
-    els.fictional.hidden = lv;
+    els.fictional.hidden = lv && !ctx.sc.company.fictional;
     renderSteps();
     drawPlay();
     fitSummary(els.panel, short.matches);

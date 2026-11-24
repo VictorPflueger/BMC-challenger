@@ -2,7 +2,7 @@
 
 Version 1.0.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
 
-- ViciDesign at 39f1082 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36) and its fit for every window (#41), the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39) and its honeycomb (#45), the PESTEL Challenger's report pages (#40), which this tool's report uses, its dialog and report fixes of 1.0.0 (#42, #44), and the SWOT Challenger's report that prints in the light scheme (#46)
+- ViciDesign at 20e47d7 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36) and its fit for every window (#41), the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39) and its honeycomb (#45), the PESTEL Challenger's report pages (#40), which this tool's report uses, its dialog and report fixes of 1.0.0 (#42, #44), the SWOT Challenger's report that prints in the light scheme (#46), the PESTEL Challenger's targets of 40 px (#47) this tool's acknowledgement, which takes 40 px too (#48), and its compact form for one area of a framework view (#49)
 - the Prototype Ideator at ec368c3, its M1: the fact audit and the DOM helper the set shares
 - the Prototype Ideator at 532e0f5, its `main` after M2: the live client the set shares, which it merged first (ec368c3)
 - the Sovereignty Assessment 2.0.0 at 35c0dea: the newest live client and the bilingual build

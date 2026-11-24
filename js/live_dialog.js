@@ -55,8 +55,11 @@ export function setupLiveDialog({ estimate, fields, onStart }) {
     const extra = estimate(p.id, true).eur - estimate(p.id, false).eur;
     $("live-research-help").textContent = t("live.research.help", { n: ANTHROPIC.webSearchTool.max_uses, cost: fmtCents(extra, lang) }, lang);
     const minutes = Math.max(1, Math.round(e.seconds / 60));
+    // "under €0.01" is already an estimate's words; a cap below the estimate is said before the run starts.
+    const over = e.eur > (Number(cap.value) || 0);
     $("live-estimate").replaceChildren(
-      t("live.estimate.lead", null, lang), " ", h("strong", {}, `≈ ${fmtCents(e.eur, lang)}`), " ", tn("live.estimate.time", minutes, {}, lang), " ",
+      t("live.estimate.lead", null, lang), " ", h("strong", {}, e.eur < 0.005 ? fmtCents(e.eur, lang) : `≈ ${fmtCents(e.eur, lang)}`), " ", tn("live.estimate.time", minutes, {}, lang), " ",
+      ...(over ? [t("live.estimate.over", null, lang), " "] : []),
       t("live.estimate.lang", { lang: t(`lang.${lang}`, null, lang) }, lang));
   }
   function drawWarning() {
@@ -85,6 +88,7 @@ export function setupLiveDialog({ estimate, fields, onStart }) {
   ack.addEventListener("change", ready);
   for (const r of presets) r.addEventListener("change", drawEstimate);
   research.addEventListener("change", drawEstimate);
+  cap.addEventListener("input", drawEstimate);
   $("live-forget").addEventListener("click", () => { forgetKey(); key.value = ""; drawKey(); ready(); key.focus(); });
 
   start.addEventListener("click", async () => {

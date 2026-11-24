@@ -27,6 +27,7 @@ import { complete } from "./canvas.js";
 import { causeOf } from "./api_messages.js";
 import { fmtMoney } from "./format.js";
 import { band } from "./risk.js";
+import { scenarioById } from "../data/scenarios/index.js";
 
 const AGENT_STEP = { completer: STEP.complete, scout: STEP.challenge, redteam: STEP.challenge, analyst: STEP.assess, strategist: STEP.adapt, writer: STEP.summary };
 let controller = null;
@@ -73,7 +74,8 @@ export function liveScenario() {
     source: "live",
     as_of: today(),
     facts: [],
-    company: { name: s.form.name.trim(), sector: completion.sector || s.form.sector || "general", country: s.form.country.trim(), description: s.form.description.trim(), fictional: false },
+    // A run of a scenario's company, filled in from it and its name kept, is a run of a fictional company.
+    company: { name: s.form.name.trim(), sector: completion.sector || s.form.sector || "general", country: s.form.country.trim(), description: s.form.description.trim(), fictional: !!s.sample && scenarioById(s.sample)?.company.name === s.form.name.trim() },
     entered: s.entered,
     answers: {
       completion,

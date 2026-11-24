@@ -14,7 +14,7 @@ One screen, no page scroll, from 1280 × 720 to 1920 × 1080; `tests/layout.mjs`
 - The talk bar: Play, Back, the six steps, Next, then Run it live with "You are interacting with an AI system" in a lilac tag.
 - The work area: the step's title, which answers with its figure; the canvas; the Strategyzer credit and "Fictional company, illustrative figures"; the panel; the bar that says what happens next.
 
-The canvas keeps its classic layout and takes the height the panel leaves: a block shows its name, its state and as many items as fit, then "+2 more", and a click opens it in full. At 1280 × 720 an item shows its first line (Vici's compact framework view).
+The canvas keeps its classic layout and takes the height the panel leaves: a block shows its name, its state and as many items as fit, then "+2 more", and a click opens it in full. Short of room, an item shows its first line (Vici's compact framework view).
 
 Where the person acts, the bar says "Your turn" or "Your decision"; at Summary its action is the report. Play stays 7 to 14 seconds a step and stops where the person acts.
 

@@ -41,6 +41,7 @@ function blank() {
     form: { name: "", sector: "", country: "", description: "" },
     entered: { blocks: Object.fromEntries(BLOCKS.map((b) => [b, []])) },
     run: blankRun(),
+    sample: null,                // the scenario "Start from …'s canvas" filled in: fictional while its name stays
     result: false,               // true once a live run has produced something worth keeping
     downloaded: false            // true once that result has been downloaded since it last changed
   };

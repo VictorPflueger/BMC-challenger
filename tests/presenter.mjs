@@ -84,9 +84,13 @@ try {
 
     const run = buildRun(sc, { removed: new Set([removedId]), decisions });
     const t1 = await tiles();
-    check(nb(t1["kpi-stake"].value) === nb(money(run.after.left, lang)) && t1["kpi-stake"].struck && nb(t1["kpi-stake"].was) === nb(money(run.before.atStake, lang)),
+    // A value that changed is struck through beside the new one; one that didn't stands alone.
+    const moved = (now, was) => (nb(now) === nb(was) ? "" : nb(was));
+    const stakeWas = moved(money(run.after.left, lang), money(run.before.atStake, lang));
+    const pressureWas = moved(fmtPressure(run.after.pressure.after, run.after.pressure.of, lang), fmtPressure(run.before.pressure.before, run.before.pressure.of, lang));
+    check(nb(t1["kpi-stake"].value) === nb(money(run.after.left, lang)) && t1["kpi-stake"].struck === !!stakeWas && nb(t1["kpi-stake"].was) === stakeWas,
       `${at}: after the decision the stake tile shows what is left, ${nb(t1["kpi-stake"].value)}, with ${nb(t1["kpi-stake"].was)} struck through beside it`, JSON.stringify(t1["kpi-stake"]));
-    check(nb(t1["kpi-pressure"].value) === nb(fmtPressure(run.after.pressure.after, run.after.pressure.of, lang)) && t1["kpi-pressure"].struck && nb(t1["kpi-pressure"].was) === nb(fmtPressure(run.before.pressure.before, run.before.pressure.of, lang)),
+    check(nb(t1["kpi-pressure"].value) === nb(fmtPressure(run.after.pressure.after, run.after.pressure.of, lang)) && t1["kpi-pressure"].struck === !!pressureWas && nb(t1["kpi-pressure"].was) === pressureWas,
       `${at}: the pressure tile shows ${nb(t1["kpi-pressure"].value)} with ${nb(t1["kpi-pressure"].was)} struck through`, JSON.stringify(t1["kpi-pressure"]));
     // The canvas: each block's state as the engine has it after the decision; a block the responses
     // changed and no longer under pressure reads "Adapted".

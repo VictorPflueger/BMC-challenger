@@ -93,10 +93,10 @@ export function createReportView({ dialog, title, body, tools, context, announce
     const c = current.ctx;
     const file = handoffFor({ sc: c.sc, run: c.run, lang: c.lang, mode: c.mode, model: c.live?.model ?? null, applied: c.applied, created: new Date(), stopText: c.notice || "" });
     const problems = handoffProblems(file);
-    // A file that fails its check is not offered; the dialog says why, beside the button, in words.
+    // A file that fails its check is not offered; the dialog says so beside the button, in the page's language.
     const error = document.getElementById("rp-error");
     if (problems.length) {
-      const words = t("rp.json.failed", { problem: problems[0] });
+      const words = t("rp.json.failed");
       if (error) { error.textContent = words; error.hidden = false; }
       announce(words);
       return;

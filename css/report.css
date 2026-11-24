@@ -76,10 +76,11 @@
 .report-block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__items { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 .report-block .vc-item { font-size: var(--vc-font-size-xs); line-height: 1.35; }
 /* On paper an item is one paragraph: the mark at its start, the text, then its state words in the line, so a
-   canvas with many items still fits one sheet with its legend and credit. */
+   canvas with many items still fits one sheet with its legend and credit. A long German compound breaks with
+   a hyphen where the browser knows the language, not at any letter. */
 .report-block .vc-item__summary { display: block; min-height: 0; padding: 3px 5px; }
 .report-block .vc-item__mark { float: left; margin-inline-end: 4px; }
-.report-block .vc-item__text { display: inline; padding: 0; }
+.report-block .vc-item__text { display: inline; padding: 0; hyphens: auto; }
 .report-block .vc-item__states { display: inline; margin-inline-start: 4px; padding: 0; }
 .report-block .vc-item__states > .vc-tag { margin-inline-end: 2px; vertical-align: 1px; }
 .report-block .vc-item__mark { width: 0.9rem; height: 1.35em; }

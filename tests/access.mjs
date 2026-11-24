@@ -266,6 +266,15 @@ try {
     await page.waitForFunction(() => !document.querySelector("dialog[open]"));
     way.push("guide closed with Escape");
     try {
+      // The company picker is a radio group: one Tab stop, the arrow keys choose within it and stay at Start.
+      if (await tabTo(page, '.company[aria-checked="true"]') === null) throw new Error("Tab never reaches the chosen company");
+      await page.keyboard.press("ArrowDown");
+      await page.waitForFunction(() => document.activeElement?.matches('.company[aria-checked="true"][data-scenario="s2"]'), null, { timeout: 3000 });
+      const stops = await page.evaluate(() => [...document.querySelectorAll(".company")].filter((b) => b.tabIndex === 0).length);
+      await page.keyboard.press("ArrowUp");
+      await page.waitForFunction(() => document.activeElement?.matches('.company[aria-checked="true"][data-scenario="s1"]'), null, { timeout: 3000 });
+      if (await stepOf(page) !== "start" || stops !== 1) throw new Error(`the arrow keys left Start, or the group has ${stops} Tab stops`);
+      way.push("the arrow keys chose Arvento Drives and Tidewell Lines again, at Start, one Tab stop");
       for (let s = 0; s < STEPS.length; s += 1) {
         const step = await stepOf(page);
         if (step !== STEPS[s]) throw new Error(`expected ${STEPS[s]}, the page shows ${step}`);
@@ -388,11 +397,16 @@ try {
       const remove = await page.evaluate(() => document.activeElement?.getAttribute("aria-label") || "");
       await page.keyboard.press("Enter");
       await page.waitForFunction((n) => document.querySelectorAll("#block-dialog .edit-list input").length === n, had, { timeout: 3000 });
+      // The focus stays in the dialog, on the line that took the removed one's place.
+      const focusAfter = await page.evaluate(() => document.activeElement?.closest("#block-dialog") ? document.activeElement.id || document.activeElement.tagName : "outside the dialog");
+      if (!/^edit-value-\d+$/.test(focusAfter)) throw new Error(`after Remove the focus is on ${focusAfter}, not on a line of the block`);
       await page.keyboard.press("Escape");
       await page.waitForFunction(() => !document.querySelector("#block-dialog[open]"), null, { timeout: 3000 });
+      // The canvas draws the block again when the dialog's close event arrives, a moment after it closes.
+      await page.waitForFunction((n) => document.querySelectorAll('#canvas .block[data-block="value"] .vc-item').length === n, had, { timeout: 3000 }).catch(() => {});
       const items = await page.evaluate(() => document.querySelectorAll('#canvas .block[data-block="value"] .vc-item').length);
       if (items !== had || !/A line to take out again/.test(remove)) throw new Error(`the block holds ${items} items after the dialog, ${had} before ("${remove}")`);
-      way.push(`an item typed in a block's dialog and taken out with "${remove}"`);
+      way.push(`an item typed in a block's dialog and taken out with "${remove}", the focus kept on the line that took its place (${focusAfter})`);
       // Start the agents: the live-run dialog, by keyboard.
       if (await tabTo(page, "#btn-cta") === null) throw new Error("Tab never reaches Start the agents");
       await page.keyboard.press("Enter");

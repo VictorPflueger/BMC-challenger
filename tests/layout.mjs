@@ -7,7 +7,8 @@
 // credit and "Fictional company, illustrative figures" stand under the canvas; the bar under the story,
 // with its action, is in view; no text is cut off. An item's text on the canvas is the one exception the
 // brief makes (§4.3): at 1280 × 720 it shows its first line, at 1920 × 1080 two, and a click opens the
-// block with every item in full. At Adapt every option of every issue, Accept included, shows in full
+// block with every item in full. Every block but the four half-height ones shows at least one of its items
+// and the selected issue's own (TECH_NOTES §9), and a planted empty block is caught. At Adapt every option of every issue, Accept included, shows in full
 // above the bar; on the other steps the panel shows its title and may scroll inside, never the page.
 // The guide opens inside the window. Every target is at its size (the rule in TECH_NOTES §9 and the
 // measure below): 40 px; 32 px on the canvas and in the panel, 44 px there with a touch screen; Vici's guide
@@ -18,8 +19,9 @@
 // dialog with a private-data warning, an agent at work, the review, an AI item opened for review, the
 // decision, the summary with its report bar, the report dialog, the question before Start again throws
 // an undownloaded run away, a run stopped at its budget cap (with the report of what is done) and a run
-// stopped by an error. The same rules hold, with LIVE on the tape,
-// no fictional label and the dialogs inside the window, their buttons in view. With the warning, the
+// stopped by an error. The same rules hold, with LIVE on the tape, the fictional label only once the
+// scenario's canvas is filled in (the run is of a fictional company), and the dialogs inside the window,
+// their buttons in view. With the warning, the
 // dialog's body may scroll, as Vici's live-run dialog says ("the body scrolls, the footer doesn't"),
 // while the warning and the footer stay in view; the report dialog's pages scroll inside it, its
 // downloads in view. The simulation's report dialog is measured at S1's Summary at every size, theme
@@ -93,8 +95,17 @@ function measure() {
   const minTarget = coarse ? 44 : 32;
   const modal = q("dialog[open]");
   const nameOf = (el) => (el.getAttribute("aria-label") || el.textContent.trim() || el.id || el.className || el.tagName).toString().replace(/\s+/g, " ").slice(0, 28);
+  // A radio or a checkbox takes the clicks of its label and its own box, which Vici's segmented control lets
+  // reach past the label: the target is the two together.
   const targetOf = (el) => {
-    if (el.matches("input[type=radio], input[type=checkbox]")) return el.closest("label") || (el.id && q(`label[for="${CSS.escape(el.id)}"]`)) || el;
+    if (el.matches("input[type=radio], input[type=checkbox]")) {
+      const label = el.closest("label") || (el.id && q(`label[for="${CSS.escape(el.id)}"]`));
+      if (!label) return el;
+      const a = label.getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      const union = { left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom) };
+      return { getBoundingClientRect: () => ({ ...union, width: union.right - union.left, height: union.bottom - union.top }), getClientRects: () => label.getClientRects(), label };
+    }
     if (el.matches("[tabindex]:not(button, a, input, select, textarea, summary)") && el.closest(".vc-tooltip-anchor")) return el.closest(".vc-tooltip-anchor");
     return el;
   };
@@ -104,7 +115,7 @@ function measure() {
   for (const el of all("button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button], [tabindex]:not([tabindex='-1'])")) {
     if (el.matches(".vc-skip-link") || (modal && !modal.contains(el)) || el.closest("dialog:not([open]), [inert]")) continue;
     const t = targetOf(el);
-    if (!shows(t)) continue;
+    if (!shows(t.label || t)) continue;
     if (inLine(el)) { inline.push(nameOf(el)); continue; }
     const zone = el.closest(".vc-guide") ? "guide" : el.closest(".canvas") ? "canvas" : el.closest("#panel") ? "panel" : "page";
     const min = zone === "guide" ? 24 : zone === "page" ? 40 : minTarget;
@@ -117,7 +128,11 @@ function measure() {
     const states = [...el.querySelectorAll(".vc-framework__head .vc-framework__state")].filter(shows).map(box);
     const name = box(el.querySelector(".block-name"));
     const out = [name, ...states].some((r) => r.bottom > b.bottom - 1 || r.right > b.right + 0.5 || r.left < b.left - 0.5);
-    return { id: el.dataset.block, ...b, headCut: out, head: head ? Math.round(head.getBoundingClientRect().height) : 0 };
+    // Its items, those in view, and the selected issue's own (data-rank 2) with those of them in view.
+    const lis = [...el.querySelectorAll(".vc-framework__items > li")];
+    const inView = lis.filter((li) => !li.hidden && shows(li));
+    return { id: el.dataset.block, ...b, headCut: out, head: head ? Math.round(head.getBoundingClientRect().height) : 0,
+      items: lis.length, shown: inView.length, issueItems: lis.filter((li) => li.dataset.rank === "2").length, issueShown: inView.filter((li) => li.dataset.rank === "2").length };
   });
   const workspace = q(".workspace");
   const current = all("#steps .vc-step").findIndex((li) => li.querySelector("button")?.getAttribute("aria-current") === "step");
@@ -334,7 +349,12 @@ try {
     const guideTargets = (await page.evaluate(measure)).targets;
     check(!guideTargets.length, `${size}: in the guide every target is at least 24 px, as Vici draws its own guide`, guideTargets.slice(0, 4).join("; "));
 
-    const problems = { fit: [], stepper: [], header: [], talk: [], clearance: [], targets: [], blocks: [], heads: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], adapt: [] };
+    const problems = { fit: [], stepper: [], header: [], talk: [], clearance: [], targets: [], blocks: [], heads: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], adapt: [], items: [] };
+    // The four half-height blocks may keep only their name, state and count on a short screen; every other
+    // block shows at least one item, and the selected issue's own (TECH_NOTES §9).
+    const HALF = new Set(["activities", "resources", "relationships", "channels"]);
+    const emptied = (m) => m.blocks.filter((b) => !HALF.has(b.id) && ((b.items && !b.shown) || (b.issueItems && !b.issueShown))).map((b) => `${b.id} (${b.shown} of ${b.items} in view${b.issueItems ? `, the issue's ${b.issueShown} of ${b.issueItems}` : ""})`);
+    let plantedCaught = null;
     const inlineLinks = new Set();
     let adaptChecked = 0;
     for (const sc of scenarios) for (let step = 0; step < STEPS.length; step++) {
@@ -363,6 +383,14 @@ try {
       if (!(m.credit.bottom <= vh && m.credit.top >= m.canvas.bottom - 1 && m.fictional && m.fictional.top >= m.canvas.bottom - 1 && m.byline.bottom <= m.canvas.top)) problems.credit.push(at);
       if (!(m.bar && m.cta && m.bar.bottom <= vh + 0.5 && m.cta.bottom <= vh + 0.5 && m.bar.top >= m.panel.bottom - 1)) problems.bar.push(`${at} (bar ${m.bar ? `${Math.round(m.bar.top)}–${Math.round(m.bar.bottom)}` : "missing"}, window ${vh})`);
       if (m.cut.length) problems.cut.push(`${at}: ${m.cut.slice(0, 4).join("; ")}`);
+      const empty = emptied(m);
+      if (empty.length) problems.items.push(`${at}: ${empty.join(", ")}`);
+      // Control, once per size: Revenue streams with every item hidden must be caught.
+      if (plantedCaught === null && STEPS[step] === "challenge") {
+        await page.evaluate(() => { for (const li of document.querySelectorAll('#canvas .block[data-block="revenue"] .vc-framework__items > li')) li.hidden = true; });
+        const planted = await page.evaluate(measure);
+        plantedCaught = emptied(planted).some((x) => x.startsWith("revenue"));
+      }
       // Where the person decides (the company, the review of the AI's items, the responses) the panel
       // shows everything; elsewhere it may scroll inside, and the scroll is reported.
       if (m.panelScroll > 1) (["start", "complete", "adapt"].includes(STEPS[step]) ? problems.panel : problems.scrolls).push(`${at} (${m.panelScroll} px)`);
@@ -388,6 +416,7 @@ try {
     check(!problems.cut.length, `${size}: no text is cut off, items' first lines on the canvas apart`, problems.cut.slice(0, 4).join(" | "));
     check(!problems.panel.length, `${size}: where the person decides (Start, Complete, Adapt) the panel shows everything without scrolling`, problems.panel.slice(0, 4).join("; "));
     check(!problems.scrolls.length, `${size}: the panels of Challenge, Assess and Summary show everything without scrolling`, problems.scrolls.slice(0, 6).join("; "));
+    check(!problems.items.length && plantedCaught, `${size}: on every step every block but the four half-height ones shows at least one of its items, and the selected issue's own; a planted empty block is caught`, problems.items.slice(0, 4).join("; ") || (plantedCaught ? "" : "the planted empty Revenue streams went unnoticed"));
     // The report dialog at S1's Summary: inside the window, nothing sideways, the downloads and the
     // Ideator link in view in its footer, the pages at size scrolling inside its body.
     await page.goto(`${server.base}?guide=0&lang=${lang}&scenario=s1&step=5`);
@@ -418,7 +447,10 @@ try {
         if (!(m.scrollX <= 0 && m.scrollY <= 0 && m.workspaceScroll <= 1)) bad.fit.push(`${at} (x ${m.scrollX}, y ${m.scrollY}, workspace ${m.workspaceScroll})`);
         if (!(m.header.height <= (height <= 720 ? 112 : 120) && !m.tilesOverlapActions && !m.tilesOverlapEachOther)) bad.header.push(`${at} (${Math.round(m.header.height)} px)`);
         if (!(Math.max(...m.talkTops) - Math.min(...m.talkTops) <= 4 && m.talkRight <= m.viewport.width && m.labelClearance >= 8)) bad.talk.push(`${at} (centres ${m.talkTops.join(", ")}, clearance ${Math.round(m.labelClearance)})`);
-        if (!(m.live && m.tape && m.fictional === null)) bad.tape.push(`${at} (live ${m.live}, tape "${m.tape}", fictional ${m.fictional ? "shown" : "hidden"})`);
+        // The run is of Tidewell Lines, filled in from its scenario: fictional, and the label says so, under
+        // the canvas, from the moment its canvas is filled in.
+        const fictional = v.name !== "start-empty";
+        if (!(m.live && m.tape && (fictional ? m.fictional && m.fictional.top >= m.canvas.bottom - 1 : m.fictional === null))) bad.tape.push(`${at} (live ${m.live}, tape "${m.tape}", fictional ${m.fictional ? "shown" : "hidden"})`);
         if (m.targets.length) bad.targets.push(`${at}: ${m.targets.slice(0, 4).join(", ")}`);
         if (!(m.credit.bottom <= vh && m.credit.top >= m.canvas.bottom - 1 && m.byline.bottom <= m.canvas.top)) bad.credit.push(at);
         if (!v.dialog && !(m.bar && m.cta && m.bar.bottom <= vh + 0.5 && m.cta.bottom <= vh + 0.5 && m.bar.top >= m.panel.bottom - 1)) bad.bar.push(`${at} (bar ${m.bar ? `${Math.round(m.bar.top)}–${Math.round(m.bar.bottom)}` : "missing"}, action ${m.cta ? "shown" : "missing"}, window ${vh})`);
@@ -440,7 +472,7 @@ try {
       check(lv.length === 14 && !bad.states.length, `${size}: the live run shows its fourteen screens (${names})`, bad.states.join("; "));
       check(!bad.fit.length, `${size}: every live screen fits the window, no scrolling sideways or down`, bad.fit.slice(0, 4).join("; "));
       check(!bad.header.length && !bad.talk.length, `${size}: on every live screen the header keeps one band and the talk bar one line`, [...bad.header, ...bad.talk].slice(0, 4).join("; "));
-      check(!bad.tape.length, `${size}: every live screen says LIVE on the tape and hides the fictional label`, bad.tape.slice(0, 4).join("; "));
+      check(!bad.tape.length, `${size}: every live screen says LIVE on the tape; the fictional label stands under the canvas once Tidewell Lines's canvas is filled in, and not before`, bad.tape.slice(0, 4).join("; "));
       check(!bad.targets.length, `${size}: on every live screen and in every dialog each target is at its size: 40 px, 32 px on the canvas and in the panel`, bad.targets.slice(0, 4).join("; "));
       check(!bad.credit.length, `${size}: on every live screen the byline stands above the canvas and the credit under it`, bad.credit.slice(0, 4).join("; "));
       check(!bad.bar.length, `${size}: on every live screen the bar and its action are in view`, bad.bar.slice(0, 4).join("; "));

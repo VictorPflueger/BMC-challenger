@@ -143,7 +143,8 @@ export function renderBlockEdit(body, title, blockId, ctx, on) {
   // Each line's Remove button names the line, and follows it as the person types.
   const rows = texts.map((text, i) => {
     const named = (v) => t("live.item.remove", { item: v.trim() || t("live.item.label", { n: i + 1 }, lang) }, lang);
-    const remove = h("button", { type: "button", class: "vc-icon-button", "aria-label": named(text), on: { click: () => { texts.splice(i, 1); on.items(blockId, texts, true); } } }, icon("close"));
+    // Focus goes to the line that takes its place, else the one before, else Add an item.
+    const remove = h("button", { type: "button", class: "vc-icon-button", "aria-label": named(text), on: { click: () => { texts.splice(i, 1); on.items(blockId, texts, true, Math.min(i, texts.length - 1)); } } }, icon("close"));
     return h("li", { class: "edit-row" },
       h("input", { class: "vc-input", type: "text", maxlength: String(LIMITS.itemText), value: text, id: `edit-${blockId}-${i}`, "aria-label": t("live.item.label", { n: i + 1 }, lang), autocomplete: "off",
         on: { input: (e) => remove.setAttribute("aria-label", named(e.target.value)), change: (e) => { texts[i] = e.target.value; on.items(blockId, texts); }, keydown: (e) => enter(e, i) } }),

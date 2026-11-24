@@ -77,7 +77,7 @@ export function reportNodes(ctx) {
   const model = modelById(preset.model)?.label || preset.model;
   const setting = live
     ? tr("rp.model.live", { model, setting: tr(SETTING[preset.id]), research: tr(live.research ? "rp.research.on" : "rp.research.off"), cap: new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(live.capEur) })
-    : tr("rp.model.sim", { model, setting: tr(SETTING[preset.id]) });
+    : tr(sc.answers.signals?.length ? "rp.model.simResearch" : "rp.model.sim", { model, setting: tr(SETTING[preset.id]) });
   const meta = [
     [tr("rp.meta.date"), fmtDate(isoDay(ctx.created), lang)],
     [tr("rp.meta.mode"), tr(mode === "live" ? "rp.mode.live" : "rp.mode.sim")],
@@ -94,7 +94,7 @@ export function reportNodes(ctx) {
       h("p", { class: "vc-report__subtitle" }, s ? fill(s.headline) : tr("rp.sub.none")),
       h("p", { class: "report-tags" },
         h("span", { class: "vc-tag vc-tag--feature" }, icon("sparkle"), tr("rp.ai")),
-        mode !== "live" ? h("span", { class: "vc-tag" }, icon("info"), tr("p.fictional")) : null,
+        mode !== "live" || sc.company.fictional ? h("span", { class: "vc-tag" }, icon("info"), tr("p.fictional")) : null,
         stopped ? h("span", { class: "vc-tag vc-tag--danger" }, icon("warning"), tr("rp.stopped")) : null)),
     h("dl", { class: "vc-report__meta" }, meta.map(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])));
 
@@ -265,7 +265,7 @@ export function reportNodes(ctx) {
     H(2, {}, tr("rp.about.h")),
     h("p", {}, tr("rp.about.tool"), " ", h("a", { href: APP.url }, APP.url)),
     para("rp.about.made"),
-    mode !== "live" ? para("rp.about.fiction") : null,
+    mode !== "live" ? para("rp.about.fiction") : sc.company.fictional ? para("rp.about.fictionLive") : null,
     h("p", { class: "report-public" }, tr("rp.public")),
     para("rp.about.generated"),
     // The byline as Vici's profile links set it out, both links rel="author". Paper shows no link, so the
