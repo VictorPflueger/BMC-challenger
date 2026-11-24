@@ -1,13 +1,15 @@
 # Vici, copied into this prototype
 
 These files come unchanged from Vici, Victor Pflüger's design system
-(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`bf11426`**
+(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`ca9c552`**
 (24 November 2026), on the way to Vici 2.0. Besides the How it works guide (`vc-guide`) with one guide
 per language, the 2.0 byline, the key-figure rule, the struck-through old value of a key figure
 (`vc-stat__was`), `vc-attention` and `--vc-step-fill`, that commit brings the framework view with its
 item and block states, the risk matrix with markers sized by what is at stake (both of them merged
-from this tool and the SWOT Challenger) and `vici-theme.js`, which applies the theme before the first
-paint under a strict security policy. Its files still call themselves 1.0.0 until 2.0 is released. The
+from this tool and the SWOT Challenger), `vici-theme.js`, which applies the theme before the first
+paint under a strict security policy, the live-run dialog (`vc-live`, from the SWOT Challenger, with
+the Prototype Ideator's fit for short windows) and callouts that keep their text and actions in their
+own ink. Its files still call themselves 1.0.0 until 2.0 is released. The
 prototype loads them from here rather than from a CDN, so every page is served from this site alone.
 
 | File here | What it is |

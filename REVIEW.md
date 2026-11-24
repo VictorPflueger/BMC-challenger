@@ -2,7 +2,7 @@
 
 Version 0.3.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
 
-- ViciDesign at bf11426 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36)
+- ViciDesign at ca9c552 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36) and the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39)
 - the Prototype Ideator at ec368c3, its M1: the fact audit and the DOM helper the set shares
 - the Prototype Ideator at 532e0f5, its `main` after M2: the live client the set shares, which it merged first (ec368c3)
 - the Sovereignty Assessment 2.0.0 at 35c0dea: the newest live client and the bilingual build
