@@ -109,6 +109,13 @@ export function markDownloaded() {
   notify();
 }
 
+/** The person threw the result away (Start again): nothing is left to keep, so the warning stops. */
+export function dropResult() {
+  state.result = false;
+  state.downloaded = false;
+  notify();
+}
+
 /** True while a result exists that hasn't been downloaded. */
 export function hasUnsavedResult() {
   return state.result && !state.downloaded;

@@ -68,9 +68,10 @@ export function stepWords(ctx) {
 }
 
 /**
- * What the bar under the story says and does. Returns { kind: "turn" | "next" | "end", heading, text,
- * label, action }: "turn" where the person acts (with vc-attention), "next" where Play may move on,
- * "end" on the last step. action names what the button does: start, challenge, apply, go or restart.
+ * What the bar under the story says and does. Returns { kind: "turn" | "next", heading, text, label,
+ * action, secondary }: "turn" where the person acts (with vc-attention), "next" where Play may move on.
+ * action names what the button does: start, challenge, apply, report or go; secondary, at Summary, is
+ * the quieter way on (restart).
  */
 export function barWords(ctx) {
   const { run, step, reached, applied, lang } = ctx;
@@ -86,7 +87,8 @@ export function barWords(ctx) {
       action: "apply"
     };
   }
-  if (step === STEP.summary) return { kind: "end", heading: "", text: t("turn.end", null, lang), label: t("turn.end.action", null, lang), action: "restart" };
+  // The run ends in its report: the bar offers it, with another company beside it.
+  if (step === STEP.summary) return { kind: "turn", heading: t("turn.title", null, lang), text: t("rp.turn", null, lang), label: t("rp.cta", null, lang), action: "report", secondary: { label: t("turn.end.action", null, lang), action: "restart" } };
   return { kind: "next", heading: "", text: "", label: t(`next.${["", "challenge", "assess", "adapt", "summary"][step] || "complete"}`, null, lang), action: "go" };
 }
 

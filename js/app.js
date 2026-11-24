@@ -16,17 +16,19 @@
 import { getLang, setLang, onLang, t } from "./i18n/index.js";
 import { SCENARIOS, scenarioById } from "../data/scenarios/index.js";
 import { STEPS, STEP, localise, buildRun, recordedChoices } from "./run.js";
-import { stepWords, staleWords } from "./story.js";
+import { stepWords, staleWords, tileWords } from "./story.js";
 import { renderCanvas, fitCanvas, renderPanel, renderBar, renderBlock, fitSummary, firstSteps } from "./view.js";
 import { h, icon } from "./dom.js";
 import { renderKpis } from "./kpis.js";
 import { estimateRun } from "./estimate.js";
-import { SIM } from "./config.js";
+import { SIM, presetById } from "./config.js";
 import { fmtMoney, fmtPartMoney, fmtPressure } from "./format.js";
-import { session, onSessionChange, updateSession, setForm, setBlock, resetRun, clearEverything, installLeaveWarning } from "./session.js";
+import { session, onSessionChange, updateSession, setForm, setBlock, resetRun, clearEverything, installLeaveWarning, markDownloaded, hasUnsavedResult, dropResult } from "./session.js";
 import * as live from "./live.js";
 import { setupLiveDialog } from "./live_dialog.js";
 import { panelLiveStart, panelNotRun, liveBar, liveWords, renderBlockEdit, enteredFields } from "./live_view.js";
+import { createReportView } from "./report_view.js";
+import { stopNotice } from "./report.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,6 +40,9 @@ export async function start() {
     stepsDialog: $("steps-dialog"), stepsBody: $("steps-dialog-body"), live: $("live"), liveText: $("live-text"),
     mode: $("mode-tag"), modeText: $("mode-text"), fictional: document.querySelector(".fictional")
   };
+  // Where the canvas is tight (1280 × 720): Vici's compact framework view, and the Summary's first steps
+  // no taller than the Writer's columns.
+  const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
   const params = new URLSearchParams(location.search);
   const state = {
     scenarioId: scenarioById(params.get("scenario")) ? params.get("scenario") : SIM.defaultScenario,
@@ -142,13 +147,14 @@ export async function start() {
       render();
     },
     // An agent at work is stopped first: its answer would belong to a run that no longer exists.
-    clear: () => { live.abort(); clearEverything(); state.step = 0; render(); },
+    clear: () => discard("clear", () => { live.abort(); clearEverything(); state.step = 0; render(); }),
     bar: (action) => {
       if (isLive()) return liveAction(action);
       if (action === "start") { begin(STEP.complete); play(); }
       else if (action === "challenge") { state.reached = STEP.adapt; go(STEP.challenge, { keep: true }); }
       else if (action === "apply") { state.applied = true; state.reached = STEP.summary; render(); announce(stepWords(context()).title); }
       else if (action === "restart") { pause(); reset(); go(STEP.start); }
+      else if (action === "report") report.open();
       else go(state.step + 1, { keep: true });
     }
   };
@@ -170,10 +176,55 @@ export async function start() {
     } else if (action === "challenge") live.challenge();
     else if (action === "apply") { live.apply(); announce(t("live.agent.writer")); }
     else if (action === "abort") live.abort();
-    else if (action === "again") { resetRun(); go(STEP.start); }
+    else if (action === "again") discard("again", () => { dropResult(); resetRun(); go(STEP.start); });
     else if (action === "simulation") setMode("simulation");
+    else if (action === "report") report.open();
     else go(state.step + 1);
   }
+
+  // ---- throwing a live result away -----------------------------------------------------------------------
+  // Start again and Clear everything drop a live run the person paid for. While its result isn't downloaded
+  // they ask first, in Vici's destructive confirmation with the safe choice focused; once it is, they don't.
+  const discardDialog = $("discard-dialog");
+  let discarding = null;
+  function discard(kind, done) {
+    if (!hasUnsavedResult()) { done(); return; }
+    discarding = done;
+    $("discard-title").textContent = t(`discard.${kind}`);
+    $("discard-go").textContent = t(kind === "clear" ? "live.clear" : "live.again");
+    discardDialog.returnValue = "";
+    discardDialog.showModal();
+  }
+  discardDialog.addEventListener("close", () => {
+    const done = discarding;
+    discarding = null;
+    if (discardDialog.returnValue === "discard" && done) done();
+  });
+
+  // ---- the report ----------------------------------------------------------------------------------------
+  /**
+   * Where the bar offers the report: a simulation's Summary after the decision, a live run's Summary once
+   * the Writer is done, and a stopped live run that finished a step, wherever its stop shows.
+   */
+  function reportOnOffer() {
+    if (!isLive()) return state.applied && state.step === STEP.summary;
+    const r = run();
+    if (r.status === "done") return state.step === STEP.summary;
+    return r.status === "stopped" && r.reached >= STEP.complete && state.step >= r.reached;
+  }
+  /** The report's context (js/report.js): a scenario's in the page's language, a live run's in its own. */
+  function reportContext() {
+    if (!reportOnOffer()) return null;
+    const ctx = context();
+    const ai = Object.values(ctx.run.completed.blocks).flat().filter((it) => it.source === "ai").length;
+    if (!isLive()) return { sc: ctx.sc, run: ctx.run, lang: ctx.lang, mode: "simulation", applied: true, tiles: tileWords(ctx), created: new Date(), removed: { n: ctx.run.removed.size, of: ai }, live: null, notice: "" };
+    const r = run();
+    const lang = r.lang;
+    const live = { model: presetById(r.settings.preset).model, preset: r.settings.preset, research: !!r.settings.research, capEur: r.settings.capEur, reached: r.reached, stopped: r.stopped, researchState: r.research, unchecked: r.unchecked };
+    return { sc: ctx.sc, run: ctx.run, lang, mode: "live", applied: r.applied, tiles: tileWords({ ...ctx, lang }), created: new Date(), removed: { n: ctx.run.removed.size, of: ai }, live, notice: stopNotice(live, lang) };
+  }
+  // A download is a kept result: the browser's warning before the tab closes stands down until it changes.
+  const report = createReportView({ dialog: $("report-dialog"), title: $("report-dialog-title"), body: $("report-body"), tools: $("report-tools"), context: reportContext, announce: (text) => announce(text), onSaved: markDownloaded });
   // Each mode comes back where it was left: the simulation at the step the presenter was on, a live run
   // at the step its agents have reached (front, which the session listener below moves on).
   let simStep = 0;
@@ -300,7 +351,7 @@ export async function start() {
     els.fictional.hidden = lv;
     renderSteps();
     drawPlay();
-    fitSummary(els.panel);
+    fitSummary(els.panel, tight.matches);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
     // A block being entered redraws itself when a line comes or goes; redrawn from here as well, it
@@ -322,11 +373,10 @@ export async function start() {
     if (notes.length) els.panel.prepend(...notes);
   }
   new ResizeObserver(() => fitCanvas(els.canvas)).observe(els.canvas);
-  const refit = () => { fitSummary(els.panel); fitCanvas(els.canvas); };
+  const refit = () => { fitSummary(els.panel, tight.matches); fitCanvas(els.canvas); };
   window.addEventListener("resize", refit);
   document.fonts?.ready.then(refit);
-  // Where the canvas is tight (1280 × 720), Vici's compact framework view shows each item's first line.
-  const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
+  // Where the canvas is tight, Vici's compact framework view shows each item's first line.
   const compact = () => els.canvas.classList.toggle("vc-framework--compact", tight.matches);
   tight.addEventListener("change", () => { compact(); refit(); });
   compact();
@@ -355,8 +405,8 @@ export async function start() {
       const notRun = lv && r.status === "stopped" && n > r.reached;
       b.disabled = n > maxStep() || (notRun && n < STEP.summary);
       const turn = lv
-        ? (n === STEP.start && r.status === "idle") || (n === STEP.complete && r.status === "review") ? "turn" : n === STEP.adapt && r.status === "decision" ? "decision" : ""
-        : (n === STEP.start && state.reached === 0) || (n === STEP.complete && state.reached === STEP.complete) ? "turn" : n === STEP.adapt && state.reached >= STEP.adapt && !state.applied ? "decision" : "";
+        ? (n === STEP.start && r.status === "idle") || (n === STEP.complete && r.status === "review") || (n === STEP.summary && r.status === "done") ? "turn" : n === STEP.adapt && r.status === "decision" ? "decision" : ""
+        : (n === STEP.start && state.reached === 0) || (n === STEP.complete && state.reached === STEP.complete) || (n === STEP.summary && state.applied) ? "turn" : n === STEP.adapt && state.reached >= STEP.adapt && !state.applied ? "decision" : "";
       li.dataset.turn = turn ? "yours" : "";
       li.dataset.notRun = notRun ? "true" : "";
       li.querySelector(".vc-step__hint").textContent = turn ? t(turn === "decision" ? "turn.decision" : "turn.title") : notRun ? t("live.notrun") : lv && r.status === "working" && n === r.reached + 1 ? t("live.working") : "";
@@ -562,7 +612,7 @@ export async function start() {
     for (const b of document.querySelectorAll(".guide-open")) b.hidden = b.getAttribute("lang") !== lang;
   };
   for (const b of document.querySelectorAll(".lang-option")) b.addEventListener("click", () => setLang(b.dataset.lang));
-  onLang((lang) => { reflect(lang); drawMode(); syncUrl(); render(); });
+  onLang((lang) => { reflect(lang); drawMode(); syncUrl(); render(); report.refresh(); });
   reflect(getLang());
   fillGuide();
 

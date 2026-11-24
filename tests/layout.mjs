@@ -10,13 +10,17 @@
 // above the bar; on the other steps the panel shows its title and may scroll inside, never the page.
 // The guide opens inside the window. The header's and the talk bar's controls are at least 40 px. Each
 // view is saved as a screenshot for a person to look at.
-// A live run against the stand-in adds twelve views to each of the eight sizes, themes and languages
-// (G13 of M3): the empty and the filled Start form, a block being entered, the dialog, the dialog with a
-// private-data warning, an agent at work, the review, an AI item opened for review, the decision, the
-// summary, a run stopped at its budget cap and a run stopped by an error. The same rules hold, with LIVE on the tape, no fictional
-// label and the dialogs inside the window, their buttons in view. With the warning, the dialog's body
-// may scroll, as Vici's live-run dialog says ("the body scrolls, the footer doesn't"), while the warning
-// and the footer stay in view.
+// A live run against the stand-in adds fourteen views to each of the eight sizes, themes and languages
+// (G13 of M3, G12 of M4): the empty and the filled Start form, a block being entered, the dialog, the
+// dialog with a private-data warning, an agent at work, the review, an AI item opened for review, the
+// decision, the summary with its report bar, the report dialog, the question before Start again throws
+// an undownloaded run away, a run stopped at its budget cap (with the report of what is done) and a run
+// stopped by an error. The same rules hold, with LIVE on the tape,
+// no fictional label and the dialogs inside the window, their buttons in view. With the warning, the
+// dialog's body may scroll, as Vici's live-run dialog says ("the body scrolls, the footer doesn't"),
+// while the warning and the footer stay in view; the report dialog's pages scroll inside it, its
+// downloads in view. The simulation's report dialog is measured at S1's Summary at every size, theme
+// and language.
 // Usage: node tests/layout.mjs [s1 s2 s3] [--no-live]
 import path from "node:path";
 import { APP_ROOT, launchBrowser, serveStatic, port, context, outDir, NETWORK_NOISE, ONLY, exit } from "./lib/harness.mjs";
@@ -236,9 +240,16 @@ async function liveViews(page, ctx, { base, width, height, theme, lang, shots })
   await page.click("#btn-cta");
   await live.waitFor(page, "done");
   await shot("summary", { step: 5 });
+  await page.click("#btn-cta"); // Download the report
+  await page.waitForSelector("#report-dialog[open] #report");
+  await shot("report-dialog", { dialog: "report-dialog", document: true });
+  await closeDialog();
   // Stopped at the budget cap: the Completer's answer costs more than a cap of €0.05 leaves for the Red team.
   scene.cap = true;
-  await page.click("#btn-cta"); // Start again
+  await page.click("#btn-second"); // Start again, beside Download the report: the report isn't downloaded, so it asks
+  await page.waitForSelector("#discard-dialog[open]");
+  await shot("discard", { dialog: "discard-dialog" });
+  await page.click("#discard-go");
   await live.openDialog(page);
   await page.$eval("#live-cap", (el) => { el.value = "0.05"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.check("#live-ack", { force: true });
@@ -250,7 +261,8 @@ async function liveViews(page, ctx, { base, width, height, theme, lang, shots })
   scene.cap = false;
   // Stopped by an error the API returns: a billing error, which is never retried.
   scene.error = true;
-  await page.click("#btn-cta"); // Start again
+  await page.click("#btn-second"); // Start again, beside Report of what is done
+  await page.click("#discard-go");
   await live.openDialog(page);
   await page.check("#live-ack", { force: true });
   await page.click("#live-start");
@@ -344,6 +356,20 @@ try {
     check(!problems.cut.length, `${size}: no text is cut off, items' first lines on the canvas apart`, problems.cut.slice(0, 4).join(" | "));
     check(!problems.panel.length, `${size}: where the person decides (Start, Complete, Adapt) the panel shows everything without scrolling`, problems.panel.slice(0, 4).join("; "));
     check(!problems.scrolls.length, `${size}: the panels of Challenge, Assess and Summary show everything without scrolling`, problems.scrolls.slice(0, 6).join("; "));
+    // The report dialog at S1's Summary: inside the window, nothing sideways, the downloads and the
+    // Ideator link in view in its footer, the pages at size scrolling inside its body.
+    await page.goto(`${server.base}?guide=0&lang=${lang}&scenario=s1&step=5`);
+    await page.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+    await page.waitForSelector("#boot", { state: "detached", timeout: 5000 }).catch(() => {});
+    await page.click("#btn-cta");
+    await page.waitForSelector("#report-dialog[open] #report");
+    await page.waitForTimeout(300);
+    const rd = await page.evaluate(measureDialog);
+    const ideator = await page.evaluate(() => { const a = document.getElementById("rp-ideator").getBoundingClientRect(); const d = document.getElementById("report-dialog").getBoundingClientRect(); return a.top >= d.top && a.bottom <= Math.min(d.bottom, innerHeight); });
+    const sheet = await page.evaluate(() => Math.round(document.querySelector("#report .vc-report__page").getBoundingClientRect().width));
+    await page.screenshot({ path: path.join(shots, `${width}x${height}-${theme}-${lang}-report-dialog.png`) });
+    views += 1;
+    check(rd && rd.id === "report-dialog" && rd.inside && rd.sideways <= 0 && rd.buttons >= 4 && !rd.hidden.length && ideator && sheet >= 600, `${size}: the report dialog sits inside the window, its downloads and the Ideator link in view, its pages ${sheet} px wide scrolling inside it`, JSON.stringify({ ...rd, ideator, sheet }));
     check(adaptChecked >= SCENARIOS.length * 5 && !problems.adapt.length, `${size}: at Adapt every option of every issue, Accept included, shows in full above the bar (${adaptChecked} issues)`, problems.adapt.slice(0, 4).join("; "));
     // ---- the live run --------------------------------------------------------------------------------
     if (LIVE) {
@@ -366,7 +392,7 @@ try {
         if (m.cut.length) bad.cut.push(`${at}: ${m.cut.slice(0, 4).join("; ")}`);
         if (m.panelScroll > 1) (v.decides ? bad.panel : bad.scrolls).push(`${at} (${m.panelScroll} px)`);
         if (v.step !== undefined && m.current !== v.step) bad.stepper.push(`${at} (the stepper marks ${m.current + 1}, not ${v.step + 1})`);
-        if (v.dialog && !(d && d.id === v.dialog && d.inside && (v.tallest || d.scroll <= 1) && d.sideways <= 0 && d.buttons > 0 && !d.hidden.length && (!v.tallest || d.warning?.shown))) bad.dialog.push(`${at}: ${JSON.stringify(d)}`);
+        if (v.dialog && !(d && d.id === v.dialog && d.inside && (v.tallest || v.document || d.scroll <= 1) && d.sideways <= 0 && d.buttons > 0 && !d.hidden.length && (!v.tallest || d.warning?.shown))) bad.dialog.push(`${at}: ${JSON.stringify(d)}`);
         if (v.adapt) for (const a of v.adapt) {
           const out = a.cards.filter((c) => c.top < a.panelTop - 0.5 || c.bottom > a.panelBottom + 0.5 || c.bottom > a.barTop + 0.5);
           if (a.cards.length < 2 || out.length) bad.panel.push(`${at} issue ${a.issue}: ${a.cards.length} cards, ${out.length} cut`);
@@ -378,7 +404,7 @@ try {
       if (by("stopped-error").stopped !== "billing") bad.states.push(`the error run stopped with ${by("stopped-error").stopped}`);
       if (!by("working").work || !by("working").m?.cta) bad.states.push("no Abort while the agent worked");
       const names = lv.map((v) => v.name).join(", ");
-      check(lv.length === 12 && !bad.states.length, `${size}: the live run shows its twelve screens (${names})`, bad.states.join("; "));
+      check(lv.length === 14 && !bad.states.length, `${size}: the live run shows its fourteen screens (${names})`, bad.states.join("; "));
       check(!bad.fit.length, `${size}: every live screen fits the window, no scrolling sideways or down`, bad.fit.slice(0, 4).join("; "));
       check(!bad.header.length && !bad.talk.length, `${size}: on every live screen the header keeps one band and the talk bar one line`, [...bad.header, ...bad.talk].slice(0, 4).join("; "));
       check(!bad.tape.length, `${size}: every live screen says LIVE on the tape and hides the fictional label`, bad.tape.slice(0, 4).join("; "));
@@ -389,7 +415,7 @@ try {
       check(!bad.panel.length, `${size}: where the person decides in a live run (the Start form, the review, the decision) the panel shows everything without scrolling`, bad.panel.slice(0, 4).join("; "));
       check(!bad.scrolls.length, `${size}: the other live panels show everything without scrolling`, bad.scrolls.slice(0, 6).join("; "));
       check(!bad.stepper.length, `${size}: the stepper marks the live step shown`, bad.stepper.slice(0, 4).join("; "));
-      check(!bad.dialog.length, `${size}: the block dialog and the live-run dialog sit inside the window without scrolling, every button in view; with a private-data warning the body may scroll, as Vici's pattern says, the warning and the footer in view`, bad.dialog.slice(0, 4).join("; "));
+      check(!bad.dialog.length, `${size}: the block dialog and the live-run dialog sit inside the window without scrolling, every button in view; with a private-data warning the body may scroll, as Vici's pattern says, the warning and the footer in view; the report dialog's pages scroll inside it, its downloads in view`, bad.dialog.slice(0, 4).join("; "));
     }
     check(!errors.length && !outside.length, `${size}: no errors, no request to another site`, [...errors, ...outside].slice(0, 4).join(" | "));
     await ctx.close();

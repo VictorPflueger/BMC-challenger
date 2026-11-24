@@ -25,6 +25,7 @@ const SUITES = [
   { id: "hygiene", what: "no client, prospect, contact or meeting named in any published file", file: "tests/hygiene.mjs", browser: false },
   { id: "parity", what: "the shared parts equal every sibling that has them", file: "tests/parity.mjs", browser: false },
   { id: "docs", what: "the documents: sections, length, version, every path they name", file: "tests/docs.mjs", browser: false },
+  { id: "handoff", what: "the handoff file of each scenario in both languages and three choices: the shared schema, its references, the engine's figures, the Prototype Ideator's reader", file: "tests/handoff.mjs", browser: false },
   { id: "storage", what: "nothing is kept: storage only for the theme, the language and the guide's note, in the code and in the browser, a played run and a live run with a planted key included", file: "tests/storage.mjs", browser: true, vici: true },
   { id: "shell", what: "the page in Chromium: English first, the switch without a reload, the guide, the figures, the talk bar, the credit", file: "tests/shell.mjs", browser: true },
   { id: "presenter", what: "each scenario played offline in both languages with other choices: tiles, canvas and summary agree with the engine", file: "tests/presenter.mjs", browser: true },
@@ -37,7 +38,8 @@ const SUITES = [
   { id: "live-review", what: "the review after Complete: the team's items kept, each AI item kept, edited or removed before the challenge", file: "tests/live-review.mjs", browser: true },
   { id: "live-repair", what: "each guardrail's refusal and its one repair, the stop after a second failure, the Writer's Unchecked", file: "tests/live-repair.mjs", browser: true },
   { id: "live-run", what: "a whole live run: the tape, the waiting tiles, the agent at work, the review and the decision, the language, Clear everything", file: "tests/live-run.mjs", browser: true },
-  { id: "layout", what: "every step of the three scenarios and twelve screens of a live run at 1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
+  { id: "report", what: "the report: the PDF with its footer on every page, the HTML file offline, the figures of the tiles, the dialog, the file names, a live run's report finished and stopped", file: "tests/report.mjs", browser: true, vici: true },
+  { id: "layout", what: "every step of the three scenarios and fourteen screens of a live run at 1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
   { id: "vici", what: "Vici's own checks on the page, on every step and every live screen rendered in both languages, the dictionaries, the scenarios, the docs; vici/ byte for byte", file: "tests/vici.mjs", browser: true, vici: true },
   { id: "hexagon", what: "nothing round: the tool's files, and the rendered page in both themes", file: "tests/hexagon.mjs", browser: true }
 ];

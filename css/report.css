@@ -1,0 +1,171 @@
+/* The report (js/report.js) on Vici's report pattern (components/report.html): the parts that are this
+   tool's own. The key figures as the tiles show them, the canvas on paper in its classic layout (Vici's
+   framework view without a control), the issues, the risk matrix with its table, the responses, the method
+   and the byline; then the dialog that shows the report and holds its downloads. The report stays light in
+   both themes, as paper does (it carries data-theme="light"), and every state has a word beside its colour,
+   so a page reads in grey too. Vici.report.html() takes the rules that reach the report into the HTML file,
+   so no rule for the report depends on the page around it. Adapted from the SWOT Challenger's css/report.css (31a2ac3). */
+
+/* ---------- The document ---------- */
+.report { --report-gap: var(--vc-space-3); font-size: var(--vc-font-size-sm); line-height: 1.5; }
+.report :where(p, ul, ol, dl, figure, table) { margin: 0 0 var(--report-gap); }
+/* The last block of a column keeps no margin: on paper a few pixels too many start a page of nothing. */
+.report :where(p, ul, ol, dl, figure, table):last-child { margin-bottom: 0; }
+.report a { color: var(--vc-text-link); }
+.report-lead { color: var(--vc-text-muted); max-width: 75ch; }
+.report-note { color: var(--vc-text-muted); }
+/* A caveat, not an error: Vici's warning colours, as the screen's Unchecked tag. */
+.report-warn { padding: var(--vc-space-2) var(--vc-space-3); border: 1px solid var(--vc-warning-border); background: var(--vc-warning-bg); color: var(--vc-warning-text); }
+.report-tags { display: flex; flex-wrap: wrap; gap: var(--vc-space-2); margin: var(--vc-space-5) 0 0; }
+.report-tags .vc-tag, .report-ai { gap: 0.35em; }
+.report-ai.vc-tag { vertical-align: 0.1em; }
+.report-list { padding-inline-start: 1.25rem; }
+.report-list > li + li { margin-top: var(--vc-space-1); }
+.report-list--tight { margin: 0; padding-inline-start: 1rem; }
+.report-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px var(--vc-space-3); font-size: var(--vc-font-size-xs); }
+.report-facts dt { color: var(--vc-text-muted); }
+.report-facts dd { margin: 0; }
+/* In the issue and response blocks the labels share one column, so the blocks line up down the page. */
+.report-facts--aligned { grid-template-columns: 9.5em minmax(0, 1fr); }
+.report:lang(de) .report-facts--aligned { grid-template-columns: 12em minmax(0, 1fr); }
+.report-basis { display: block; color: var(--vc-text-muted); }
+.report-figure-ai { color: var(--vc-feature-text); font-weight: var(--vc-weight-semibold); }
+/* An issue's number in a flat-top hexagon, as the risk matrix marks it. */
+.report-no { display: inline-grid; place-items: center; width: 1.85em; aspect-ratio: var(--vc-hex-ratio); clip-path: var(--vc-hex); background: var(--vc-text); color: var(--vc-surface); font-size: var(--vc-font-size-2xs); font-weight: var(--vc-weight-semibold); vertical-align: 0.05em; }
+
+/* ---------- Page two: the management summary ---------- */
+.report-headline { font-family: var(--vc-font-display); font-size: var(--vc-font-size-xl); font-weight: var(--vc-weight-semibold); line-height: 1.25; max-width: 60ch; text-wrap: balance; }
+.report-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--vc-space-2); margin-bottom: var(--vc-space-5); }
+.report-figure.vc-stat { gap: 2px; padding: var(--vc-space-3) var(--vc-space-4); break-inside: avoid; }
+.report-figure .vc-stat__value { font-size: var(--vc-font-size-2xl); }
+.report-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--vc-space-6); align-items: start; }
+.report-by { color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
+/* The decisions may run on to the next sheet between rows, never inside one. */
+.report .report-decisions { width: 100%; table-layout: fixed; font-size: var(--vc-font-size-xs); break-inside: auto; }
+.report-col--issue { width: 32%; }
+.report-col--decision { width: 31%; }
+.report-decisions tbody th[scope="row"] { font-weight: var(--vc-weight-semibold); }
+.report-owner { display: block; color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
+
+/* ---------- The canvas on paper: the classic layout, ten columns and three rows ---------- */
+/* A block's state says "2 · high" (the noun for screen readers only, the legend says what the number
+   counts) and wraps inside its block if it must, as Vici's tags do in a cluster. */
+.report .tag-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.report-block .vc-framework__state { max-width: 100%; white-space: normal; }
+.report-canvas.vc-framework {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-areas:
+    "partners partners activities activities value value relationships relationships segments segments"
+    "partners partners resources resources value value channels channels segments segments"
+    "costs costs costs costs costs revenue revenue revenue revenue revenue";
+  gap: var(--vc-space-2);
+  margin-bottom: var(--vc-space-2);
+}
+.report-block[data-block="partners"] { grid-area: partners; }
+.report-block[data-block="activities"] { grid-area: activities; }
+.report-block[data-block="resources"] { grid-area: resources; }
+.report-block[data-block="value"] { grid-area: value; }
+.report-block[data-block="relationships"] { grid-area: relationships; }
+.report-block[data-block="channels"] { grid-area: channels; }
+.report-block[data-block="segments"] { grid-area: segments; }
+.report-block[data-block="costs"] { grid-area: costs; }
+.report-block[data-block="revenue"] { grid-area: revenue; }
+.report-block.vc-framework__area { gap: 4px; padding: var(--vc-space-2); border-color: var(--vc-border); border-radius: var(--vc-radius-md); break-inside: avoid; }
+.report .report-block .vc-framework__title { margin: 0; font-family: var(--vc-font-text); font-size: var(--vc-font-size-sm); letter-spacing: 0; }
+.report-block .vc-framework__items { gap: 3px; }
+.report-block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__items { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+.report-block .vc-item { font-size: var(--vc-font-size-xs); line-height: 1.35; }
+/* On paper an item is one paragraph: the mark at its start, the text, then its state words in the line, so a
+   canvas with many items still fits one sheet with its legend and credit. */
+.report-block .vc-item__summary { display: block; min-height: 0; padding: 3px 5px; }
+.report-block .vc-item__mark { float: left; margin-inline-end: 4px; }
+.report-block .vc-item__text { display: inline; padding: 0; }
+.report-block .vc-item__states { display: inline; margin-inline-start: 4px; padding: 0; }
+.report-block .vc-item__states > .vc-tag { margin-inline-end: 2px; vertical-align: 1px; }
+.report-block .vc-item__mark { width: 0.9rem; height: 1.35em; }
+.report-block .vc-item__mark > .vc-icon { width: 0.85rem; height: 0.85rem; }
+.report-block .vc-framework__empty { padding: 3px 6px; font-size: var(--vc-font-size-xs); }
+.report-legend.vc-framework__legend { margin-bottom: var(--vc-space-2); }
+.report-canvas-unit > .report-canvas { margin-bottom: var(--vc-space-1); }
+.report-credit { color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
+
+/* ---------- The issues ---------- */
+.report-issues { display: grid; gap: var(--vc-space-3); padding: 0; list-style: none; }
+.report-issue { padding-block-start: var(--vc-space-3); border-top: 1px solid var(--vc-border); }
+.report-issue__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--vc-space-2); margin-bottom: var(--vc-space-1); }
+.report-issue__head .report-no { font-size: var(--vc-font-size-xs); }
+.report-issue__title { font-weight: var(--vc-weight-semibold); }
+.report-issue__desc { max-width: 80ch; }
+
+/* ---------- The risk matrix: the picture with its key, then the table with every figure ---------- */
+.report-risk.vc-risk { gap: var(--vc-space-4); }
+.report-risk__picture { display: grid; grid-template-columns: minmax(0, 30rem) auto; gap: var(--vc-space-3) var(--vc-space-6); align-items: end; }
+.report-risk__picture .vc-risk__key { flex-direction: column; flex-wrap: nowrap; }
+.report-risk__table { width: 100%; }
+.report-risk__table th[scope="row"] { font-weight: var(--vc-weight-regular); }
+.report .vc-table { font-size: inherit; }
+.report .vc-table thead th { font-size: 0.85em; text-transform: none; letter-spacing: 0; white-space: normal; vertical-align: bottom; }
+
+/* ---------- The responses ---------- */
+.report-resp { margin-bottom: var(--vc-space-3); padding-block-start: var(--vc-space-3); border-top: 1px solid var(--vc-border); }
+.report-resp__issue { margin-bottom: var(--vc-space-2); font-weight: var(--vc-weight-semibold); }
+.report-resp__chosen { margin-bottom: var(--vc-space-2); padding: var(--vc-space-2) var(--vc-space-3); border: 1px solid var(--vc-success-border); background: var(--vc-success-bg); }
+.report-resp__chosen > :last-child { margin-bottom: 0; }
+.report-resp__title { margin-bottom: var(--vc-space-1); }
+.report-chosen.vc-tag { --_bg: var(--vc-surface); --_fg: var(--vc-success-text); gap: 0.3em; }
+.report-effect { display: block; color: var(--vc-text-muted); }
+.report-changes > li[data-skipped] { color: var(--vc-text-muted); }
+.report-others { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: var(--vc-font-size-xs); }
+.report-others > li { padding-inline-start: var(--vc-space-3); }
+
+/* ---------- Method, sources and the byline ---------- */
+.report-sources > li + li { margin-top: var(--vc-space-2); }
+/* An address is code, not prose: printed for paper, plain, without Vici's chip around inline code. */
+.report-url { display: inline; padding: 0; border: 0; background: none; line-height: inherit; color: var(--vc-text-muted); font-family: var(--vc-font-mono); font-size: var(--vc-font-size-2xs); overflow-wrap: anywhere; }
+.report-public { font-weight: var(--vc-weight-semibold); }
+.report-byline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--vc-space-2) var(--vc-space-3); margin-top: var(--vc-space-5); }
+.report-byline .vc-byline__person { display: inline-flex; align-items: center; gap: var(--vc-space-2); color: var(--vc-text); font-weight: var(--vc-weight-semibold); text-decoration: none; }
+.report-byline__where { color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
+.report-byline__where a { color: inherit; }
+
+@media screen and (max-width: 52rem) {
+  .report-figures { grid-template-columns: minmax(0, 1fr); }
+  .report-cols, .report-risk__picture { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media print {
+  .report { font-size: 9.5pt; line-height: 1.45; }
+  .report-figure .vc-stat__value { font-size: 15pt; }
+  .report-figure.vc-stat { padding: 1.6mm 3mm; }
+  .report-figures { margin-bottom: 3mm; }
+  /* Page two keeps the summary of a scenario's run on one sheet; more decisions run on between rows. */
+  .report-page--sum { font-size: 9pt; line-height: 1.35; }
+  .report-page--sum .report-list > li + li { margin-top: 0.5mm; }
+  .report-canvas.vc-framework { gap: 1.2mm; }
+  .report-block.vc-framework__area { gap: 1mm; padding: 1.2mm 1.5mm; }
+  .report-block .vc-framework__items { gap: 0.8mm; }
+  .report-block .vc-item__summary { padding: 0.5mm 1mm; }
+  .report .report-block .vc-framework__title { font-size: 8.2pt; }
+  .report-block .vc-item { font-size: 7.2pt; line-height: 1.25; }
+  /* Vici's tag ends are sized for the screen (1.25rem); on paper a narrow block holds "Adapted · 2 · low". */
+  .report-block .vc-tag--sm { --_h: 3.4mm; padding-inline: calc(var(--_h) * 0.28868 + 0.5mm); font-size: 6.3pt; }
+  .report-risk__picture { grid-template-columns: 105mm auto; }
+  .report-issue, .report-resp, .report-block, .report-decisions tr { break-inside: avoid; }
+  .report-decisions tbody tr:last-child { break-before: avoid; }
+  /* A canvas page stays on one sheet with its legend and the credit under it wherever it fits one. */
+  .report-page--canvas, .report-page--adapted { break-inside: avoid; }
+  .report .vc-table--compact :is(th, td) { padding: 1mm 1.6mm; }
+  .report .report-decisions { font-size: 8.5pt; line-height: 1.35; }
+  .report .report-decisions :is(th, td) { padding-block: 0.7mm; }
+}
+
+/* ---------- The dialog: the sheets on the report's own ground, the downloads in the footer ---------- */
+.report-dialog { --vc-dialog-width: 62rem; }
+.report-dialog__body.vc-dialog__body { padding: var(--vc-space-4); background: var(--vc-bg-sunken); }
+.report-tools.vc-dialog__footer { justify-content: space-between; align-items: center; gap: var(--vc-space-2) var(--vc-space-4); }
+.report-tools__notes { display: grid; gap: 2px; min-width: 0; }
+.report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--vc-space-2); }
+.report-hint { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
+.report-ideator { display: inline-flex; align-items: center; gap: 0.35em; font-weight: var(--vc-weight-semibold); }
+.report-error { margin: 0; padding: 2px var(--vc-space-2); border: 1px solid var(--vc-danger-border); background: var(--vc-danger-bg); color: var(--vc-danger-text); font-size: var(--vc-font-size-xs); }
+.report-error[hidden] { display: none; }

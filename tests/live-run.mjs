@@ -105,8 +105,8 @@ try {
   // ---- the language stays the run's --------------------------------------------------------------------------
   await p.click('.lang-option[data-lang="de"]');
   await p.waitForTimeout(300);
-  const de = await p.evaluate(() => ({ step: document.querySelector("#steps .vc-step:nth-child(1) .vc-step__label")?.textContent || "", title: document.getElementById("step-title").textContent, panel: document.getElementById("panel").textContent, next: document.getElementById("btn-cta")?.textContent.trim(), tape: document.getElementById("mode-text").textContent, tip: document.getElementById("tip-mode").textContent }));
-  check(de.title === headline && de.panel.includes(DE["live.lang.kept"].replace("{lang}", DE["lang.en"])) && de.next === DE["live.again"] && de.tape === DE["p.mode.live"] && de.tip === DE["p.mode.tip.live"], "switched to German, the interface changes (the tape and its tooltip too), the analysis stays in English and says so", JSON.stringify({ ...de, panel: de.panel.slice(0, 120) }));
+  const de = await p.evaluate(() => ({ step: document.querySelector("#steps .vc-step:nth-child(1) .vc-step__label")?.textContent || "", title: document.getElementById("step-title").textContent, panel: document.getElementById("panel").textContent, next: document.getElementById("btn-cta")?.textContent.trim(), second: document.getElementById("btn-second")?.textContent.trim(), tape: document.getElementById("mode-text").textContent, tip: document.getElementById("tip-mode").textContent }));
+  check(de.title === headline && de.panel.includes(DE["live.lang.kept"].replace("{lang}", DE["lang.en"])) && de.next === DE["rp.cta"] && de.second === DE["live.again"] && de.tape === DE["p.mode.live"] && de.tip === DE["p.mode.tip.live"], "switched to German, the interface changes (the tape and its tooltip too), the analysis stays in English and says so", JSON.stringify({ ...de, panel: de.panel.slice(0, 120) }));
   await p.click('.lang-option[data-lang="en"]');
 
   // ---- the browser asks before leaving ----------------------------------------------------------------------
@@ -124,7 +124,24 @@ try {
   await q.goto(`${server.base}?guide=0`);
   await q.waitForSelector('html[data-boot="ready"]');
   await live.full(q);
-  await q.click("#btn-cta"); // Start again
+  // Start again throws the run away. While its report isn't downloaded it asks first, Vici's destructive
+  // confirmation with the safe choice focused; Keep the run keeps it, and the leave-page warning stays.
+  await q.click("#btn-second"); // Start again, beside Download the report
+  await q.waitForSelector("#discard-dialog[open]");
+  const question = await q.evaluate(() => ({ title: document.getElementById("discard-title").textContent, go: document.getElementById("discard-go").textContent.trim(), focus: document.activeElement?.id }));
+  await q.click("#discard-keep");
+  const kept = await q.evaluate(() => ({ open: document.getElementById("discard-dialog").open, st: window.BMC.state.live }));
+  check(question.title === EN["discard.again"] && question.go === EN["live.again"] && question.focus === "discard-keep" && !kept.open && kept.st.status === "done" && kept.st.reached === 5,
+    `"${EN["live.again"]}" with the report not downloaded asks "${EN["discard.again"]}", the safe choice "${EN["discard.keep"]}" focused, and keeps the run`, JSON.stringify({ question, kept: { open: kept.open, status: kept.st.status } }));
+  // Once a file of the report has left the page, Start again doesn't ask.
+  await q.click("#btn-cta");
+  await q.waitForSelector("#report-dialog[open] #report");
+  await Promise.all([q.waitForEvent("download"), q.click("#rp-json")]);
+  await q.keyboard.press("Escape");
+  await q.click("#btn-second");
+  await q.waitForTimeout(200);
+  const again = await q.evaluate(() => ({ open: document.getElementById("discard-dialog").open, st: window.BMC.state.live, step: window.BMC.state.step }));
+  check(!again.open && again.st.status === "idle" && again.st.reached === 0 && again.step === 0, `after a download "${EN["live.again"]}" doesn't ask: the run is gone and the page is back at Start`, JSON.stringify({ open: again.open, status: again.st.status, step: again.step }));
   await q.click("#live-clear");
   await q.waitForTimeout(200);
   const cleared = await q.evaluate(() => ({ name: document.getElementById("live-name").value, items: document.querySelectorAll("#canvas .vc-item").length, st: window.BMC.state.live }));

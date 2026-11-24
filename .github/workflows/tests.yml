@@ -2,7 +2,8 @@
 # Playwright is installed here only for the browser suites (tests/README.md). ViciDesign is checked out
 # next to the tool at the commit vici/ was copied from, so the suites run Vici's own checks and compare
 # vici/ with it byte for byte. Victor's website sits next to it for the page-icon test, and the three
-# sibling tools for the parity test of the shared parts.
+# sibling tools for the parity test of the shared parts; the Prototype Ideator's own reader also reads
+# every handoff file the suites write (tests/handoff.mjs, tests/report.mjs).
 name: tests
 
 on:
@@ -30,11 +31,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: VictorPflueger/ViciDesign
-          ref: 64044bd3a4e41517cca148b410dea1ce5c89719e
+          ref: 0d37f486dc2d888ae292582aee8a9efdda9479df
           path: ViciDesign
           fetch-depth: 0
       # Victor's website, for the page icon (its card for this tool is added with 1.0.0), and the
-      # siblings, for the parity test: public repositories, cloned shallow next to the tool.
+      # siblings, for the parity test and the Ideator's reader: public repositories, cloned shallow
+      # next to the tool.
       - name: Victor's website and the sibling tools
         run: |
           for repo in VIP SWOT-challenger PESTEL-challenger PrototypeIdeator; do

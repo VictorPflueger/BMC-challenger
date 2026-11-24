@@ -103,7 +103,8 @@ check(!viciCss.length, `Vici's stylesheet loads its fonts and icons from this si
 const jsOut = [...js, ...data, "vici/dist/vici.js"].flatMap((f) => jsLoads(read(f)).map((x) => `${f}: ${x}`));
 check(!jsOut.length, `no script imports or opens anything from another site${jsOut.length ? `: ${jsOut.join(", ")}` : ""}`);
 // Hosts named in code: the API (the only one the page connects to) and links a person opens.
-const LINK_HOSTS = new Set(["platform.claude.com", "www.linkedin.com", "victorpflueger.github.io", "github.com", "www.w3.org"]);
+// Strategyzer.com and the licence are the credit under every canvas, which the report links as the page does.
+const LINK_HOSTS = new Set(["platform.claude.com", "www.linkedin.com", "victorpflueger.github.io", "github.com", "www.w3.org", "www.strategyzer.com", "creativecommons.org"]);
 const hosts = new Map();
 for (const f of [...js, ...data]) for (const h of hostsIn(read(f))) if (!hosts.has(h)) hosts.set(h, f);
 // The handoff schema names json-schema.org as its $schema identifier. Nothing fetches it, and the policy
