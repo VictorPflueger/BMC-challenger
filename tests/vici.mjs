@@ -46,6 +46,14 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // A value written as text by mistake: "null", "undefined", "NaN" or "[object Object]" where a person reads.
 const LEAK = /\b(?:null|undefined|NaN)\b|\[object Object\]/g;
 const leaks = (p) => p.evaluate((src) => document.body.innerText.match(new RegExp(src, "g")) || [], LEAK.source);
+// Standing requirement 7: wherever a person can type, the page says "Public information only". A field
+// counts when it shows and takes text; its open dialog or the panel must carry the words, any other
+// field its own parent.
+const PUBLIC = { en: "Public information only", de: "Nur öffentliche Informationen" };
+const unnoticed = (p, lang) => p.evaluate((words) => [...document.querySelectorAll('input:not([type]), input[type="text"], input[type="password"], input[type="email"], textarea')]
+  .filter((el) => el.getClientRects().length && !el.disabled)
+  .filter((el) => !(el.closest("dialog[open]") || el.closest("#panel") || el.parentElement).innerText.includes(words))
+  .map((el) => el.id || el.className || el.tagName), PUBLIC[lang]);
 
 // The ids of the tool's data: the KPI library's KPIs, with and without their sector ("general.ebit_margin"
 // and "ebit_margin"), and its sectors, where they are not plain words, and the item ids of the handoff
@@ -176,7 +184,8 @@ try {
   // A live run against the stand-in (tests/lib/standin.mjs), in both languages: every screen keeps the
   // writing rules and names, not record ids, and says the AI notice; the canvas keeps Vici's framework
   // view, editable at Start and under review; each control that sets agents to work has the notice in a
-  // lilac tag beside it; the risk matrix keeps its rule; the dialog keeps Vici's live-run rule as it opens.
+  // lilac tag beside it; the risk matrix keeps its rule; the dialog keeps Vici's live-run rule as it opens;
+// and every field a person can type in has "Public information only" beside it.
   const { liveDialogProblems } = await lib("live.mjs");
   const { install, live, apiError, KEY } = await import(pathToFileURL(path.join(APP_ROOT, "tests", "lib", "standin.mjs")).href);
   control(liveDialogProblems(html.replace('<input type="checkbox" id="live-ack">', '<input type="checkbox" id="live-ack" checked>')).length > 0, "control: liveDialogProblems catches an acknowledgement ticked in the markup");
@@ -211,6 +220,8 @@ try {
         if (tag !== notice) problems.push(`the bar's action has no "${notice}" beside it (${tag || "none"})`);
       }
       problems.push(...(await leaks(p)).map((x) => `"${x}" shows as text`));
+      const bare = await unnoticed(p, lang);
+      if (bare.length) problems.push(`a person can type in ${bare.join(", ")} with no "Public information only" beside it`);
       if (errors.length) problems.push(...errors.splice(0).map((x) => `page error: ${x}`));
       liveProblems.push(...problems.map((x) => `${lang} ${name}: ${x}`));
       liveNames.add(name);
@@ -219,6 +230,11 @@ try {
     await p.goto(`${server.base}?guide=0&lang=${lang}`);
     await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
     await live.enter(p);
+    if (lang === "en") {
+      await p.evaluate(() => document.getElementById("bar").append(Object.assign(document.createElement("input"), { type: "text", id: "planted-field" })));
+      control((await unnoticed(p, "en")).join() === "planted-field", "control: the notice check finds a field a person can type in without \"Public information only\" beside it");
+      await p.evaluate(() => document.getElementById("planted-field").remove());
+    }
     await look("Start, empty", { beside: true });
     await live.sample(p);
     await look("Start, filled", { beside: true });

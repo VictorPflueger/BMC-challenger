@@ -18,7 +18,7 @@ import { fmtMoney, fmtRange, fmtChange, fmtBaseline, fmtDate } from "./format.js
 import { band as bandOf, riskScore } from "./risk.js";
 import { kpiById, SECTORS } from "../data/kpis.js";
 import { GENERAL_KNOWLEDGE } from "./guards.js";
-import { editField } from "./live_view.js";
+import { editField, notice } from "./live_view.js";
 
 const blockName = (id) => t(`block.${id}.name`);
 const issueLabel = (i) => `${i.id.slice(1)}. ${i.title}`;
@@ -221,9 +221,11 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
     return row;
   });
   const issues = step >= STEP.challenge ? run.issues.filter((i) => i.blocks.includes(blockId)) : [];
+  const typing = ctx.live && toggle && on.edit && items.some((it) => it.source === "ai");
   // replaceChildren() writes a null as the text "null": the parts are filtered.
   body.replaceChildren(...[
     h("p", { class: "block-dialog__question" }, t(`block.${blockId}.question`, null, lang)),
+    typing ? notice(lang) : null,
     rows.length ? h("ul", { class: "vc-framework__items block-dialog__items" }, rows) : h("p", { class: "vc-framework__empty" }, t("block.empty", null, lang)),
     issues.length ? h("div", { class: "block-dialog__issues" },
       h("h3", {}, t("block.issues", null, lang)),

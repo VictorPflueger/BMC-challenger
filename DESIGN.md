@@ -8,7 +8,7 @@ A consulting partner shows the tool to a customer, often on a projector and with
 
 ## The screen
 
-One screen, no page scroll, at 1280 × 720 and 1920 × 1080; `tests/layout.mjs` measures every step of every scenario and eleven screens of a live run at both sizes, in both themes and languages.
+One screen, no page scroll, at 1280 × 720 and 1920 × 1080; `tests/layout.mjs` measures every step of every scenario and twelve screens of a live run at both sizes, in both themes and languages.
 
 - The header: the layout icon in a lilac hexagon, the name, the SIMULATION tag, How it works, EN and DE, the theme toggle and the three key figures; under it, one sentence beside the byline.
 - The talk bar: Play, Back, the six steps, Next, then Run it live with "You are interacting with an AI system" in a lilac tag.

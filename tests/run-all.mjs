@@ -37,7 +37,7 @@ const SUITES = [
   { id: "live-review", what: "the review after Complete: the team's items kept, each AI item kept, edited or removed before the challenge", file: "tests/live-review.mjs", browser: true },
   { id: "live-repair", what: "each guardrail's refusal and its one repair, the stop after a second failure, the Writer's Unchecked", file: "tests/live-repair.mjs", browser: true },
   { id: "live-run", what: "a whole live run: the tape, the waiting tiles, the agent at work, the review and the decision, the language, Clear everything", file: "tests/live-run.mjs", browser: true },
-  { id: "layout", what: "every step of the three scenarios and eleven screens of a live run at 1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
+  { id: "layout", what: "every step of the three scenarios and twelve screens of a live run at 1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
   { id: "vici", what: "Vici's own checks on the page, on every step and every live screen rendered in both languages, the dictionaries, the scenarios, the docs; vici/ byte for byte", file: "tests/vici.mjs", browser: true, vici: true },
   { id: "hexagon", what: "nothing round: the tool's files, and the rendered page in both themes", file: "tests/hexagon.mjs", browser: true }
 ];

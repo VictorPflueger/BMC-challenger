@@ -13,7 +13,8 @@ import { BLOCKS } from "./canvas.js";
 const STEP_NAMES = ["start", "complete", "challenge", "assess", "adapt", "summary"];
 const stepName = (n, lang) => t(`p.step.${STEP_NAMES[n]}`, null, lang);
 const field = (id, label, control, hint = null) => h("div", { class: "vc-field live-field" }, h("label", { class: "vc-label", for: id }, label), control, hint);
-const notice = (lang) => h("p", { class: "vc-help live-public" }, icon("info"), h("span", {}, t("live.public", null, lang)));
+/** "Public information only", wherever a person can type (standing requirement 7). */
+export const notice = (lang) => h("p", { class: "vc-help live-public" }, icon("info"), h("span", {}, t("live.public", null, lang)));
 
 /** The Start panel of a live run: the company, the notice, and a scenario's canvas to start from. */
 export function panelLiveStart(ctx, on) {

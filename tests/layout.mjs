@@ -10,10 +10,10 @@
 // above the bar; on the other steps the panel shows its title and may scroll inside, never the page.
 // The guide opens inside the window. The header's and the talk bar's controls are at least 40 px. Each
 // view is saved as a screenshot for a person to look at.
-// A live run against the stand-in adds eleven views to each of the eight sizes, themes and languages
+// A live run against the stand-in adds twelve views to each of the eight sizes, themes and languages
 // (G13 of M3): the empty and the filled Start form, a block being entered, the dialog, the dialog with a
-// private-data warning, an agent at work, the review, the decision, the summary, a run stopped at its
-// budget cap and a run stopped by an error. The same rules hold, with LIVE on the tape, no fictional
+// private-data warning, an agent at work, the review, an AI item opened for review, the decision, the
+// summary, a run stopped at its budget cap and a run stopped by an error. The same rules hold, with LIVE on the tape, no fictional
 // label and the dialogs inside the window, their buttons in view. With the warning, the dialog's body
 // may scroll, as Vici's live-run dialog says ("the body scrolls, the footer doesn't"), while the warning
 // and the footer stay in view.
@@ -225,6 +225,11 @@ async function liveViews(page, ctx, { base, width, height, theme, lang, shots })
   scene.hold = null;
   await live.waitFor(page, "review");
   await shot("review", { step: 1, decides: true });
+  // An AI item opened for review: the block with the most AI items, each with its field to rewrite it.
+  await page.click('#canvas .vc-item[data-source="ai"] .item-open[data-open="partners"] >> nth=0');
+  await page.waitForSelector("#block-dialog[open]");
+  await shot("review-dialog", { step: 1, dialog: "block-dialog" });
+  await closeDialog();
   await page.click("#btn-cta");
   await live.waitFor(page, "decision", 30000);
   await shot("decision", { step: 4, decides: true, adapt: await adaptCards(page) });
@@ -373,7 +378,7 @@ try {
       if (by("stopped-error").stopped !== "billing") bad.states.push(`the error run stopped with ${by("stopped-error").stopped}`);
       if (!by("working").work || !by("working").m?.cta) bad.states.push("no Abort while the agent worked");
       const names = lv.map((v) => v.name).join(", ");
-      check(lv.length === 11 && !bad.states.length, `${size}: the live run shows its eleven screens (${names})`, bad.states.join("; "));
+      check(lv.length === 12 && !bad.states.length, `${size}: the live run shows its twelve screens (${names})`, bad.states.join("; "));
       check(!bad.fit.length, `${size}: every live screen fits the window, no scrolling sideways or down`, bad.fit.slice(0, 4).join("; "));
       check(!bad.header.length && !bad.talk.length, `${size}: on every live screen the header keeps one band and the talk bar one line`, [...bad.header, ...bad.talk].slice(0, 4).join("; "));
       check(!bad.tape.length, `${size}: every live screen says LIVE on the tape and hides the fictional label`, bad.tape.slice(0, 4).join("; "));
