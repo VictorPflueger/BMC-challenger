@@ -95,6 +95,24 @@ export function barWords(ctx) {
  * Returns { stake, pressure, cost }, each { value, was, note, state }.
  */
 export function tileWords(ctx) {
+  if (!ctx.live) return figureWords(ctx);
+  // A live run: each tile waits for the agent whose answer it needs, then answers as in the simulation;
+  // the Session cost tile shows what the run has spent, with the cap in its note.
+  const { lang, reached } = ctx;
+  const L = ctx.live;
+  const wait = (agent) => ({ value: "…", was: "", note: t(`kpi.wait.${agent}`, null, lang), state: "idle" });
+  const known = reached >= STEP.challenge ? figureWords(ctx) : null;
+  return {
+    stake: reached >= STEP.assess ? known.stake : wait("analyst"),
+    pressure: known ? known.pressure : wait("redteam"),
+    cost: L.started
+      ? { value: fmtCents(L.cost.eur, lang), was: "", note: t("kpi.cost.live", { cap: fmtCents(L.capEur, lang) }, lang), state: "live" }
+      : { value: "…", was: "", note: t("kpi.cost.waitLive", null, lang), state: "idle" }
+  };
+}
+
+/** The tiles from a run's figures, the simulation's way. */
+function figureWords(ctx) {
   const { run, applied, estimate, lang } = ctx;
   const before = run.before;
   const after = run.after;

@@ -1,26 +1,32 @@
 // The presenter: the six steps, Back and Next, Play, the key figures and the bar under the story, for
-// the simulation of 0.2.0. A run goes as far as it can and waits only where the person acts: at Start
-// (start the agents), at Complete (keep or remove the AI's items, then challenge the canvas) and at
-// Adapt (one response per issue, then apply). Play walks the steps by itself, each for as long as its
-// title and lead take to read (7 to 14 seconds), and stops wherever the person acts; Space plays or
-// pauses, and a step chosen by click, arrow key, clicker (PageDown and PageUp) or link pauses it. The
-// address follows the presenter (?scenario=s1&step=4), and a link to a later step plays the run up to
-// it with the recorded choices. Adapted from the Data Quality Agent 2.2.0's presenter.
+// the simulation and the live run alike. A run goes as far as it can and waits only where the person
+// acts: at Start (start the agents), at Complete (keep, edit or remove the AI's items, then challenge the
+// canvas) and at Adapt (one response per issue, then apply). Play walks the simulation's steps by
+// itself, each for as long as its title and lead take to read (7 to 14 seconds), and stops wherever the
+// person acts; Space plays or pauses, and a step chosen by click, arrow key, clicker (PageDown and
+// PageUp) or link pauses it. The address follows the simulation (?scenario=s1&step=4), and a link to a
+// later step plays the run up to it with the recorded choices. A live run puts nothing in the address.
+// Adapted from the Data Quality Agent 2.2.0's presenter.
 //
 // Everything a step shows comes from js/run.js (the run model), js/story.js (its words) and js/view.js
-// (its drawing); nothing here computes a figure. The person's choices live in this module's memory
-// only and are gone when the tab closes (brief 5.9).
+// (its drawing); a live run fills the same model from the agents' answers (js/live.js) and adds its own
+// screens (js/live_view.js, js/live_dialog.js). Nothing here computes a figure. The person's choices live
+// in memory only (this module and js/session.js) and are gone when the tab closes (brief 5.9).
 
 import { getLang, setLang, onLang, t } from "./i18n/index.js";
 import { SCENARIOS, scenarioById } from "../data/scenarios/index.js";
 import { STEPS, STEP, localise, buildRun, recordedChoices } from "./run.js";
-import { stepWords, barWords, staleWords } from "./story.js";
+import { stepWords, staleWords } from "./story.js";
 import { renderCanvas, fitCanvas, renderPanel, renderBar, renderBlock, fitSummary, firstSteps } from "./view.js";
-import { h } from "./dom.js";
+import { h, icon } from "./dom.js";
 import { renderKpis } from "./kpis.js";
 import { estimateRun } from "./estimate.js";
 import { SIM } from "./config.js";
 import { fmtMoney, fmtPartMoney, fmtPressure } from "./format.js";
+import { session, onSessionChange, updateSession, setForm, setBlock, resetRun, clearEverything, installLeaveWarning } from "./session.js";
+import * as live from "./live.js";
+import { setupLiveDialog } from "./live_dialog.js";
+import { panelLiveStart, panelNotRun, liveBar, liveWords, renderBlockEdit, enteredFields } from "./live_view.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,13 +35,14 @@ export async function start() {
     title: $("step-title"), lead: $("step-lead"), stale: $("stale"), canvas: $("canvas"), panel: $("panel"), bar: $("bar"),
     steps: $("steps"), play: $("play"), playText: $("play-text"), back: $("btn-back"), next: $("btn-next"), announce: $("announce"),
     dialog: $("block-dialog"), dialogTitle: $("block-dialog-title"), dialogBody: $("block-dialog-body"),
-    stepsDialog: $("steps-dialog"), stepsBody: $("steps-dialog-body")
+    stepsDialog: $("steps-dialog"), stepsBody: $("steps-dialog-body"), live: $("live"), liveText: $("live-text"),
+    mode: $("mode-tag"), modeText: $("mode-text"), fictional: document.querySelector(".fictional")
   };
   const params = new URLSearchParams(location.search);
   const state = {
     scenarioId: scenarioById(params.get("scenario")) ? params.get("scenario") : SIM.defaultScenario,
     step: 0,
-    reached: 0, // 0 nothing run; 1 waits for the review; 4 waits for the decision; 5 applied
+    reached: 0, // the simulation: 0 nothing run; 1 waits for the review; 4 waits for the decision; 5 applied
     removed: new Set(),
     decisions: new Map(),
     applied: false,
@@ -44,6 +51,11 @@ export async function start() {
   };
   /** Play: on, the frame asked for, the time spent reading the step, the step it timed, the last frame. */
   const P = { on: false, raf: 0, at: 0, step: -1, last: 0 };
+  const isLive = () => session().mode === "live";
+  const run = () => session().run;
+  /** How far the run has come and whether the decision is applied, for either producer. */
+  const reachedNow = () => (isLive() ? run().reached : state.reached);
+  const appliedNow = () => (isLive() ? run().applied : state.applied);
 
   // ---- the run as it stands ------------------------------------------------------------------------------
   const cache = new Map();
@@ -53,19 +65,38 @@ export async function start() {
     return cache.get(key);
   };
   const estimates = new Map();
-  const estimateOf = (sc, run) => {
-    if (!estimates.has(sc.id)) estimates.set(sc.id, estimateRun(sc, run));
+  const estimateOf = (sc, r) => {
+    if (!estimates.has(sc.id)) estimates.set(sc.id, estimateRun(sc, r));
     return estimates.get(sc.id);
   };
+  /** Before a live run: what it would cost on a setting, for the person's own company and canvas. */
+  function liveEstimate(presetId, research) {
+    const ref = local(SIM.defaultScenario, getLang());
+    const sc = { ...ref, company: { ...ref.company, ...live.liveScenario().company }, entered: session().entered };
+    return estimateRun(sc, buildRun(sc), presetId, { research });
+  }
   function context() {
     const lang = getLang();
+    if (isLive()) {
+      const s = session();
+      const r = s.run;
+      return {
+        sc: live.liveScenario(), run: live.liveRun(), lang,
+        step: state.step, reached: r.reached, applied: r.applied, selectedIssue: state.selectedIssue, scenarios: [], estimate: null,
+        live: {
+          status: r.status, agent: r.agent, seconds: Math.max(0, Math.round((Date.now() - r.startedAt) / 1000)), stopped: r.stopped,
+          started: r.status !== "idle", form: s.form, entered: s.entered, lang: r.lang, cost: r.cost, capEur: r.settings?.capEur,
+          unchecked: r.unchecked, edits: r.edits, sample: local(state.scenarioId, lang).company.name, research: r.research
+        }
+      };
+    }
     const sc = local(state.scenarioId, lang);
-    const run = buildRun(sc, { removed: state.removed, decisions: state.decisions });
+    const r = buildRun(sc, { removed: state.removed, decisions: state.decisions });
     return {
-      sc, run, lang,
+      sc, run: r, lang,
       step: state.step, reached: state.reached, applied: state.applied, selectedIssue: state.selectedIssue,
       scenarios: SCENARIOS.map((s) => local(s.id, lang)),
-      estimate: estimateOf(sc, run)
+      estimate: estimateOf(sc, r)
     };
   }
 
@@ -73,15 +104,42 @@ export async function start() {
   const on = {
     scenario: (id) => { if (id !== state.scenarioId) { state.scenarioId = id; reset(); } },
     toggleItem: (id) => {
+      if (isLive()) {
+        if (run().status !== "review") return;
+        const removed = run().removed;
+        if (removed.has(id)) removed.delete(id); else removed.add(id);
+        render();
+        return;
+      }
       if (state.reached > STEP.complete) return;
       if (state.removed.has(id)) state.removed.delete(id); else state.removed.add(id);
       render();
     },
+    edit: (id, text) => { if (isLive() && run().status === "review") { const v = text.trim(); if (v) run().edits.set(id, v); else run().edits.delete(id); render(); } },
     issue: (id) => { state.selectedIssue = id; render(); },
-    decide: (issue, choice) => { if (!state.applied) { state.decisions.set(issue, choice); render(); } },
-    reopen: () => { state.applied = false; state.reached = STEP.adapt; render(); armAttention(); },
+    decide: (issue, choice) => {
+      if (isLive()) { if (run().status === "decision") { run().decisions.set(issue, choice); render(); } return; }
+      if (!state.applied) { state.decisions.set(issue, choice); render(); }
+    },
+    reopen: () => {
+      if (isLive()) return;
+      state.applied = false; state.reached = STEP.adapt; render(); armAttention();
+    },
     steps: () => { drawStepsDialog(); els.stepsDialog.showModal(); },
+    form: (key, value) => setForm({ [key]: value }, { quiet: true }),
+    items: (block, texts, redraw = false, focus = -1) => {
+      setBlock(block, texts);
+      if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); if (focus >= 0) $(`edit-${block}-${focus}`)?.focus(); }
+    },
+    sample: () => {
+      const sc = local(state.scenarioId, getLang());
+      setForm({ name: sc.company.name, sector: sc.company.sector, country: t(`country.${sc.company.country}`), description: sc.company.description });
+      for (const [b, items] of Object.entries(sc.entered.blocks)) setBlock(b, items.map((it) => it.text));
+      render();
+    },
+    clear: () => { clearEverything(); state.step = 0; render(); },
     bar: (action) => {
+      if (isLive()) return liveAction(action);
       if (action === "start") { begin(STEP.complete); play(); }
       else if (action === "challenge") { state.reached = STEP.adapt; go(STEP.challenge, { keep: true }); }
       else if (action === "apply") { state.applied = true; state.reached = STEP.summary; render(); announce(stepWords(context()).title); }
@@ -89,6 +147,67 @@ export async function start() {
       else go(state.step + 1, { keep: true });
     }
   };
+
+  // ---- the live run --------------------------------------------------------------------------------------
+  const dialog = setupLiveDialog({
+    estimate: liveEstimate,
+    fields: () => enteredFields(session().form, session().entered, getLang()),
+    onStart: (settings) => { state.step = STEP.start; live.start(settings); }
+  });
+  function liveAction(action) {
+    if (action === "agents") {
+      if (!session().form.name.trim()) {
+        const err = $("live-name-error");
+        if (err) { err.hidden = false; $("live-name").setAttribute("aria-invalid", "true"); $("live-name").focus(); }
+        return;
+      }
+      dialog.open();
+    } else if (action === "challenge") live.challenge();
+    else if (action === "apply") { live.apply(); announce(t("live.agent.writer")); }
+    else if (action === "abort") live.abort();
+    else if (action === "again") { resetRun(); go(STEP.start); }
+    else if (action === "simulation") setMode("simulation");
+    else go(state.step + 1);
+  }
+  /** Simulation or live: the tape, the button that switches, and what only the simulation shows. */
+  function setMode(mode) {
+    pause();
+    updateSession({ mode });
+    state.step = 0;
+    drawMode();
+    syncUrl();
+    render();
+    els.title.focus({ preventScroll: true });
+  }
+  function drawMode() {
+    const lv = isLive();
+    els.mode.dataset.mode = lv ? "live" : "simulation";
+    els.modeText.textContent = t(lv ? "p.mode.live" : "p.mode.simulation");
+    els.liveText.textContent = t(lv ? "p.live.back" : "p.live");
+    els.play.hidden = lv;
+    document.body.dataset.mode = lv ? "live" : "simulation";
+  }
+  els.live.addEventListener("click", () => setMode(isLive() ? "simulation" : "live"));
+  // The screen follows the agents: when a step's answer arrives and the person was at the front of the
+  // run, the new step shows.
+  let front = 0;
+  let pending = 0;
+  onSessionChange(() => {
+    if (!isLive()) return;
+    const r = run();
+    if (r.reached > front) {
+      if (state.step >= front) { state.step = r.reached; requestAnimationFrame(() => els.title.focus({ preventScroll: true })); }
+      front = r.reached;
+    }
+    if (r.reached < front) front = r.reached;
+    if (!pending) pending = requestAnimationFrame(() => { pending = 0; syncUrl(); render(); });
+  });
+  setInterval(() => {
+    if (!isLive() || run().status !== "working") return;
+    const el = $("live-seconds");
+    if (el) el.textContent = t("live.seconds", { s: Math.max(0, Math.round((Date.now() - run().startedAt) / 1000)) });
+  }, 1000);
+  installLeaveWarning();
 
   /** Starts the run of the chosen company: the agents complete the canvas and wait for the review. */
   function begin(to = STEP.complete) {
@@ -149,27 +268,45 @@ export async function start() {
   function render() {
     const ctx = context();
     const focus = keyOf(document.activeElement);
-    words = stepWords(ctx);
+    const lv = !!ctx.live;
+    // A live step the run never reached (it stopped first) and the live Start have their own words.
+    const own = lv && (ctx.step === STEP.start || ctx.step > ctx.reached);
+    words = own ? liveWords(ctx) : stepWords(ctx);
     els.title.textContent = words.title;
     els.lead.textContent = words.lead;
     document.body.dataset.step = STEPS[state.step];
     renderCanvas(els.canvas, ctx, on);
-    renderPanel(els.panel, ctx, on);
-    renderBar(els.bar, ctx, on);
+    if (lv && ctx.step === STEP.start) els.panel.replaceChildren(...panelLiveStart(ctx, on).filter(Boolean));
+    else if (lv && ctx.step > ctx.reached) els.panel.replaceChildren(...panelNotRun(ctx).filter(Boolean));
+    else renderPanel(els.panel, ctx, on);
+    if (lv) livePanelNotes(ctx);
+    const bar = lv ? liveBar(ctx, on) : null;
+    if (bar) { els.bar.replaceChildren(bar.el); els.bar.dataset.kind = bar.kind; } else renderBar(els.bar, ctx, on);
+    if (lv && !bar && ctx.step === STEP.adapt && ctx.live.status === "decision") els.bar.querySelector(".turn-bar")?.insertBefore(h("span", { class: "vc-tag vc-tag--feature ai-notice" }, icon("sparkle"), t("p.ai")), $("btn-cta"));
     renderKpis(ctx);
-    const old = (Date.now() - new Date(`${ctx.sc.as_of}T12:00:00`).getTime()) / 86400000 > SIM.staleDays;
+    const old = !lv && (Date.now() - new Date(`${ctx.sc.as_of}T12:00:00`).getTime()) / 86400000 > SIM.staleDays;
     els.stale.hidden = !old;
-    els.stale.querySelector(".stale-text").textContent = staleWords(ctx.sc, ctx.lang);
+    els.stale.querySelector(".stale-text").textContent = lv ? "" : staleWords(ctx.sc, ctx.lang);
+    els.fictional.hidden = lv;
     renderSteps();
     drawPlay();
     fitSummary(els.panel);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
-    if (state.openBlock && els.dialog.open) renderBlock(els.dialogBody, els.dialogTitle, state.openBlock, ctx, on);
+    if (state.openBlock && els.dialog.open) openBlock(state.openBlock, ctx);
     const target = findKey(focus);
     if (target && !target.disabled) target.focus({ preventScroll: true });
     fill(P.on && !waits() ? P.at / readMs() : 0);
     drawFoot();
+  }
+  /** In a live run: texts the fact audit refused twice, and the language the run wrote in. */
+  function livePanelNotes(ctx) {
+    const notes = [];
+    const unchecked = ctx.live.unchecked.filter((u) => u.step === ctx.step);
+    if (unchecked.length) notes.push(h("p", { class: "panel-note unchecked" }, h("span", { class: "vc-tag vc-tag--sm vc-tag--warning" }, t("live.unchecked")), " ", t("live.unchecked.text", { where: unchecked.map((u) => u.where).join(", ") })));
+    if (ctx.live.started && ctx.live.lang !== ctx.lang) notes.push(h("p", { class: "panel-note" }, t("live.lang.kept", { lang: t(`lang.${ctx.live.lang}`) })));
+    if (ctx.step === STEP.challenge && ctx.live.research.disabled) notes.push(h("p", { class: "panel-note" }, t("live.research.off")));
+    if (notes.length) els.panel.prepend(...notes);
   }
   new ResizeObserver(() => fitCanvas(els.canvas)).observe(els.canvas);
   const refit = () => { fitSummary(els.panel); fitCanvas(els.canvas); };
@@ -190,36 +327,43 @@ export async function start() {
     if (!li.querySelector(".vc-step__hint")) b.querySelector(".vc-step__label").append(Object.assign(document.createElement("span"), { className: "vc-step__hint" }));
     b.addEventListener("click", () => go(n));
   });
-  const maxStep = () => state.reached;
+  /** The furthest step the presenter may show: a stopped live run shows its Summary of what is done. */
+  const maxStep = () => (isLive() && run().status === "stopped" ? STEP.summary : reachedNow());
 
   function renderSteps() {
+    const lv = isLive();
+    const r = run();
     items.forEach((li, n) => {
       const b = li.querySelector(".vc-step__button");
       const current = n === state.step;
       li.classList.toggle("vc-step--current", current);
       li.classList.toggle("vc-step--done", n < state.step);
       if (current) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
-      b.disabled = n > maxStep();
-      const turn = (n === STEP.start && state.reached === 0) || (n === STEP.complete && state.reached === STEP.complete) ? "turn"
-        : n === STEP.adapt && state.reached >= STEP.adapt && !state.applied ? "decision" : "";
+      const notRun = lv && r.status === "stopped" && n > r.reached;
+      b.disabled = n > maxStep() || (notRun && n < STEP.summary);
+      const turn = lv
+        ? (n === STEP.start && r.status === "idle") || (n === STEP.complete && r.status === "review") ? "turn" : n === STEP.adapt && r.status === "decision" ? "decision" : ""
+        : (n === STEP.start && state.reached === 0) || (n === STEP.complete && state.reached === STEP.complete) ? "turn" : n === STEP.adapt && state.reached >= STEP.adapt && !state.applied ? "decision" : "";
       li.dataset.turn = turn ? "yours" : "";
-      li.querySelector(".vc-step__hint").textContent = turn ? t(turn === "decision" ? "turn.decision" : "turn.title") : "";
+      li.dataset.notRun = notRun ? "true" : "";
+      li.querySelector(".vc-step__hint").textContent = turn ? t(turn === "decision" ? "turn.decision" : "turn.title") : notRun ? t("live.notrun") : lv && r.status === "working" && n === r.reached + 1 ? t("live.working") : "";
     });
     els.back.disabled = state.step === 0;
-    els.next.disabled = state.step >= maxStep() && !(state.step === STEP.start && state.reached === 0);
-    els.next.title = state.step === STEP.adapt && !state.applied ? t("p.next.decide") : "";
+    els.next.disabled = state.step >= maxStep() && !(!lv && state.step === STEP.start && state.reached === 0);
+    els.next.title = state.step === STEP.adapt && !appliedNow() ? t("p.next.decide") : "";
   }
 
-  // ---- Play ----------------------------------------------------------------------------------------------
+  // ---- Play (the simulation) -----------------------------------------------------------------------------
   /** The step waits for the person: Start before the run, the review at Complete, the decision at Adapt. */
   function waits() {
+    if (isLive()) return true;
     if (state.step === STEP.start && state.reached === 0) return true;
     if (state.step === STEP.complete && state.reached === STEP.complete) return true;
     if (state.step === STEP.adapt && !state.applied) return true;
     return false;
   }
   /** The story is over: the summary is on screen and nothing is left for the person to do. */
-  const finished = () => state.applied && state.step === STEP.summary;
+  const finished = () => appliedNow() && state.step === STEP.summary;
   /** A dialog covers the page: Play holds its time until it closes. */
   const covered = () => !!document.querySelector("dialog[open]");
   /** How long Play stays on a step: the time to read its title and lead, 7 to 14 seconds. */
@@ -229,6 +373,7 @@ export async function start() {
   }
 
   function play() {
+    if (isLive()) return;
     if (state.reached === 0) { begin(STEP.complete); }
     else if (finished()) { begin(STEP.complete); }
     P.on = true;
@@ -315,7 +460,9 @@ export async function start() {
    */
   function go(n, { focus = true, keep = false } = {}) {
     if (!keep) pause();
-    if (state.reached === 0 && n > 0) { begin(STEP.complete); return; }
+    if (!isLive() && state.reached === 0 && n > 0) { begin(STEP.complete); return; }
+    // A stopped live run skips the steps it never ran: from its last step done straight to its Summary.
+    if (isLive() && run().status === "stopped" && n > run().reached && n < STEP.summary) n = n > state.step ? STEP.summary : run().reached;
     state.step = Math.max(0, Math.min(maxStep(), n));
     if (P.step !== state.step) Object.assign(P, { step: state.step, at: 0 });
     syncUrl();
@@ -330,7 +477,7 @@ export async function start() {
     const target = e.target;
     if (target?.closest?.("input, textarea, select, [contenteditable]")) return;
     if (e.key === " ") {
-      if (target?.closest?.("button, a, summary, label, [role=button], [role=radio]")) return;
+      if (target?.closest?.("button, a, summary, label, [role=button], [role=radio]") || isLive()) return;
       e.preventDefault();
       if (!e.repeat) (P.on ? pause() : play());
       return;
@@ -339,46 +486,59 @@ export async function start() {
     if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(state.step - 1); }
   });
 
-  /** The address follows the presenter: ?scenario=s1&step=4; the language and guide stay as they were. */
+  /** The address follows the simulation: ?scenario=s1&step=4. A live run keeps it bare. */
   function syncUrl() {
     const u = new URL(location.href);
-    u.searchParams.set("scenario", state.scenarioId);
-    if (state.step > 0) u.searchParams.set("step", String(state.step)); else u.searchParams.delete("step");
+    if (isLive()) { u.searchParams.delete("scenario"); u.searchParams.delete("step"); }
+    else {
+      u.searchParams.set("scenario", state.scenarioId);
+      if (state.step > 0) u.searchParams.set("step", String(state.step)); else u.searchParams.delete("step");
+    }
     if (u.searchParams.has("lang")) u.searchParams.set("lang", getLang());
     if (u.href !== location.href) history.replaceState(null, "", u);
   }
 
   // ---- the block, opened ---------------------------------------------------------------------------------
+  /** Before a live run the block's dialog edits its items; otherwise it shows them in full. */
+  function openBlock(id, ctx = context()) {
+    if (ctx.live && ctx.step === STEP.start && ctx.live.status === "idle") renderBlockEdit(els.dialogBody, els.dialogTitle, id, ctx, on);
+    else renderBlock(els.dialogBody, els.dialogTitle, id, ctx, on);
+  }
   els.canvas.addEventListener("click", (e) => {
     const opener = e.target.closest("[data-open]");
     if (e.target.closest(".item-toggle")) return;
     if (!opener) return;
     state.openBlock = opener.dataset.open;
-    renderBlock(els.dialogBody, els.dialogTitle, state.openBlock, context(), on);
+    openBlock(state.openBlock);
     els.dialog.showModal();
   });
-  els.dialog.addEventListener("close", () => { state.openBlock = null; });
+  els.dialog.addEventListener("close", () => {
+    const b = state.openBlock;
+    state.openBlock = null;
+    // Empty lines go when the block closes.
+    if (b && isLive() && run().status === "idle") { setBlock(b, (session().entered.blocks[b] || []).map((it) => it.text.trim()).filter(Boolean)); render(); }
+  });
 
   // ---- the guide, the language and the figures of the talk track -------------------------------------
   for (const g of document.querySelectorAll("dialog.vc-guide")) {
-    g.addEventListener("vc:guideclose", (e) => { if (e.detail?.returnValue === "done" && state.reached > 0 && !finished()) play(); });
+    g.addEventListener("vc:guideclose", (e) => { if (e.detail?.returnValue === "done" && !isLive() && state.reached > 0 && !finished()) play(); });
   }
   /** The talk track's figures: the first scenario's recorded run, as its tiles show it. */
   function fillGuide() {
     for (const lang of ["en", "de"]) {
       const sc = local(SIM.defaultScenario, lang);
-      const run = buildRun(sc, recordedChoices(sc));
-      const ai = Object.values(run.completed.blocks).flat().filter((it) => it.source === "ai").length;
+      const r = buildRun(sc, recordedChoices(sc));
+      const ai = Object.values(r.completed.blocks).flat().filter((it) => it.source === "ai").length;
       const figs = {
-        "lead.stake": fmtPartMoney(run.before.atStake, run.before.priced, run.before.count, lang),
-        "lead.pressure": fmtPressure(run.before.pressure.before, run.before.pressure.of, lang),
-        "lead.left": fmtPartMoney(run.after.left, run.after.priced, run.after.count, lang),
-        "lead.pressureAfter": fmtPressure(run.after.pressure.after, run.after.pressure.of, lang),
-        "lead.upside": fmtMoney(run.after.upside, lang),
-        "lead.i1": fmtMoney(run.before.issues[0].before.expected, lang),
+        "lead.stake": fmtPartMoney(r.before.atStake, r.before.priced, r.before.count, lang),
+        "lead.pressure": fmtPressure(r.before.pressure.before, r.before.pressure.of, lang),
+        "lead.left": fmtPartMoney(r.after.left, r.after.priced, r.after.count, lang),
+        "lead.pressureAfter": fmtPressure(r.after.pressure.after, r.after.pressure.of, lang),
+        "lead.upside": fmtMoney(r.after.upside, lang),
+        "lead.i1": fmtMoney(r.before.issues[0].before.expected, lang),
         "lead.ai": String(ai),
-        "lead.issues": String(run.before.count),
-        "lead.cost": `≈ ${new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(estimateOf(sc, run).eur)}`
+        "lead.issues": String(r.before.count),
+        "lead.cost": `≈ ${new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(estimateOf(sc, r).eur)}`
       };
       for (const el of document.querySelectorAll(`#guide-${lang} [data-fig]`)) if (Object.hasOwn(figs, el.dataset.fig)) el.textContent = figs[el.dataset.fig];
     }
@@ -389,15 +549,20 @@ export async function start() {
     for (const b of document.querySelectorAll(".guide-open")) b.hidden = b.getAttribute("lang") !== lang;
   };
   for (const b of document.querySelectorAll(".lang-option")) b.addEventListener("click", () => setLang(b.dataset.lang));
-  onLang((lang) => { reflect(lang); syncUrl(); render(); });
+  onLang((lang) => { reflect(lang); drawMode(); syncUrl(); render(); });
   reflect(getLang());
   fillGuide();
 
   // ---- start -------------------------------------------------------------------------------------------
+  drawMode();
   const linked = Number(params.get("step"));
   if (Number.isInteger(linked) && linked >= 1 && linked <= STEPS.length - 1) begin(linked);
   else { syncUrl(); render(); }
   armAttention();
-  // For the tests and the console: what the presenter holds, read-only.
-  window.BMC = Object.freeze({ get state() { return { ...state, removed: [...state.removed], decisions: Object.fromEntries(state.decisions) }; }, get playing() { return P.on; }, readMs });
+  // For the tests and the console: what the presenter holds, read-only. Never the key, never the inputs.
+  window.BMC = Object.freeze({
+    get state() { return { ...state, removed: [...state.removed], decisions: Object.fromEntries(state.decisions), mode: session().mode, live: { status: run().status, reached: run().reached, agent: run().agent, stopped: run().stopped ? { cause: run().stopped.cause, step: run().stopped.step } : null, cost: { usd: run().cost.usd, eur: run().cost.eur, requests: run().cost.requests }, repairs: run().repairs, research: { ...run().research }, unchecked: run().unchecked.length } }; },
+    get playing() { return P.on; },
+    readMs
+  });
 }

@@ -47,7 +47,7 @@ export function complete(entered, completion) {
   for (const it of completion?.items || []) {
     if (!isBlock(it.block)) continue;
     const list = blocks[it.block];
-    list.push({ id: nextId(it.block, list), block: it.block, text: it.text, source: "ai", confidence: it.confidence, basis: it.basis });
+    list.push({ id: nextId(it.block, list), block: it.block, text: it.text, source: "ai", confidence: it.confidence, basis: it.basis, ...(it.edited ? { edited: true } : {}) });
   }
   return { blocks };
 }

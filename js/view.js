@@ -18,6 +18,7 @@ import { fmtMoney, fmtRange, fmtChange, fmtBaseline, fmtDate } from "./format.js
 import { band as bandOf, riskScore } from "./risk.js";
 import { kpiById, SECTORS } from "../data/kpis.js";
 import { GENERAL_KNOWLEDGE } from "./guards.js";
+import { editField } from "./live_view.js";
 
 const blockName = (id) => t(`block.${id}.name`);
 const issueLabel = (i) => `${i.id.slice(1)}. ${i.title}`;
@@ -62,7 +63,7 @@ function itemRow(it, { status, word, current, lang, toggle = null, rank = 0 }) {
   // sparkle says "AI" (the legend names the mark); an added item's "Added" already says it adapts; a
   // challenged item keeps its warning mark, and the block's own tag names the worst band.
   const sparkle = source === "ai" && !status;
-  if (source === "ai") states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--source", sparkle ? "tag-quiet" : ""] }, t("item.ai", null, lang)));
+  if (source === "ai") states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--source", sparkle && !it.edited ? "tag-quiet" : ""] }, it.edited ? t("item.aiEdited", null, lang) : t("item.ai", null, lang)));
   else if (source === "added") states.push(h("span", { class: "vc-tag vc-tag--sm vc-item__state vc-item__state--source" }, t("item.added", null, lang)));
   else states.push(h("span", { class: "vc-item__state vc-visually-hidden" }, t("item.entered", null, lang)));
   if (status) states.push(h("span", { class: ["vc-tag vc-tag--sm vc-item__state vc-item__state--status", (source === "added" && status === "addressed") || status === "challenged" ? "tag-quiet" : ""] }, word));
@@ -106,7 +107,7 @@ function itemState(it, ctx, challenged) {
 /** The canvas of the step into its container: nine blocks in the classic layout. */
 export function renderCanvas(el, ctx, on = {}) {
   const { run, step, lang } = ctx;
-  const toggle = step === STEP.complete && ctx.reached === STEP.complete ? on.toggleItem : null;
+  const toggle = step === STEP.complete && ctx.reached === STEP.complete && (!ctx.live || ctx.live.status === "review") ? on.toggleItem : null;
   const { blocks, side } = canvasOf(ctx);
   const challenged = step >= STEP.challenge ? challengedItems(run) : new Map();
   const selected = step === STEP.challenge || step === STEP.adapt ? run.issues.find((i) => i.id === ctx.selectedIssue) : null;
@@ -199,7 +200,7 @@ export function fitCanvas(el) {
 /** The dialog's body: every item of the block in full, with its source, basis and confidence, and its issues. */
 export function renderBlock(body, title, blockId, ctx, on = {}) {
   const { run, step, lang } = ctx;
-  const toggle = step === STEP.complete && ctx.reached === STEP.complete ? on.toggleItem : null;
+  const toggle = step === STEP.complete && ctx.reached === STEP.complete && (!ctx.live || ctx.live.status === "review") ? on.toggleItem : null;
   const { blocks, side } = canvasOf(ctx);
   title.textContent = blockName(blockId);
   const challenged = step >= STEP.challenge ? challengedItems(run) : new Map();
@@ -211,9 +212,11 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
     if (it.source === "ai") note.push(h("p", {}, h("strong", {}, t("item.basis", null, lang)), " ", it.basis, " · ", t(`conf.${it.confidence}`, null, lang)));
     if (it.source === "added") note.push(h("p", {}, t("item.addedBy", null, lang)));
     if (it.status === "changed") note.push(h("p", {}, t("item.changedBy", null, lang)));
-    // In the dialog the text is plain, not a button: the block is already open.
+    // In the dialog the text is plain, not a button: the block is already open. While a live run waits
+    // for the review, an AI item's text is a field the person may rewrite.
     const opener = row.querySelector(".item-open");
-    opener.replaceWith(...opener.childNodes);
+    if (ctx.live && toggle && it.source === "ai" && on.edit) opener.replaceWith(editField(it, lang, on));
+    else opener.replaceWith(...opener.childNodes);
     if (note.length) row.append(h("div", { class: "vc-item__body" }, note));
     return row;
   });
@@ -257,7 +260,7 @@ function panelComplete(ctx) {
     h("div", { class: "panel-head" },
       h("h2", { class: "panel-title" }, t("p.complete.title", null, lang)),
       h("p", { class: "panel-note" }, t("p.complete.count", { kept, n: items.length }, lang))),
-    h("p", { class: "complete-hint" }, reached > STEP.complete ? t("p.complete.locked", null, lang) : t("p.complete.hint", null, lang)),
+    h("p", { class: "complete-hint" }, reached > STEP.complete || (ctx.live && ctx.live.status !== "review") ? t("p.complete.locked", null, lang) : t(ctx.live ? "live.complete.hint" : "p.complete.hint", null, lang)),
     h("ul", { class: "vc-framework__legend" }, mark("entered"), mark("ai", "sparkle"), mark("removed", "minus"))
   ];
 }

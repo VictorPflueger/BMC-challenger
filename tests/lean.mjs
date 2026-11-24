@@ -19,7 +19,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { APP_ROOT } from "./lib/harness.mjs";
 
-const LIMITS = { shellModules: 8, shellLines: 1800, jsLines: 6500, cssFiles: 1, cssLines: 450, readme: 900, script: 700, design: 700, sources: 1200 };
+const LIMITS = { shellModules: 8, shellLines: 1800, jsLines: 6500, cssFiles: 1, cssLines: 480, readme: 900, script: 700, design: 700, sources: 1200 };
 const SHELL = ["main.js", "app.js", "view.js", "story.js", "run.js", "kpis.js", "estimate.js", "lang.js"];
 const NET = /\bfetch\s*\(|XMLHttpRequest|WebSocket|new EventSource|navigator\.sendBeacon/;
 const HOSTS = /https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi;

@@ -102,7 +102,7 @@
       <li class="vc-step" data-step="summary"><button type="button" class="vc-step__button" disabled><span class="vc-step__marker" aria-hidden="true">6</span><span class="vc-step__label"><span data-i18n="p.step.summary">Summary</span></span></button></li>
     </ol>
     <button type="button" class="vc-button vc-button--secondary stepbar-next" id="btn-next"><span data-i18n="p.next">Next</span><span class="vc-icon vc-icon--chevron-right" aria-hidden="true"></span></button>
-    <button type="button" class="vc-button vc-button--secondary live" id="live" data-vc-live disabled><span data-i18n="p.live">Run it live</span></button>
+    <button type="button" class="vc-button vc-button--secondary live" id="live"><span id="live-text" data-i18n="p.live">Run it live</span></button>
     <span class="vc-tag vc-tag--feature ai-notice"><span class="vc-icon vc-icon--sparkle" aria-hidden="true"></span><span data-i18n="p.ai">You are interacting with an AI system</span></span>
   </nav>
   <p class="vc-visually-hidden" id="announce" aria-live="polite"></p>
@@ -160,6 +160,60 @@
   <!-- How it works, once in English and once in German: Vici's guide. vici.js builds each chapter rail and
        opens the guide of the page's language once per browser tab (js/lang.js keeps the other closed);
        ?guide=0 keeps it closed, ?guide=present opens the talk track. -->
+  <!-- The live-run dialog (Vici's .vc-live, from the SWOT Challenger): the key, the setting, research,
+       the budget cap, the acknowledgement, the estimate and the start button beside the AI notice. -->
+  <dialog class="vc-dialog vc-live" id="live-dialog" aria-labelledby="live-title" data-vc-live>
+    <header class="vc-dialog__header">
+      <h2 class="vc-dialog__title" id="live-title" data-i18n="live.title">Run it live</h2>
+      <button type="button" class="vc-icon-button" data-vc-close aria-label="Close" data-i18n-attr="aria-label:p.close"><span class="vc-icon vc-icon--close" aria-hidden="true"></span></button>
+    </header>
+    <div class="vc-dialog__body vc-live__body">
+      <p class="vc-help live-public"><span class="vc-icon vc-icon--info" aria-hidden="true"></span><span data-i18n="live.public">Public information only: never enter confidential, personal or otherwise protected data. A live run sends it to Anthropic's API, under your key and its terms.</span></p>
+      <p class="vc-help vc-help--error" id="live-frame" role="alert" hidden><span class="vc-icon vc-icon--error" aria-hidden="true"></span><span data-i18n="live.frame">This page runs inside another page. Open it in its own tab to run it live.</span></p>
+      <section class="vc-live__part vc-live__key">
+        <label class="vc-label" for="live-key" data-i18n="live.key">Your Claude API key</label>
+        <div class="vc-live__key-row" id="live-key-row">
+          <input class="vc-input" id="live-key" type="password" autocomplete="off" spellcheck="false" data-1p-ignore data-lpignore="true" aria-describedby="live-key-note" placeholder="sk-ant-…">
+          <button type="button" class="vc-icon-button" id="live-key-show" aria-controls="live-key" aria-pressed="false" aria-label="Show key" data-i18n-attr="aria-label:live.key.show"><span class="vc-icon vc-icon--eye" aria-hidden="true"></span></button>
+        </div>
+        <p class="vc-help" id="live-key-note"><span data-i18n="live.key.note">Needs a key from the Claude Console; a Claude.ai plan doesn't pay for API calls. It stays in this tab's memory and is gone when you close or reload it. A workspace with a monthly spend limit keeps a key safe.</span> <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="live.key.link">Get a key</a></p>
+        <p class="vc-live__current" id="live-key-held" hidden><span data-i18n="live.key.held">Key in memory:</span> <span class="vc-live__masked" id="live-key-masked"></span> <button type="button" class="vc-button vc-button--ghost vc-button--sm vc-live__forget" id="live-forget" data-i18n="live.key.forget">Forget key</button></p>
+      </section>
+      <fieldset class="vc-live__part vc-live__setting">
+        <legend class="vc-label" data-i18n="live.setting">Setting</legend>
+        <div class="vc-segmented" role="radiogroup" aria-label="Setting" data-i18n-attr="aria-label:live.setting">
+          <label><input type="radio" name="live-preset" value="fast"><span data-i18n="live.preset.fast">Fast</span></label>
+          <label><input type="radio" name="live-preset" value="balanced" checked><span data-i18n="live.preset.balanced">Balanced</span></label>
+          <label><input type="radio" name="live-preset" value="thorough"><span data-i18n="live.preset.thorough">Thorough</span></label>
+        </div>
+        <p class="vc-help" id="live-preset-help"></p>
+      </fieldset>
+      <div class="vc-live__part vc-live__research">
+        <label class="vc-switch"><input type="checkbox" role="switch" id="live-research"> <span data-i18n="live.research">Look up recent news first</span></label>
+        <p class="vc-help" id="live-research-help"></p>
+      </div>
+      <div class="vc-live__part vc-live__cap">
+        <label class="vc-label" for="live-cap" data-i18n="live.cap">Budget cap for this run</label>
+        <div class="vc-slider-field">
+          <input class="vc-slider" id="live-cap" type="range" min="0.05" max="3" step="0.05" value="0.5" aria-describedby="live-cap-help">
+          <output for="live-cap" id="live-cap-out" data-vc-currency="EUR">€0.50</output>
+        </div>
+        <p class="vc-help" id="live-cap-help" data-i18n="live.cap.help">From €0.05 to €3.00. The run stops before any request that could pass it.</p>
+      </div>
+      <label class="vc-checkbox vc-live__ack"><input type="checkbox" id="live-ack"> <span data-i18n="live.ack">I will enter public information only: nothing confidential, personal or otherwise protected.</span></label>
+      <div class="vc-alert vc-alert--warning vc-live__warning" role="alert" id="live-warning" hidden>
+        <span class="vc-icon vc-icon--warning" aria-hidden="true"></span>
+        <div><span data-i18n="live.warning">Usually private, found in what you entered:</span><ul id="live-warning-list"></ul><span data-i18n="live.warning.end">Remove it, or start the run if it is public.</span></div>
+      </div>
+      <p class="vc-live__estimate" id="live-estimate" aria-live="polite"></p>
+      <p class="vc-help vc-help--error" id="live-error" role="alert" hidden></p>
+    </div>
+    <footer class="vc-dialog__footer vc-live__footer">
+      <span class="vc-tag vc-tag--feature"><span class="vc-icon vc-icon--sparkle" aria-hidden="true"></span><span data-i18n="p.ai">You are interacting with an AI system</span></span>
+      <button type="button" class="vc-button vc-live__start" id="live-start" disabled data-i18n="live.start">Start the live run</button>
+    </footer>
+  </dialog>
+
   <dialog class="vc-dialog vc-guide" id="guide-en" lang="en-GB" aria-labelledby="guide-en-title" data-vc-guide data-vc-guide-auto data-vc-guide-count="{n} of {total}" data-vc-guide-rail="Chapters">
     <header class="vc-dialog__header">
       <h2 class="vc-dialog__title" id="guide-en-title">How the prototype works</h2>
