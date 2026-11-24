@@ -141,9 +141,11 @@ export const live = {
     await page.click("#live-start");
   },
   async status(page) { return page.evaluate(() => window.BMC.state.live); },
+  /** Waits for a status, then for the page to draw it: the page renders a session change on the next frame. */
   async waitFor(page, statuses, timeout = 20000) {
     const want = [].concat(statuses);
     await page.waitForFunction((w) => w.includes(window.BMC?.state.live.status), want, { timeout });
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
     return page.evaluate(() => window.BMC.state.live);
   },
   /** Start, review (kept as it is), challenge, decide (the recommended options), apply. */
