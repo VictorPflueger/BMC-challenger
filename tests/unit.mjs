@@ -20,7 +20,9 @@ const i18n = await mod("js/i18n/index.js");
 const fmt = await mod("js/format.js");
 const risk = await mod("js/risk.js");
 const { worse } = await mod("js/engine.js");
-const { BLOCKS, isBlock } = await mod("js/canvas.js");
+const { BLOCKS, isBlock, complete, withoutRemoved, applyChanges, itemIds } = await mod("js/canvas.js");
+const { SCENARIOS } = await mod("data/scenarios/index.js");
+const { localise, buildRun, recordedChoices } = await mod("js/run.js");
 const { APP, CSP, STORAGE, FX_USD_EUR } = await mod("js/config.js");
 const html = readFileSync(path.join(APP_ROOT, "index.html"), "utf8");
 
@@ -73,6 +75,42 @@ check(Math.abs(risk.expected(1_000_000, 3_000_000, 4) - 1_400_000) < 1e-9, "the 
 
 // ---- the canvas and the configuration ----------------------------------------------------------------------
 check(BLOCKS.length === 9 && new Set(BLOCKS).size === 9 && Object.isFrozen(BLOCKS) && isBlock("value") && !isBlock("Value") && !isBlock("customers"), "the canvas has nine blocks, by id, frozen");
+// Completing, removing and adapting (brief 6.6, gate G8). The person's items stay as they are; the AI's
+// are numbered on from each block's last; an added item takes the next number the block never used; a
+// changed item keeps its old text in "was"; a removed one stays in the comparison, struck through, and
+// leaves the adapted canvas; a change to an item that is gone is skipped; the input never changes.
+{
+  const entered = { blocks: { value: [{ id: "value-1", text: "Weekly loops" }, { id: "value-2", text: "Feeder links" }], costs: [{ id: "costs-1", text: "Fuel" }] } };
+  const frozen = JSON.stringify(entered);
+  const done = complete(entered, { items: [{ block: "value", text: "Transatlantic loop", confidence: "high", basis: "general knowledge" }, { block: "partners", text: "Terminals", confidence: "medium", basis: "general knowledge" }, { block: "nowhere", text: "x" }] });
+  check(done.blocks.value.map((it) => `${it.id}:${it.source}`).join() === "value-1:user,value-2:user,value-3:ai" && done.blocks.partners[0].id === "partners-1" && itemIds(done).size === 5 && JSON.stringify(entered) === frozen,
+    "complete keeps the person's items, numbers the AI's on from each block's last, skips an unknown block and leaves the input as it was");
+  const kept = withoutRemoved(done, new Set(["value-3"]));
+  check(!itemIds(kept).has("value-3") && itemIds(kept).size === 4 && itemIds(done).has("value-3"), "withoutRemoved takes out only the items the person removed, in a copy");
+  const before = JSON.stringify(kept);
+  const r = applyChanges(kept, [
+    { block: "value", action: "change", item: "value-1", text: "Weekly loops with a published surcharge" },
+    { block: "value", action: "add", item: "", text: "An emissions statement per container" },
+    { block: "costs", action: "remove", item: "costs-1" },
+    { block: "value", action: "change", item: "value-3", text: "gone at Complete" }
+  ], itemIds(done));
+  const cmp = Object.fromEntries(Object.values(r.compare.blocks).flat().map((it) => [it.id, it]));
+  check(cmp["value-1"].status === "changed" && cmp["value-1"].was === "Weekly loops" && cmp["value-1"].text === "Weekly loops with a published surcharge", "a changed item keeps its old text to show struck through above the new");
+  check(cmp["value-4"]?.status === "added" && cmp["value-4"].source === "added" && cmp["value-4"].text === "An emissions statement per container" && !cmp["value-3"], "an added item takes a number the block never used, past the AI item the person removed, and the source of a chosen response");
+  check(cmp["costs-1"].status === "removed" && !r.after.blocks.costs.length, "a removed item stays in the comparison, struck through, and is gone from the adapted canvas");
+  check(r.skipped.length === 1 && r.skipped[0].item === "value-3" && JSON.stringify(kept) === before, "a change to an item the person removed is skipped, and the canvas passed in never changes");
+  const none = applyChanges(kept, []);
+  check(JSON.stringify(none.after) === JSON.stringify(kept) && !Object.values(none.compare.blocks).flat().some((it) => it.status), "without a chosen response nothing on the canvas changes");
+  // The same holds for every scenario: accepting every issue leaves the canvas as the person kept it.
+  const same = SCENARIOS.every((src) => {
+    const sc = localise(src, "en");
+    const rec = recordedChoices(sc);
+    const run = buildRun(sc, { removed: rec.removed, decisions: new Map(sc.answers.responses.map((x) => [x.issue, "accept"])) });
+    return JSON.stringify(run.adapted.after) === JSON.stringify(run.kept);
+  });
+  check(same, "in every scenario, accepting every issue leaves the person's canvas untouched");
+}
+
 check(APP.id === "bmc" && APP.name === "Business Model Canvas Challenger" && /^\d+\.\d+\.\d+$/.test(APP.version) && APP.url === "https://victorpflueger.github.io/BMC-challenger/", `the tool's name, version ${APP.version} and address`);
 check(/connect-src https:\/\/api\.anthropic\.com;/.test(CSP) && CSP.startsWith("default-src 'self';"), "the policy reaches api.anthropic.com and nothing else (tests/policy.mjs checks it whole)");
 check(FX_USD_EUR === 0.894 && html.includes("€0.894 to the dollar") && html.includes("0,894 € je Dollar"), "the dollar rate is 0.894, as both guides state it");

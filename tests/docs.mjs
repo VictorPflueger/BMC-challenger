@@ -60,6 +60,29 @@ for (const u of ["https://strategyzer.com/legal/usage-of-our-tools", "https://cr
 if (!/read on 23 November 2026 at https:\/\/strategyzer\.com\/legal\/usage-of-our-tools/.test(sources)) problems.push("DATA_SOURCES.md does not give the date Strategyzer's terms were read");
 if (!/Read on \d{1,2} [A-Z][a-z]+ \d{4} at https:\/\/platform\.claude\.com\/docs\/en\/about-claude\/models\/overview and https:\/\/platform\.claude\.com\/docs\/en\/about-claude\/pricing/.test(text["TECH_NOTES.md"] || "")) problems.push("TECH_NOTES.md does not log the date the models and prices were read");
 
+// The scenarios' facts (gate G12): every scenario has its as-of date, every fact it names a row in
+// DATA_SOURCES.md with the date read, every source it cites a link there; a scenario 90 days past its date
+// says to check for updates (tests/presenter.mjs shows it in the browser).
+{
+  const { SCENARIOS } = await import(pathToFileURL(path.join(APP_ROOT, "data/scenarios/index.js")).href);
+  const { SIM } = await import(pathToFileURL(path.join(APP_ROOT, "js/config.js")).href);
+  const { staleWords } = await import(pathToFileURL(path.join(APP_ROOT, "js/story.js")).href);
+  const rows = sources.split("\n").filter((l) => /^\| S\d\.\d+ \|/.test(l));
+  for (const sc of SCENARIOS) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sc.as_of)) problems.push(`${sc.id} has no as-of date`);
+    if (!sc.facts.length) problems.push(`${sc.id} names no fact`);
+    for (const id of sc.facts) {
+      const row = rows.find((l) => l.startsWith(`| ${id} |`));
+      if (!row) problems.push(`DATA_SOURCES.md lacks the fact ${id} of ${sc.id}`);
+      else if (!/\| \d{4}-\d{2}-\d{2} \|\s*$/.test(row)) problems.push(`DATA_SOURCES.md gives no date read for ${id}`);
+    }
+    for (const s of sc.answers.signals) if (!sources.includes(s.url)) problems.push(`DATA_SOURCES.md does not link ${sc.id}'s source ${s.url}`);
+  }
+  const stale = staleWords(SCENARIOS[0], "en");
+  if (SIM.staleDays !== 90 || !/check for updates/i.test(stale) || !/aktualität/i.test(staleWords(SCENARIOS[0], "de"))) problems.push(`a scenario 90 days old does not say to check for updates (${SIM.staleDays} days, "${stale}")`);
+  counts.push(`${rows.length} scenario facts in DATA_SOURCES.md for ${SCENARIOS.length} scenarios`);
+}
+
 // The files in the repository, and those a header says came from elsewhere.
 const git = (...args) => execFileSync("git", args, { cwd: APP_ROOT, encoding: "utf8" });
 const tracked = git("ls-files", "--cached", "--others", "--exclude-standard").split("\n").filter((f) => f && fs.existsSync(path.join(APP_ROOT, f)));

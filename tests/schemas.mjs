@@ -102,7 +102,7 @@ const blocks = { partners: [], activities: [], resources: [], value: [{ id: "val
 const company = { name: "Tidewell Lines", sector: "transport_logistics", country: "DE", description: "Container carrier based in Bremen", fictional: true };
 const issue = { id: "I1", title: "Emission allowances raise the cost of every European call", type: "regulation", description: "Voyages to and from EU ports need allowances.", blocks: ["costs", "revenue"], items: ["costs-2"], contradicts: "Cost structure", impact: 4, likelihood: 4, horizon: "now", evidence: ["general knowledge"], confidence: "medium" };
 const impact = { issue: "I1", kpis: [{ id: "transport_logistics.cost_per_teu", name: "Cost per container moved", unit: "EUR per TEU", direction: "up", definition: "", change_low: 12, change_high: 25, basis: "Allowance price times emissions" }], monetisable: true, eur_year_low: 2000000, eur_year_high: 6000000, eur_basis: "Containers times the uncovered cost", reason: "", confidence: "medium" };
-const option = { kind: "mitigate", title: "Publish a surcharge", first_step: "Pricing sets the formula", owner: "Commercial", effort: "M", time_to_impact: "3-6 months", changes: [{ block: "revenue", action: "add", item: "", text: "Emissions surcharge per container" }], impact: 3, likelihood: 2, eur_year_low: 1000000, eur_year_high: 3000000, recommended: true };
+const option = { kind: "mitigate", title: "Publish a surcharge", first_step: "Pricing sets the formula", owner: "Commercial", effort: "M", time_to_impact: "3_to_6_months", changes: [{ block: "revenue", action: "add", item: "", text: "Emissions surcharge per container" }], impact: 3, likelihood: 2, eur_year_low: 1000000, eur_year_high: 3000000, recommended: true };
 const summary = sample.Summary;
 const answers = { completion: sample.Completion, signals: [], issues: [issue], impacts: { baselines: [], impacts: [impact] }, responses: [{ issue: "I1", options: [option] }], summary };
 const SAMPLES = {
@@ -113,18 +113,28 @@ const SAMPLES = {
   Issue: [issue, (v) => { v.blocks = ["value", "costs", "revenue", "channels", "segments"]; }, "an issue on five blocks"],
   Impact: [impact, (v) => { v.kpis = []; }, "an impact without a KPI"],
   Response: [{ issue: "I1", options: [option] }, (v) => { v.options = [option, option, option]; }, "three options"],
+  // How long until a response shows is one of five spans code words, never a figure the model writes.
+  Option: [option, (v) => { v.time_to_impact = "3-6 months"; }, "a time to impact written as text"],
   Decision: [{ issue: "I1", choice: "mitigate", option: 0, at: "2026-11-23T20:00:00Z", by: "person" }, (v) => { v.by = "agent"; }, "a decision the agent took"],
   Summary: [summary, (v) => { v.findings = ["a", "b"]; }, "two findings"],
-  Scenario: [{ id: "s1", source: "authored", as_of: "2026-11-23", company, entered: { company, blocks }, answers: { en: answers, de: answers }, choices: { removed: [], decisions: [{ issue: "I1", choice: "mitigate", option: 0 }] } }, (v) => { delete v.answers.de; }, "a scenario in one language only"],
+  Scenario: [{ id: "s1", source: "authored", as_of: "2026-11-23", facts: ["S1.1"], company: { ...company, size: "About 40 ships" }, entered: { blocks }, answers, choices: { removed: [], decisions: [{ issue: "I1", choice: "mitigate", option: 0 }] } }, (v) => { v.facts = ["source 1"]; }, "a fact that names no entry of DATA_SOURCES.md"],
   RunEvent: [{ seq: 0, type: "run_started", step: null, data: {} }, (v) => { v.type = "guess"; }, "an unknown event"],
   AuditEvent: [{ at: "2026-11-23T20:00:00Z", who: "person", step: "adapt", what: "chose to mitigate I1", detail: {} }, (v) => { v.who = "someone"; }, "an unknown actor"]
 };
+const OPTION = CONTRACTS.Response.properties.options.items;
 for (const [name, [good, plant, what]] of Object.entries(SAMPLES)) {
-  const r = contract(name, good);
+  const r = name === "Option" ? validate(good, OPTION, CONTRACTS) : contract(name, good);
   const bad = copy(good);
   plant(bad);
-  check(r.valid && !contract(name, bad).valid, `${name}: a sound record validates and ${what} is refused${r.valid ? "" : `: ${r.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`}`);
+  const refused = name === "Option" ? !validate(bad, OPTION, CONTRACTS).valid : !contract(name, bad).valid;
+  check(r.valid && refused, `${name}: a sound record validates and ${what} is refused${r.valid ? "" : `: ${r.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`}`);
 }
+
+// The three scenarios, as the page plays them: each language of each validates against the contract.
+const { SCENARIOS } = await import("../data/scenarios/index.js");
+const { localise } = await import("../js/run.js");
+const scenarioErrors = SCENARIOS.flatMap((src) => ["en", "de"].flatMap((lang) => contract("Scenario", localise(src, lang)).errors.map((e) => `${src.id} ${lang} ${e.path} ${e.message}`)));
+check(SCENARIOS.length === 3 && !scenarioErrors.length, `the three scenarios validate in English and in German (${SCENARIOS.map((s) => s.id).join(", ")})`, scenarioErrors.slice(0, 5).join("; "));
 
 // What the shared handoff schema leaves open, the tool's own records hold: an item's id carries its
 // block, and an issue names blocks of the canvas only.

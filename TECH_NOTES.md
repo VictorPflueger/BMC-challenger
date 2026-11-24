@@ -1,6 +1,6 @@
 # Business Model Canvas Challenger: technical notes
 
-Version 0.1.0, 23 November 2026. These notes hold the facts the code rests on, each with its source and the date it was read, and the decisions in use. The plan is [PLAN.md](PLAN.md); what was copied from the sister prototypes, and why, is in [REVIEW.md](REVIEW.md). Sections are cited from the code as "TECH_NOTES §n".
+Version 0.2.0, 24 November 2026. These notes hold the facts the code rests on, each with its source and the date it was read, and the decisions in use. The plan is [PLAN.md](PLAN.md); what was copied from the sister prototypes, and why, is in [REVIEW.md](REVIEW.md). Sections are cited from the code as "TECH_NOTES §n".
 
 ## 1. Models and prices
 
@@ -13,7 +13,9 @@ Read on 23 November 2026 at https://platform.claude.com/docs/en/about-claude/mod
 | Sonnet 5.5 | `claude-sonnet-5-5` | $2 | $10 | $2.50 | $0.10 |
 | Opus 5.5 | `claude-opus-5-5` | $4 | $20 | $5 | $0.20 |
 
-Web search costs $10 per 1,000 searches plus the tokens of its results. Every request stays below 100,000 prompt tokens, so Haiku 5.5 keeps its lower price. The prices enter `js/config.js` with the live client in 0.3.0; check them again on the day they do, and log that date here.
+Web search costs $10 per 1,000 searches plus the tokens of its results. Every request stays below 100,000 prompt tokens, so Haiku 5.5 keeps its lower price. The input and output prices entered `js/config.js` (`MODELS`, `WEB_SEARCH_USD`) in 0.2.0 for the Session cost tile and were read again on 23 November 2026; check them again when the live client arrives in 0.3.0, and log that date here.
+
+In the simulation the Session cost tile estimates what a live run of the same company would cost at the default setting, Balanced (Haiku 5.5, medium effort, thinking on) with research (`js/estimate.js`). Six requests, one per agent and one for research; each prompt is its instructions (about 1,200 tokens) plus the recorded answers it reads, at about four characters a token; each answer is the recorded one at the same rate, plus 1,500 tokens of thinking at medium effort; research adds five searches at $0.01 and 20,000 tokens of results. For Tidewell Lines that comes to about $0.06, shown as "≈ €0.05" with the note "estimated for a live run". The live client replaces the estimate with the metered cost.
 
 The cost meter converts dollars at a fixed rate of 1 USD = 0.894 EUR, the sister prototypes' rate (brief 5.5), held in `js/config.js` as `FX_USD_EUR`. The sisters dropped Diagnostics, where the brief shows the rate, so the rate stands in both guides' row for Session cost (PLAN.md §16, item 12).
 
@@ -35,11 +37,11 @@ Read on 23 November 2026 at the pages the project instructions list. The full ta
 default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src https://api.anthropic.com; object-src 'none'; base-uri 'none'; form-action 'none'
 ```
 
-With `connect-src` naming the API alone, the page cannot fetch its own files, so the data and the schemas ship as ES modules: `data/kpis.js` and `schemas/index.js`, which carries an exact copy of `schemas/strategy-challenge-1.json` (`tests/schemas.mjs` compares them). There is no inline script, style or handler; the theme script and the language script are files in `js/`. The handoff schema names json-schema.org as its `$schema` identifier; nothing fetches it.
+With `connect-src` naming the API alone, the page cannot fetch its own files, so the data and the schemas ship as ES modules: `data/kpis.js` and `schemas/index.js`, which carries an exact copy of `schemas/strategy-challenge-1.json` (`tests/schemas.mjs` compares them). There is no inline script, style or handler; the theme script is Vici's `vici/dist/vici-theme.js` and the language script `js/lang.js`. The scenarios name their sources as constants of https addresses, shown as links a person opens and never fetched (`tests/policy.mjs`). The handoff schema names json-schema.org as its `$schema` identifier; nothing fetches it.
 
 ## 4. Nothing is kept
 
-The key, everything a person enters and everything the agents create live in memory only, and are gone when the tab closes or reloads. Browser storage holds three things: Vici's theme choice (`vc-theme`, local storage), the language choice (`bmc.lang`, local storage) and Vici's note that the guide has opened in this tab (`vc-guide:<path>#<guide id>`, session storage). `tests/storage.mjs` checks the code (local and session storage only in `js/theme.js`, `js/lang.js`, `js/i18n/index.js` and Vici's `vici.js`, under those keys; no IndexedDB, Cache API, cookie, service worker, `window.name` or change to the address anywhere) and the browser after a visitor's clicks. The key store arrives in 0.3.0 as the shared `js/keystore.js`, which holds the key in one module variable (PLAN.md §16, item 11).
+The key, everything a person enters and everything the agents create live in memory only, and are gone when the tab closes or reloads. Browser storage holds three things: Vici's theme choice (`vc-theme`, local storage), the language choice (`bmc.lang`, local storage) and Vici's note that the guide has opened in this tab (`vc-guide:<path>#<guide id>`, session storage). The address follows the presenter, as Vici's Presenting step by step asks: `js/app.js` writes the scenario and the step with `history.replaceState` and keeps a language the address already names; nothing a person enters or an agent writes goes there. `tests/storage.mjs` checks the code (local and session storage only in Vici's `vici-theme.js` and `vici.js`, `js/lang.js` and `js/i18n/index.js`, under those keys; that one address change; no IndexedDB, Cache API, cookie, service worker or `window.name` anywhere) and the browser after a visitor's clicks and a whole run played to the end. The key store arrives in 0.3.0 as the shared `js/keystore.js`, merged first by the Prototype Ideator (ec368c3): the key lives in one module variable, never in storage (PLAN.md §16, item 11).
 
 ## 5. The engine
 
@@ -70,7 +72,7 @@ English opens first, also for a browser set to German; `?lang=de` or `?lang=en` 
 
 ## 9. Decisions in use
 
-| Id | Decision | In 0.1.0 |
+| Id | Decision | Where it shows |
 |---|---|---|
 | D1 | Name "Business Model Canvas Challenger", subtitle "Find where a business model breaks, and rebuild it"; BMC never on screen | the header, the title and README |
 | D2 | Vici's layout icon in a lilac hexagon | the header, the loading screen and `favicon.svg` |
@@ -82,10 +84,29 @@ Victor's decisions of 23 November 2026: the plan is approved with its cuts and D
 
 One placement differs from the plan: PLAN.md §3 puts the note "Adapted from The Business Model Canvas by Strategyzer AG" in the guide's How it works chapter. That chapter's one table explains the key figures, so the note stands as a row of the What is real chapter, which lists where everything comes from.
 
+### Where 0.2.0 departs from the plan, and why
+
+Each of these makes the plan work at 1280 × 720 or keeps the set of four alike; none drops a feature.
+
+- The review of the AI's items happens on the canvas: each AI item carries its remove switch, and the block's dialog shows it in full with its basis and confidence. A list in the panel took the height the canvas needed to show the items it lists.
+- Assess and Adapt show one issue at a time, chosen with numbered switches; Adapt's options sit as cards in full above the bar, as Vici asks of a decision.
+- A block that cannot show all its items keeps in view what the step is about, and at 1280 × 720 the wide blocks at the bottom put their name beside their items, so the items an issue names stay visible.
+- On the canvas a word that the mark beside it already says (an item's "AI" beside its sparkle, a challenged item's band beside its warning mark, an added item's "Adapted" beside "Added") stays for screen readers only, and at 1280 × 720 so do the nouns of a block's tags ("2 · high"); the legend and the block's tag carry the meaning. Vici's `frameworkProblems` still finds every word.
+- The Summary adds the first steps of the chosen responses, with owner and time, as the brief's report does ("code adds the next steps"); as many as fit stand in the panel, then "+2 more" opens them all.
+- `time_to_impact` is one of five spans code words (under 3 months to over 2 years), not free text, so no figure the model writes reaches the screen.
+- The scenarios are authored once in both languages, every text a pair, and `js/run.js` `localise()` gives each language the shape of the Scenario contract; the contract checks one language at a time.
+- The sources of an issue show when they were published; the step's lead says when they were read, which is one date for all of them.
+- "Fictional company, illustrative figures" stands beside the credit under the canvas, where every screen shows it, rather than beside the title.
+- The fact audit is the Prototype Ideator's, unchanged: fractions in words are refused too, so the set of four judges a figure alike.
+- The German step names are Start, Ergänzen, Hinterfragen, Bewerten, Anpassen and Fazit, and the responses Mindern, In einen Vorteil wenden and Akzeptieren: shorter words keep the stepper and Adapt's switches on one line.
+- Play's own moves take the focus to the step's title too, as Vici's rule says of every step change; the live region speaks only when the decision is applied and the title changes in place.
+- The tool's own theme script, copied from the sisters in 0.1.0, is gone: Vici's `vici/dist/vici-theme.js`, which the PESTEL Challenger merged into ViciDesign, does the same under a strict policy.
+- `applyChanges` numbers an added item past every id its block ever held, so it never reuses the number of an AI item the person removed.
+
 ## 10. The siblings and the shared parts
 
 The brief's rule (4.1): before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit. At 20:30 UTC on 23 November 2026 no sibling had a shared part, so this tool built its own. The SWOT Challenger merged its M1 at 20:44 UTC (617b122), a few minutes before this tool's M1 was pushed, with `js/risk.js`, `data/kpis.js`, `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js`. Those four are its files now, copied unchanged from 617b122, and the engine, the formats and the tests moved onto them; `tests/kpis.mjs` is SWOT's too. The PESTEL Challenger (a223844) and the Prototype Ideator (0aefaf6) still held their plans only. `tests/parity.mjs` compares each shared part with every sibling checkout that has it, and CI checks out all three.
 
 ## 11. Tests and CI
 
-`.github/workflows/tests.yml` runs every suite on each push and pull request on ubuntu-24.04 with Node 22 and Playwright 1.56.0 in Chromium. It checks out ViciDesign beside the tool at the commit `vici/README.md` names (484b49a), Victor's website (VIP) for the page icon, and the three siblings for `tests/parity.mjs`. `.github/workflows/live-site.yml` checks the published site after every Pages build. No test calls the real API.
+`.github/workflows/tests.yml` runs every suite on each push and pull request on ubuntu-24.04 with Node 22 and Playwright 1.56.0 in Chromium. It checks out ViciDesign beside the tool at the commit `vici/README.md` names (2759b7a), Victor's website (VIP) for the page icon, and the three siblings for `tests/parity.mjs`. `tools/check-scenarios.mjs` checks the three scenarios against their contract, the guardrails, the fact audit, the frozen figures in `data/reference.js` and DATA_SOURCES.md, and plays each along the recorded choices and four others; `tests/scenarios.mjs` proves it fails on a planted defect of each kind. `.github/workflows/live-site.yml` checks the published site after every Pages build. No test calls the real API.

@@ -16,15 +16,19 @@ const SUITES = [
   { id: "engine", what: "golden cases B0 to B2 and the boundaries within 1e-9, every display string in both languages", file: "tests/engine.mjs", browser: false },
   { id: "schemas", what: "the handoff schema, the agents' output schemas within the API's limits, the twelve records", file: "tests/schemas.mjs", browser: false },
   { id: "kpis", what: "the sector KPI library: thirteen sets, 8 to 12 KPIs each, both languages, no benchmark values", file: "tests/kpis.mjs", browser: false },
+  { id: "scenarios", what: "the scenario checker passes the three scenarios and fails on a planted defect of each kind", file: "tests/scenarios.mjs", browser: false },
+  { id: "audit", what: "the fact audit on golden texts in both languages, and each guardrail refusing a planted defect", file: "tests/audit.mjs", browser: false },
   { id: "policy", what: "the security policy exactly as the brief has it, nothing loaded from elsewhere, no inline script or style", file: "tests/policy.mjs", browser: false },
   { id: "lean", what: "the presenter's size, no request before the live client, the design review's cuts, the docs' length", file: "tests/lean.mjs", browser: false },
   { id: "hygiene", what: "no client, prospect, contact or meeting named in any published file", file: "tests/hygiene.mjs", browser: false },
   { id: "parity", what: "the shared parts equal every sibling that has them", file: "tests/parity.mjs", browser: false },
   { id: "docs", what: "the documents: sections, length, version, every path they name", file: "tests/docs.mjs", browser: false },
-  { id: "storage", what: "nothing is kept: storage only for the theme, the language and the guide's note, in the code and in the browser", file: "tests/storage.mjs", browser: true },
+  { id: "storage", what: "nothing is kept: storage only for the theme, the language and the guide's note, in the code and in the browser, a played run included", file: "tests/storage.mjs", browser: true },
   { id: "shell", what: "the page in Chromium: English first, the switch without a reload, the guide, the figures, the talk bar, the credit", file: "tests/shell.mjs", browser: true },
-  { id: "layout", what: "1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
-  { id: "vici", what: "Vici's own checks on the page served and rendered in both languages, the dictionaries, the docs; vici/ byte for byte", file: "tests/vici.mjs", browser: true },
+  { id: "presenter", what: "each scenario played offline in both languages with other choices: tiles, canvas and summary agree with the engine", file: "tests/presenter.mjs", browser: true },
+  { id: "play", what: "Play's timing and stops, the keys, a link to a later step, the address and the focus", file: "tests/play.mjs", browser: true },
+  { id: "layout", what: "every step of the three scenarios at 1280 × 720 and 1920 × 1080 in both themes and languages: one screen, nothing cut, screenshots", file: "tests/layout.mjs", browser: true },
+  { id: "vici", what: "Vici's own checks on the page and on every step rendered in both languages, the dictionaries, the scenarios, the docs; vici/ byte for byte", file: "tests/vici.mjs", browser: true },
   { id: "hexagon", what: "nothing round: the tool's files, and the rendered page in both themes", file: "tests/hexagon.mjs", browser: true }
 ];
 

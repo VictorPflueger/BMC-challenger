@@ -389,6 +389,16 @@ What the changes mean for the stories (D14): S1 swaps "while a strait is closed"
 
 The canvas, SWOT and PESTEL scenarios of one company must agree, and the Ideator's stand-in exports must match them.
 
+**As written in M2 (24 November 2026).** The three companies as this tool's scenarios describe them, for the siblings to match. Their figures are fictional; the facts each run cites are listed with their sources in DATA_SOURCES.md, and the issues each recording carries are in `data/scenarios/`.
+
+| Scenario | Company | Size |
+|---|---|---|
+| S1 | Tidewell Lines, container carrier based in Bremen with Europe–Asia, transatlantic and feeder services | About 40 ships, 1,900 staff and €1.8bn revenue a year |
+| S2 | Arvento Drives, family-owned maker of industrial drives and gearboxes in Baden-Württemberg, launching drives as a service | About 1,400 staff, €320m revenue a year and 60,000 drives in the field |
+| S3 | Auental Energie, municipal utility of a mid-sized town in Lower Saxony: power, gas, heat, water, the local grid and car charging | About 380 staff, €210m revenue a year, 48,000 power and 21,000 gas customers |
+
+M2 departs from this plan where the screen at 1280 × 720 or the set of four asked for it; TECH_NOTES.md §9 lists each change and why.
+
 ### Where the sibling plans differ
 
 Read in the PESTEL, SWOT and Ideator plans on 23 November 2026, for Victor to pass on. M2 settles one wording at source for all four tools.

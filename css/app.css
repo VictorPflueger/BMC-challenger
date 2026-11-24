@@ -6,8 +6,9 @@
  *   2. States take Vici's danger, warning and success tones, each with a mark and a word as well.
  *   3. Lilac (Vici's feature tone) is the AI's voice: what the agents wrote carries it.
  *   4. Ink and Vici's neutrals carry everything else. Simulation is neutral, Live is lilac.
- * The page fills the window at 1280 × 720 and 1920 × 1080: header, strip and step bar on top, the canvas
- * and its panel below; only the workspace scrolls, and only when a window is smaller than that.
+ * The page fills the window at 1280 × 720 and 1920 × 1080: header, strip and step bar on top, then the
+ * step's title, the canvas, its panel and the bar under the story; only the workspace scrolls, and only
+ * when a window is smaller than that.
  */
 
 :root {
@@ -23,15 +24,7 @@
    the reader's own text-size setting. */
 html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 
-.app-shell {
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  background: var(--vc-bg);
-  color: var(--vc-text);
-}
+.app-shell { height: 100vh; height: 100dvh; overflow: hidden; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); background: var(--vc-bg); color: var(--vc-text); }
 
 ::selection { background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
 .app-shell * { scrollbar-width: thin; scrollbar-color: var(--vc-border) transparent; }
@@ -62,6 +55,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .kpi.vc-stat { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 1px; align-content: start; min-width: 0; padding: 6px 14px 7px; transition: background-color 0.3s ease, border-color 0.3s ease; }
 .kpi .vc-stat__label { align-self: start; line-height: 1.2; text-wrap: balance; }
 .kpi-value.vc-stat__value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 0.3em; font-size: var(--fs-kpi); line-height: 1.1; white-space: nowrap; }
+/* A figure on part of the issues says so in its value: "€13.6m" and, under it, "on 5 of 6 issues". */
 .kpi[data-state="idle"] .kpi-value { color: var(--vc-text-subtle); }
 .kpi-note.vc-stat__note { color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); line-height: 1.3; text-wrap: balance; }
 
@@ -91,27 +85,37 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .steps .vc-step__button:disabled { cursor: default; opacity: 0.55; }
 .ai-notice.vc-tag { gap: 6px; flex: none; }
 
-/* ---- the workspace: the canvas, its credit and the panel under it --------------------------------------- */
+/* ---- the workspace: the step's title, the canvas, its credit, the panel and the bar ---------------------------
+   One column. The panel takes the height its content needs and the canvas the rest; each block then
+   shows as many items as fit and "+2 more" (js/view.js fitCanvas). Nothing scrolls but the Complete
+   list, inside its panel, when a company brings more AI items than fit. */
 .workspace {
   min-height: 0;
   overflow: auto;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 12px;
-  padding: 12px var(--gutter) var(--gutter);
+  grid-template-rows: minmax(0, 1fr);
+  padding: 10px var(--gutter) 12px;
   background-color: var(--vc-bg-sunken);
   background-image: var(--vc-honeycomb-pattern);
   background-size: var(--vc-honeycomb-pattern-size);
 }
 .workspace:focus { outline: none; }
-.stage { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; }
-.stage-title { margin: 0; font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-xl); line-height: 1.1; letter-spacing: var(--vc-tracking-heading); color: var(--vc-text); }
+.stage { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.stage-head { flex: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; }
+.stage-title { flex: 0 1 auto; margin: 0; font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-xl); line-height: 1.15; letter-spacing: var(--vc-tracking-heading); color: var(--vc-text); text-wrap: balance; }
+/* The title takes the focus at every step change, for screen readers; it is no control, so no ring. */
+.stage-title:focus { outline: none; }
+.stage-lead { flex: 1 1 26rem; margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); line-height: 1.4; text-wrap: pretty; }
+.stage-lead:empty { display: none; }
+.stage-tags { flex: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 0 auto; }
+.stage-tags:not(:has(.vc-tag:not([hidden]))) { display: none; }
+.stage-tags .vc-tag { gap: 5px; }
 
-/* The canvas in its classic layout: ten columns, three rows; the blocks take the grid areas named after
-   their ids (js/canvas.js). */
-.canvas {
-  min-height: 12rem;
-  display: grid;
+/* The canvas in its classic layout, on Vici's framework view: ten columns, three rows; the blocks take
+   the grid areas named after their ids (js/canvas.js). */
+.canvas.vc-framework {
+  flex: 1 1 0;
+  min-height: 6.5rem;
   grid-template-columns: repeat(10, minmax(0, 1fr));
   grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);
   grid-template-areas:
@@ -120,7 +124,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
     "costs costs costs costs costs revenue revenue revenue revenue revenue";
   gap: var(--canvas-gap);
 }
-.block { min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--vc-surface); border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg); }
+.block.vc-framework__area { min-width: 0; min-height: 0; overflow: hidden; gap: 4px; padding: 8px 10px; border-color: var(--vc-border); border-radius: var(--vc-radius-lg); }
 .block[data-block="partners"] { grid-area: partners; }
 .block[data-block="activities"] { grid-area: activities; }
 .block[data-block="resources"] { grid-area: resources; }
@@ -130,16 +134,187 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .block[data-block="segments"] { grid-area: segments; }
 .block[data-block="costs"] { grid-area: costs; }
 .block[data-block="revenue"] { grid-area: revenue; }
-.block-name { margin: 0; font-size: var(--vc-font-size-md); font-weight: var(--vc-weight-semibold); line-height: 1.2; color: var(--vc-text); }
+.block .vc-framework__head { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; }
+.block-name.vc-framework__title { font-family: var(--vc-font-text); font-size: var(--vc-font-size-md); line-height: 1.2; }
+/* The block's name opens the block: a button that looks like the heading it is. */
+.block-open { all: unset; cursor: pointer; border-radius: 2px; color: var(--vc-text); }
+.block-open:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+:is(.block-open, .block-more, .item-open, .company, .issue-pick, .issue-tab):focus-visible { outline: var(--vc-stroke-focus, 2px) solid var(--vc-focus); outline-offset: 2px; }
+.block .vc-framework__items { flex: 1 1 auto; min-height: 0; overflow: hidden; gap: 3px; }
+/* The list's gap spaces the items; Vici's prose margin between list items would add to it. */
+.block .vc-framework__items > .vc-item { margin: 0; }
 .block-question { margin: 0; font-size: var(--vc-font-size-sm); line-height: 1.35; color: var(--vc-text-muted); text-wrap: pretty; }
+.block .vc-framework__empty { padding: 4px 8px; }
+/* An item's text is a button that opens its block: Vici's text, with the button's own look taken off. At
+   Complete an AI item has a small switch beside it that removes it or brings it back. */
+.vc-item__summary { cursor: default; align-items: center; }
+.item-open.vc-item__text { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.item-open:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+.canvas .vc-item__text { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.item-toggle.vc-icon-button { flex: none; width: 1.75rem; height: 1.75rem; margin-inline-start: -2px; }
+/* On the canvas the switch keeps an AI item's row as tall as any other (26 px, above WCAG's 24 px minimum),
+   so a block fits as many AI items as entered ones. The block dialog keeps the larger switch. */
+.canvas .item-toggle.vc-icon-button { width: 1.625rem; height: 1.625rem; margin-block: -3px; }
+.canvas .vc-item__states { margin-block: -3px; flex-wrap: nowrap; }
+/* A word its mark already says, such as "AI" beside an item's sparkle, stays for screen readers only. */
+.canvas .tag-quiet { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The two wide blocks at the bottom list their items in columns. */
+/* The two wide blocks at the bottom list their items in columns, and an item's tags sit beside its text,
+   so a row keeps its height. */
+@media (min-width: 961px) {
+  .canvas .block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__items { grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+  .canvas .vc-item__summary { flex-wrap: nowrap; }
+}
+.change-tag.vc-tag { --_bg: var(--vc-success-bg); --_fg: var(--vc-success-text); }
+.canvas .vc-item__was { display: none; }
+.block-more { flex: none; padding: 1px 6px; border: 0; border-radius: var(--vc-radius-sm); background: var(--vc-bg-subtle); color: var(--vc-text-muted); font: inherit; font-size: var(--fs-xs); cursor: pointer; }
+.block-more:hover { color: var(--vc-text); }
+.credit-row { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 16px; }
 .credit { margin: 0; font-size: var(--fs-xs); color: var(--vc-text-muted); }
+/* "Fictional company, illustrative figures" stands under every canvas of the simulation (brief 4.2). */
+.fictional { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-size: var(--fs-xs); font-weight: var(--vc-weight-semibold); color: var(--vc-text-muted); }
+.fictional .vc-icon { width: 0.95em; height: 0.95em; }
 .credit a { color: inherit; text-underline-offset: 0.18em; }
 
-/* The panel under the canvas: in 0.1.0 it says what this version holds and when the rest arrives. */
-.panel { background: var(--vc-surface); border: 1px solid var(--vc-border-subtle); border-radius: var(--vc-radius-xl); box-shadow: var(--vc-shadow-sm); padding: 14px 18px; }
-.build { display: grid; gap: 4px; }
-.build-title { margin: 0; font-size: var(--vc-font-size-lg); font-weight: var(--vc-weight-semibold); line-height: 1.25; color: var(--vc-text); }
-.build-text { margin: 0; max-width: 75ch; color: var(--vc-text-muted); line-height: 1.45; }
+/* ---- the step's panel ------------------------------------------------------------------------------------ */
+/* The panel takes the height its content needs; where the window is too short for it, the panel scrolls
+   rather than push the bar under the story out of view. Adapt's options always fit (tests/layout.mjs). */
+.panel { flex: 0 1 auto; min-height: 5rem; overflow: auto; background: var(--vc-surface); border: 1px solid var(--vc-border-subtle); border-radius: var(--vc-radius-xl); box-shadow: var(--vc-shadow-sm); padding: 12px 16px; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 8px; }
+.panel-title { margin: 0 0 8px; font-size: var(--vc-font-size-md); font-weight: var(--vc-weight-semibold); line-height: 1.25; color: var(--vc-text); }
+.panel-head .panel-title { margin: 0; }
+.panel-note { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); }
+.panel ul, .panel ol { margin: 0; padding-inline-start: 1.2em; }
+.panel p { margin: 0; }
+
+/* Start: the three companies, the chosen one in merlot, the person's choice. */
+.companies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.company { display: grid; align-content: start; gap: 1px; min-width: 0; padding: 8px 12px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg); background: var(--vc-surface); color: var(--vc-text); font: inherit; text-align: start; cursor: pointer; }
+.company:hover { border-color: var(--vc-border-strong, var(--vc-text-subtle)); }
+.company[aria-checked="true"] { border-color: var(--vc-accent); box-shadow: inset 0 0 0 1px var(--vc-accent); background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
+.company-name { font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-lg); line-height: 1.15; }
+.company-meta, .company-size, .company-filled { font-size: var(--vc-font-size-xs); color: var(--vc-text-muted); line-height: 1.35; }
+.company[aria-checked="true"] :is(.company-meta, .company-size, .company-filled) { color: inherit; }
+.company-text { font-size: var(--vc-font-size-sm); line-height: 1.35; }
+
+/* Complete: the count, how to read and remove an item, and the legend of the marks. */
+.panel .complete-hint { margin-bottom: 6px; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); }
+
+/* Challenge and Adapt: the issues as a list beside the selected one. */
+.split { display: grid; grid-template-columns: minmax(18rem, 1.05fr) minmax(0, 1.25fr); gap: 8px 20px; align-items: start; }
+.issue-list { display: grid; gap: 3px; }
+.panel :is(.issue-list, .sources, .kpi-effects, .option__changes, .vc-framework__legend) { padding: 0; list-style: none; }
+.issue-pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 3px 8px; border: 1px solid transparent; border-radius: var(--vc-radius-sm); background: none; color: var(--vc-text); font: inherit; font-size: var(--vc-font-size-sm); line-height: 1.25; text-align: start; cursor: pointer; }
+.issue-pick:hover { background: var(--vc-bg-subtle); }
+.issue-pick[aria-pressed="true"] { border-color: var(--vc-accent); background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
+.issue-pick__n { display: inline-grid; place-items: center; width: 1.6rem; aspect-ratio: var(--vc-hex-ratio); background: var(--vc-text); color: var(--vc-surface); clip-path: var(--vc-hex); font-size: var(--fs-xs); font-weight: var(--vc-weight-semibold); }
+.issue-pick__title { min-width: 0; }
+/* A band carries its word as well as its colour. */
+.band-tag.vc-tag[data-band="low"] { --_bg: var(--vc-success-bg); --_fg: var(--vc-success-text); }
+.band-tag.vc-tag[data-band="medium"] { --_bg: var(--vc-warning-bg); --_fg: var(--vc-warning-text); }
+.band-tag.vc-tag[data-band="high"] { --_bg: var(--vc-danger-bg); --_fg: var(--vc-danger-text); }
+.band-tag.vc-tag[data-band="critical"] { --_bg: var(--vc-danger-text); --_fg: var(--vc-surface); }
+.issue-detail { display: grid; gap: 6px; min-width: 0; }
+.issue-detail__title { margin: 0; font-size: var(--vc-font-size-lg); font-weight: var(--vc-weight-semibold); line-height: 1.25; }
+.issue-detail__tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.issue-detail__text { max-width: 80ch; line-height: 1.45; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin: 0; font-size: var(--vc-font-size-sm); }
+.facts dt { color: var(--vc-text-muted); }
+.facts dd { margin: 0; }
+.sources a { color: var(--vc-accent-text); text-underline-offset: 0.18em; }
+.source-when { color: var(--vc-text-muted); }
+
+/* The issues as numbered switches with a word each, for Assess and Adapt: the issue in view in merlot. */
+.issue-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.issue-tab { display: inline-flex; align-items: center; gap: 6px; min-height: 2rem; padding: 2px 10px 2px 4px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-sm); background: var(--vc-surface); color: var(--vc-text); font: inherit; font-size: var(--vc-font-size-sm); cursor: pointer; }
+.issue-tab:hover { border-color: var(--vc-text-subtle); }
+.issue-tab[aria-pressed="true"] { border-color: var(--vc-accent); background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
+.issue-tab__word { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Assess: the risk matrix beside the issue in view and what its figures rest on. */
+.assess { display: grid; grid-template-columns: minmax(24rem, 0.9fr) minmax(0, 2fr); gap: 12px 22px; align-items: start; }
+/* The matrix's key and its numbers stand beside the plot, so the figure stays as short as the plot. */
+.assess .vc-risk { grid-template-columns: minmax(14rem, 1fr) auto; align-items: start; gap: 6px 12px; }
+.assess .vc-risk > figcaption { grid-column: 1 / -1; }
+.assess .vc-risk__plot { grid-row: span 2; }
+.assess .vc-risk__key { flex-direction: column; flex-wrap: nowrap; }
+.assess .vc-risk__numbers { align-self: end; }
+.assess .vc-risk__marker[aria-current="true"] { transform: scale(1.12); }
+.assess__issue { min-width: 0; }
+.assess .issue-detail__title { font-size: var(--vc-font-size-md); }
+.kpi-change { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ai-figure { color: var(--vc-feature-text); font-variant-numeric: tabular-nums; }
+.basis { color: var(--vc-text-muted); }
+.baselines { margin-top: 6px; font-size: var(--vc-font-size-sm); }
+.baselines > summary { width: fit-content; color: var(--vc-accent-text); font-weight: var(--vc-weight-semibold); cursor: pointer; }
+
+/* Adapt: the options of the issue in view as cards; the chosen one in merlot, the person's choice. */
+/* The switcher and the title of the issue in view share a row where they fit. */
+.adapt__top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-bottom: 6px; }
+.adapt__top .issue-tabs { margin: 0; }
+.adapt__top .options__done { margin-inline-start: auto; }
+.options { min-width: 0; margin: 0; padding: 0; border: 0; }
+.options__legend { margin: 0; font-size: var(--vc-font-size-md); font-weight: var(--vc-weight-semibold); line-height: 1.25; }
+/* Accept says little, so its card is narrower and the options get the room. */
+.options__cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(9rem, 0.62fr); gap: 10px; }
+.options__cards[data-options="1"] { grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.5fr); }
+.option { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 8px 12px 9px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg); background: var(--vc-surface); cursor: pointer; }
+.option:hover { border-color: var(--vc-text-subtle); }
+.option[data-chosen="true"] { border-color: var(--vc-accent); box-shadow: inset 0 0 0 1px var(--vc-accent); }
+.option:focus-within { outline: var(--vc-stroke-focus, 2px) solid var(--vc-focus); outline-offset: 2px; }
+.option__radio { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; accent-color: var(--vc-accent); }
+.option__head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding-inline-end: 22px; }
+.option__kind { font-size: var(--fs-xs); font-weight: var(--vc-weight-semibold); letter-spacing: 0.02em; color: var(--vc-text-muted); text-transform: uppercase; }
+.option__title { font-weight: var(--vc-weight-semibold); line-height: 1.3; }
+.option__changes { font-size: var(--vc-font-size-sm); line-height: 1.35; }
+.option__changes [data-skipped="true"] { color: var(--vc-text-muted); }
+.change-text { color: var(--vc-feature-text); }
+.change-gone { font-size: var(--fs-xs); }
+.option__effect { margin-top: auto; padding-top: 4px; border-top: 1px solid var(--vc-border-subtle); font-size: var(--vc-font-size-sm); font-weight: var(--vc-weight-semibold); font-variant-numeric: tabular-nums; }
+.option__meta { font-size: var(--fs-xs); color: var(--vc-text-muted); line-height: 1.35; }
+.options:disabled .option { cursor: default; }
+.options:disabled .option:not([data-chosen="true"]) { opacity: 0.6; }
+.options__done { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--vc-font-size-sm); }
+
+/* Summary: the findings, the recommendation with its assumptions, and the first steps, side by side. */
+.summary { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 8px 22px; font-size: var(--vc-font-size-sm); line-height: 1.45; }
+.summary-more { margin-top: 4px; }
+.summary__col { min-width: 0; }
+.summary li + li { margin-top: 2px; }
+.step-meta { color: var(--vc-text-muted); font-size: var(--fs-xs); }
+
+/* ---- what to do next ---------------------------------------------------------------------------------------
+   Right under the story's last line, a bar says in words what happens next ("Plays on in 8 s", or "Your
+   move" while paused) and holds the step's one primary action, which names where it leads. A bar along
+   its foot fills as Play reads the step (--fill). Where the person acts, Vici's merlot callout says
+   "Your turn" and the action carries vc-attention. Adapted from the Data Quality Agent 2.2.0. */
+.bar { flex: none; }
+.story-foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px 16px; }
+.foot-note { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); font-variant-numeric: tabular-nums; }
+.foot-note[data-tone="move"] { color: var(--vc-accent-text); font-weight: var(--vc-weight-semibold); }
+.foot-note:empty { display: none; }
+.cta.vc-button { --_h: 46px; flex: none; position: relative; overflow: hidden; gap: 8px; }
+.cta::after { content: ""; position: absolute; inset: auto 0 0; height: 4px; background: currentColor; opacity: 0.55; transform: scaleX(var(--fill, 0)); transform-origin: left; pointer-events: none; }
+.turn.vc-callout { align-items: center; gap: 14px; padding: 8px 12px 8px 16px; }
+.turn .vc-callout__body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; }
+.turn .vc-callout__body > * + * { margin-top: 0; }
+.turn .vc-callout__title { font-size: var(--vc-font-size-lg); line-height: 1.2; white-space: nowrap; }
+.turn-text { margin: 0; }
+/* The callout stays pastel in both themes, so the button inside it keeps the light theme's merlot. */
+.turn-bar.vc-callout { grid-template-columns: auto minmax(0, 1fr) auto; --vc-accent: var(--vc-merlot-950); --vc-accent-hover: var(--vc-merlot-800); --vc-accent-pressed: var(--vc-merlot-900); --vc-on-accent: var(--vc-neutral-50); }
+.steps .vc-step__label { display: grid; justify-items: center; }
+.steps .vc-step__hint { font-size: var(--fs-xs); font-weight: var(--vc-weight-semibold); color: var(--vc-accent-text); line-height: 1.1; }
+.steps .vc-step__hint:empty { display: none; }
+.steps .vc-step[data-turn="yours"] .vc-step__marker { color: var(--vc-on-accent); }
+.steps .vc-step[data-turn="yours"] .vc-step__marker::before { background: var(--vc-accent); clip-path: var(--vc-hex); }
+
+/* ---- the block, opened ----------------------------------------------------------------------------------- */
+.block-dialog { width: min(44rem, calc(100vw - 32px)); }
+.block-dialog__body { display: grid; gap: 10px; }
+.block-dialog__question { margin: 0; color: var(--vc-text-muted); }
+.block-dialog__items { margin: 0; }
+.block-dialog__issues h3 { margin: 4px 0; font-size: var(--vc-font-size-md); }
+.block-dialog__issues ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 
 /* ---- boot screen ------------------------------------------------------------------------------------ */
 .boot { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; background: var(--vc-bg); transition: opacity 0.3s ease; }
@@ -158,9 +333,10 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 /* ---- larger and smaller windows ------------------------------------------------------------------------ */
 @media (min-width: 1700px) {
   :root { --fs-kpi: 2rem; --canvas-gap: 8px; }
-  .kpis { --kpi-w: 14.5rem; }
-  .block { padding: 14px 16px; gap: 6px; }
-  .block-name { font-size: var(--vc-font-size-lg); }
+  /* A figure and the struck-through value it replaced stay on one line: a tile grows to hold them. */
+  .kpis { --kpi-w: 14.5rem; grid-auto-columns: minmax(var(--kpi-w), max-content); }
+  .block.vc-framework__area { padding: 10px 14px; gap: 6px; }
+  .block-name.vc-framework__title { font-size: var(--vc-font-size-lg); }
   .block-question { font-size: var(--vc-font-size-md); }
   .stage-title { font-size: var(--vc-font-size-2xl); }
   .credit { font-size: var(--vc-font-size-sm); }
@@ -170,7 +346,8 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 @media (max-width: 1500px) {
   :root { --fs-kpi: 1.5rem; }
   .brand-name { max-width: 12em; font-size: var(--vc-font-size-xl); white-space: normal; text-wrap: balance; }
-  .kpis { --kpi-w: 10.5rem; }
+  /* The first tile may grow a little so that a note such as "on 5 of 6 issues" keeps to one line. */
+  .kpis { --kpi-w: 10.5rem; grid-template-columns: minmax(var(--kpi-w), 11.75rem) repeat(2, var(--kpi-w)); }
   .kpi.vc-stat { padding: 5px 11px 6px; }
 }
 @media (max-width: 1366px) {
@@ -182,21 +359,69 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .brand-name { font-size: var(--vc-font-size-lg); }
   .kpis { column-gap: 6px; --kpi-w: 10.5rem; }
   .kpi.vc-stat { padding: 4px 9px 5px; }
-  .talk { gap: 10px; }
-  .steps .vc-step__label { font-size: var(--vc-font-size-sm); }
+  .talk { gap: 8px; }
+  .steps .vc-step__label { font-size: var(--fs-xs); }
+  /* Back and Next keep their chevrons; their words stay for screen readers. */
+  .stepbar-back > span:not(.vc-icon), .stepbar-next > span:not(.vc-icon) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .stepbar-back.vc-button, .stepbar-next.vc-button { min-width: var(--hit); padding-inline: 8px; justify-content: center; }
+  .ai-notice.vc-tag { font-size: var(--fs-xs); }
 }
 /* Laptop screens shared at 1280 × 720 or 1366 × 768: everything stays in view. */
 @media (max-height: 820px) and (min-width: 961px) {
   .app-header { padding-block: 5px; }
   .intro { padding-block: 2px; }
   .talk { padding-block: 4px; }
-  .workspace { gap: 8px; padding-top: 8px; padding-bottom: 12px; }
-  .block { padding: 7px 10px; gap: 2px; }
-  .block-name { font-size: var(--vc-font-size-sm); }
+  .block.vc-framework__area { padding: 5px 8px; gap: 3px; }
+  .block-name.vc-framework__title { font-size: var(--vc-font-size-sm); }
   .block-question { font-size: var(--fs-xs); line-height: 1.3; }
-  .panel { padding: 10px 16px; }
-  .build-title { font-size: var(--vc-font-size-md); }
-  .build-text { font-size: var(--vc-font-size-sm); line-height: 1.4; }
+  .workspace { padding-top: 4px; padding-bottom: 6px; }
+  .stage { gap: 5px; }
+  .stage-title { font-size: var(--vc-font-size-lg); }
+  .stage-lead { font-size: var(--fs-xs); }
+  .panel { padding: 6px 14px; }
+  .canvas .vc-item__text { -webkit-line-clamp: 1; }
+  .canvas .vc-item__summary { flex-wrap: nowrap; min-height: 1.75rem; }
+  .cta.vc-button { --_h: 42px; }
+  .turn.vc-callout { padding-block: 6px; }
+  .turn .vc-callout__title { font-size: var(--vc-font-size-md); }
+  /* Vici's risk matrix keeps 2.75rem rows; at 720 px high the panel gives it 2.1rem, so the canvas
+     keeps the height its blocks' names and states need. */
+  .panel .vc-risk__grid { grid-template-rows: repeat(5, minmax(1.85rem, auto)) auto; grid-template-columns: auto repeat(5, minmax(2.4rem, 1fr)); }
+  .panel .vc-risk__cell { padding: 2px; }
+  .panel .vc-risk__key { gap: 2px 10px; }
+  .summary { font-size: var(--fs-xs); line-height: 1.35; }
+  .panel-title { margin-bottom: 4px; }
+  .option__title { font-size: var(--vc-font-size-sm); }
+  .option__changes, .option__effect { font-size: var(--fs-xs); }
+  .option { gap: 3px; padding-block: 6px 7px; }
+  .issue-tab { min-height: 1.75rem; font-size: var(--fs-xs); }
+  .options__legend { font-size: var(--vc-font-size-sm); }
+  .issue-tabs { margin-bottom: 4px; }
+  .issue-detail { gap: 4px; }
+  .panel .split .panel-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* The merlot marker and the bar under the story say whose turn it is; the stepper drops its words. */
+  .steps .vc-step__hint { display: none; }
+  .canvas.vc-framework { min-height: 8.75rem; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(2rem, 0.7fr); }
+  .issue-pick { font-size: var(--fs-xs); padding-block: 1px; }
+  .split { grid-template-columns: minmax(18rem, 1.3fr) minmax(0, 1fr); }
+  .issue-list { gap: 2px; }
+  .issue-detail__title { font-size: var(--vc-font-size-md); }
+  .issue-detail__text { font-size: var(--vc-font-size-sm); line-height: 1.4; }
+  .panel .vc-risk figcaption { display: none; }
+  /* A tight canvas shows a block's state as "2 · high"; the noun stays for screen readers. */
+  .canvas .tag-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* The wide, short blocks at the bottom put their name and states beside their items, so even a short
+     row shows the items an issue names. */
+  /* Short as they are here, the two bottom blocks put their name and states beside their items, so the
+     items an issue names stay in view. */
+  .canvas .block.vc-framework__area:is([data-block="costs"], [data-block="revenue"]) { display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: start; column-gap: 12px; padding-block: 4px; }
+  .canvas .block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__head { flex-wrap: nowrap; white-space: nowrap; padding-block-start: 5px; }
+  .canvas .block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__states { flex-wrap: nowrap; }
+  .canvas .block:is([data-block="costs"], [data-block="revenue"]) :is(.vc-framework__items, .block-question) { align-self: stretch; grid-column: 2; grid-row: 1; }
+  .canvas .vc-framework__state { font-size: var(--fs-xs); }
+  .company-text { display: none; }
+  .talk .vc-step__button { min-height: 0; padding-block: 0; }
+  .app-shell .kpi .vc-stat__label { font-size: var(--fs-xs); }
 }
 @media (max-width: 1180px) {
   .app-header { grid-template-columns: 1fr auto; }
@@ -207,14 +432,18 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .workspace { overflow: visible; }
   .talk { flex-wrap: wrap; }
   .steps.vc-stepper { flex-basis: 100%; order: 3; }
-  .canvas { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-template-areas: "partners activities" "resources value" "relationships channels" "segments segments" "costs revenue"; }
+  /* The page scrolls here, so the canvas and the panel take the height their content needs. */
+  .canvas.vc-framework { flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-template-areas: "partners activities" "resources value" "relationships channels" "segments segments" "costs revenue"; }
+  .panel { flex: none; max-height: none; overflow: visible; }
+  .companies, .summary, .split, .assess { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .app-header { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
   .header-actions { flex-wrap: wrap; }
   .intro { flex-direction: column; align-items: flex-start; }
-  .canvas { grid-template-columns: minmax(0, 1fr); grid-template-areas: "partners" "activities" "resources" "value" "relationships" "channels" "segments" "costs" "revenue"; }
+  .canvas.vc-framework { grid-template-columns: minmax(0, 1fr); grid-template-areas: "partners" "activities" "resources" "value" "relationships" "channels" "segments" "costs" "revenue"; }
 }
 @media (prefers-reduced-motion: reduce) {
   .kpi.vc-stat, .boot { transition: none; }
+  .cta::after { transition: none; }
 }

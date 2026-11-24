@@ -109,7 +109,18 @@ for (const f of [...js, ...data]) for (const h of hostsIn(read(f))) if (!hosts.h
 // The handoff schema names json-schema.org as its $schema identifier. Nothing fetches it, and the policy
 // would refuse the connection anyway; it may stand in schemas/ only.
 const identifier = (h, f) => h === "json-schema.org" && f.startsWith("schemas/");
-const unknown = [...hosts].map(([k, f]) => [k.split(" ")[0], f]).filter(([h, f]) => h !== "api.anthropic.com" && !LINK_HOSTS.has(h) && !identifier(h, f));
+// The scenarios name their sources. Each address stands once, as a constant of an https address that a signal's
+// url and the issues' evidence refer to; the page shows it as a link a person opens and never fetches it, and
+// connect-src would refuse the connection anyway. Any other address in a scenario fails here.
+const SOURCE_CONST = /^const [A-Z_]+ = "https:\/\/[^"\s]+";$/;
+const scenarioFiles = files("data/scenarios", ".js");
+const looseAddress = scenarioFiles.flatMap((f) => read(f).split("\n").flatMap((line, i) => (/https?:\/\//.test(line) && !SOURCE_CONST.test(line.trim()) ? [`${f}:${i + 1}`] : [])));
+const sourceCount = scenarioFiles.reduce((n, f) => n + read(f).split("\n").filter((line) => SOURCE_CONST.test(line.trim())).length, 0);
+check(scenarioFiles.filter((f) => /\/s[1-3]\.js$/.test(f)).length === 3 && sourceCount >= 18 && !looseAddress.length, `the scenarios name their ${sourceCount} sources only as constants of https addresses${looseAddress.length ? `; also ${looseAddress.join(", ")}` : ""}`);
+const dataFetch = data.filter((f) => /\bfetch\s*\(|XMLHttpRequest|sendBeacon/.test(stripComments(read(f))));
+check(!dataFetch.length, `no data or schema file opens a connection${dataFetch.length ? `: ${dataFetch.join(", ")}` : ""}`);
+const source = (h, f) => f.startsWith("data/scenarios/") && !looseAddress.length;
+const unknown = [...hosts].map(([k, f]) => [k.split(" ")[0], f]).filter(([h, f]) => h !== "api.anthropic.com" && !LINK_HOSTS.has(h) && !identifier(h, f) && !source(h, f));
 check(!unknown.length, `code names api.anthropic.com and links only${unknown.length ? `; also ${unknown.map(([h, f]) => `${h} (${f})`).join(", ")}` : ""}`);
 const fetches = js.flatMap((f) => [...stripComments(read(f)).matchAll(/\bfetch\(\s*([^,)]+)/g)].map((m) => `${f}: ${m[1].trim()}`));
 const okFetch = (x) => /ANTHROPIC\.(messagesUrl|modelsUrl)|\burl\b/.test(x);

@@ -1,8 +1,10 @@
 // Vici's own rules, checked with Vici's own functions (Build a prototype, "Check it"; AC-01): the How it
 // works guides and their key figures (guideProblems), the byline (bylineProblems), the Writing
 // guideline's checkable patterns (writingProblems), the AI notice of a page that can start a live run
-// (aiNoticeProblems) and names, not record ids (recordIdProblems). They run on the page as served, on the
-// page as rendered in English and in German, on every text in the dictionaries and on the docs.
+// (aiNoticeProblems), names, not record ids (recordIdProblems), the framework view's states
+// (frameworkProblems) and the risk matrix (riskMatrixProblems). They run on the page as served, on the
+// page as rendered in English and in German, on every step of the three scenarios, on every text in the
+// dictionaries and the scenarios, and on the docs.
 // ViciDesign's check-guide-render.mjs drives the guide over http. vici/ holds Vici's files byte for byte,
 // at the commit vici/README.md and the workflow name. The texts the agents and the scenarios write join
 // these checks with the simulation in 0.2.0.
@@ -29,6 +31,8 @@ const { bylineProblems } = await lib("byline.mjs");
 const { writingProblems } = await lib("writing.mjs");
 const { aiNoticeProblems, canRunLive, AI_NOTICE } = await lib("ai.mjs");
 const { recordIdProblems } = await lib("ids.mjs");
+const { frameworkProblems } = await lib("framework.mjs");
+const { riskMatrixProblems } = await lib("risk.mjs");
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 
 const read = (f) => readFileSync(path.join(APP_ROOT, f), "utf8");
@@ -110,6 +114,55 @@ try {
     check(!ri.length, `rendered in ${name}: names, not record ids${ri.length ? `: ${ri.join("; ")}` : ""}`);
     await context.close();
   }
+  // Every step of every scenario, in both languages: the canvas in Vici's framework view (every block and
+  // item state with a mark and a word), the risk matrix at Assess (every cell in its band, every marker in
+  // its cell, sizes and bands named in the key, the numbers in a table), the block opened in its dialog,
+  // the writing rules and names, not record ids, on every screen.
+  const STEP_NAMES = ["Start", "Complete", "Challenge", "Assess", "Adapt", "Summary"];
+  const stepProblems = [];
+  let screens = 0;
+  let matrices = 0;
+  let planted = null;
+  for (const sc of ["s1", "s2", "s3"]) for (const lang of ["en", "de"]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort("blockedbyclient"));
+    const p = await context.newPage();
+    const errors = [];
+    p.on("pageerror", (e) => errors.push(String(e.message || e)));
+    for (let step = 0; step < 6; step++) {
+      await p.goto(`${server.base}?guide=0&lang=${lang}&scenario=${sc}&step=${step}`);
+      await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+      await p.waitForTimeout(150);
+      const view = await p.content();
+      const at = `${sc} ${lang} ${STEP_NAMES[step]}`;
+      const canvas = await p.$eval("#canvas", (el) => el.outerHTML);
+      const problems = [...frameworkProblems(canvas).map((x) => `framework: ${x}`), ...writingProblems(view).map((x) => `writing: ${x}`), ...recordIdProblems(view, IDS).map((x) => `ids: ${x}`)];
+      if (step === 3) {
+        const risk = riskMatrixProblems(view);
+        problems.push(...risk.map((x) => `risk: ${x}`));
+        if (/class="[^"]*\bvc-risk\b/.test(view)) matrices += 1;
+        if (!planted) planted = view;
+      }
+      // The first block that holds items, opened in its dialog.
+      const opener = p.locator("#canvas .block-open").first();
+      await opener.click();
+      await p.waitForSelector("#block-dialog[open]", { timeout: 3000 });
+      const dialog = await p.$eval("#block-dialog", (el) => el.outerHTML);
+      problems.push(...frameworkProblems(dialog).map((x) => `dialog framework: ${x}`), ...writingProblems(`<html lang="${lang === "de" ? "de" : "en-GB"}"><body>${dialog}</body></html>`).map((x) => `dialog writing: ${x}`));
+      await p.keyboard.press("Escape");
+      if (errors.length) problems.push(...errors.splice(0).map((x) => `page error: ${x}`));
+      stepProblems.push(...problems.map((x) => `${at}: ${x}`));
+      screens += 1;
+    }
+    await context.close();
+  }
+  check(screens === 36 && !stepProblems.length, `every step of the three scenarios in both languages (${screens} screens) keeps Vici's framework view, the writing rules and names, not ids, the opened block included${stepProblems.length ? `: ${stepProblems.slice(0, 8).join("; ")}` : ""}`);
+  check(matrices === 6, `the risk matrix stands at Assess in every scenario and language and keeps Vici's rule (${matrices} of 6)`);
+  // The two checks fail on this page's own markup, planted with a mistake.
+  const canvasDemo = planted || "";
+  control(riskMatrixProblems(canvasDemo.replace(/(<[^>]*\bvc-risk__cell\b[^>]*data-band=")[a-z]+/, "$1nope")).length > 0, "control: riskMatrixProblems catches a cell out of its band on the Assess screen");
+  control(frameworkProblems(canvasDemo.replace(/(<[^>]*class="[^"]*vc-framework__state--status[^"]*"[^>]*>)[\s\S]*?(<\/span>\s*<\/p>)/, "$1$2")).length > 0, "control: frameworkProblems catches a block under pressure whose state lost its mark and words");
+
   // ViciDesign's own drive of the guide, over http.
   const r = await new Promise((resolve) => {
     const child = spawn(process.execPath, [path.join(dir, "scripts", "check-guide-render.mjs"), server.base], { cwd: dir, env: process.env });
@@ -138,6 +191,27 @@ for (const lang of ["en", "de"]) {
   const texts = KPIS.flatMap((k) => [k.name[lang], k.definition[lang]]);
   const p = writingProblems(page(texts, lang === "de" ? "de" : "en-GB"));
   check(!p.length, `${lang === "en" ? "English" : "German"}: the names and definitions of the ${KPIS.length} KPIs keep the writing rules${p.length ? `: ${p.slice(0, 6).join("; ")}` : ""}`);
+}
+
+// The three scenarios: every text a person reads, in both languages, placeholders worded as the page
+// words them. Prose is a string with a space in it; ids, dates and addresses have none.
+{
+  const { SCENARIOS } = await mod("data/scenarios/index.js");
+  const { localise, buildRun, recordedChoices } = await mod("js/run.js");
+  const { writerText } = await mod("js/story.js");
+  for (const lang of ["en", "de"]) {
+    const texts = [];
+    for (const src of SCENARIOS) {
+      const sc = localise(src, lang);
+      const run = buildRun(sc, recordedChoices(sc));
+      const walk = (v) => { if (typeof v === "string") { if (/\s/.test(v.trim()) && !/^https?:/.test(v)) texts.push(writerText(v, run, lang)); } else if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === "object") Object.values(v).forEach(walk); };
+      walk({ company: sc.company, entered: sc.entered, answers: sc.answers });
+    }
+    const p = writingProblems(page(texts, lang === "de" ? "de" : "en-GB"));
+    const ids = recordIdProblems(texts.join("\n"), IDS);
+    const left = texts.filter((t) => /\{\{/.test(t));
+    check(texts.length > 150 && !p.length && !ids.length && !left.length, `${lang === "en" ? "English" : "German"}: the ${texts.length} texts of the three scenarios keep the writing rules, name no record id and word every placeholder${[...p, ...ids, ...left].length ? `: ${[...p, ...ids, ...left].slice(0, 6).join("; ")}` : ""}`);
+  }
 }
 
 // ---- the docs, as text --------------------------------------------------------------------------------

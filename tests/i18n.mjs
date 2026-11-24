@@ -39,7 +39,8 @@ check(!uneven.length, "the same placeholders in both languages", uneven.map((k) 
 const SAME_ALLOWED = new Map([
   ["app.name", "the tool's name"],
   ["p.byline.tip", "\"Website\" is German too"],
-  ["p.step.start", "\"Start\" is German too"]
+  ["p.step.start", "\"Start\" is German too"],
+  ["p.play.pause", "\"Pause\" is German too"]
 ]);
 const same = en.filter((k) => EN[k] === DE[k] && /\p{L}{4,}/u.test(EN[k]) && !/^[\p{Lu}\s-]+$/u.test(EN[k]) && !/^\{/.test(EN[k]));
 const untranslated = same.filter((k) => !SAME_ALLOWED.has(k));
@@ -86,8 +87,22 @@ for (const f of scripts) {
 for (const m of html.matchAll(/data-i18n="([^"]+)"/g)) used.add(m[1]);
 for (const m of html.matchAll(/data-i18n-attr="([^"]+)"/g)) for (const pair of m[1].split(";")) used.add(pair.split(":")[1].trim());
 // Keys the code builds from a family and a value, with every value the family can take.
+// Keys the code completes from a value ("conf.${…}"): each family, its values and where it is built.
 const FAMILIES = {
-  "band.": { values: BANDS.map((b) => b.id), file: "js/format.js" }
+  "band.": { values: BANDS.map((b) => b.id), file: "js/format.js" },
+  "conf.": { values: ["high", "medium", "low"], file: "js/view.js" },
+  "type.": { values: ["consistency", "customer", "competition", "technology", "regulation", "economy", "operations", "finance", "sustainability"], file: "js/view.js" },
+  "horizon.": { values: ["now", "1_to_3_years", "over_3_years"], file: "js/view.js" },
+  "effort.": { values: ["S", "M", "L"], file: "js/view.js" },
+  "time.": { values: ["under_3_months", "3_to_6_months", "6_to_12_months", "1_to_2_years", "over_2_years"], file: "js/view.js" },
+  "choice.short.": { values: ["mitigate", "advantage", "accept"], file: "js/view.js" },
+  "change.": { values: ["add", "change", "remove"], file: "js/view.js" },
+  "legend.": { values: ["entered", "ai", "removed"], file: "js/view.js" },
+  "country.": { values: ["DE"], file: "js/view.js" },
+  "p.assess.key.": { values: ["low", "medium", "high", "critical", "sm", "lg"], file: "js/view.js" },
+  "p.assess.col.": { values: ["issue", "impact", "likelihood", "score", "band", "stake"], file: "js/view.js" },
+  "p.play.": { values: ["play", "pause", "replay"], file: "js/app.js" },
+  "next.": { values: ["complete", "challenge", "assess", "adapt", "summary"], file: "js/story.js" }
 };
 const families = [];
 for (const [prefix, { values, file }] of Object.entries(FAMILIES)) {
@@ -130,9 +145,13 @@ const ALLOWED = [
   ["js/main.js", "Script error.", "the browser's own text for an error in a script from another site, compared, never shown"],
   ["js/config.js", "Business Model Canvas Challenger", "APP.name, the tool's name in console tags and the handoff file; the page shows app.name from the dictionaries"]
 ];
+// js/guards.js writes to the model, not to a person: its refusals and the repair turn go back to the
+// agent in English, as the prompts do (brief 5.2, PLAN.md §4). The screen never shows them.
+const MODEL_FACING = new Set(["js/guards.js"]);
 const DEV_ONLY = /\bconsole\.(log|info|warn|error|debug)\(/;
 function strays(file, src) {
   const found = [];
+  if (MODEL_FACING.has(file)) return found;
   for (const lit of stringLiterals(src)) {
     if (!looksLikeProse(lit.value)) continue;
     if (DEV_ONLY.test(lit.text)) continue;
