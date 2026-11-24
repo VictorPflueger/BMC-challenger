@@ -326,7 +326,7 @@ function panelChallenge(ctx, on) {
         h("p", { class: "issue-detail__text" }, i.description),
         h("dl", { class: "facts" },
           h("dt", {}, t("p.issue.contradicts", null, lang)), h("dd", {}, i.contradicts),
-          h("dt", {}, t("p.issue.blocks", null, lang)), h("dd", {}, i.blocks.map(blockName).join(", ")),
+          h("dt", {}, t("p.issue.blocks", null, lang)), h("dd", {}, i.blocks.map((b) => blockName(b, lang)).join(", ")),
           h("dt", {}, t("p.issue.rests", null, lang)), h("dd", {}, h("ul", { class: "sources" }, i.evidence.map((u) => sourceLine(u, ctx)))))))
   ];
 }

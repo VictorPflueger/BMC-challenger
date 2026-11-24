@@ -1,14 +1,14 @@
 # Data sources
 
-Version 0.4.0. Where the tool's data comes from, with the date each source was read. The three simulated companies are fictional; the laws, prices and market facts they meet are real, each checked at its source on the day the scenario was written and listed below under "The scenarios' facts". `tools/check-scenarios.mjs` fails when a scenario cites a fact or a source this file lacks.
+Version 1.0.0. Where the tool's data comes from, with the date each source was read. The three simulated companies are fictional; the laws, prices and market facts they meet are real, each checked at its source on the day the scenario was written and listed below under "The scenarios' facts". `tools/check-scenarios.mjs` fails when a scenario cites a fact or a source this file lacks.
 
 ## The Business Model Canvas
 
-The canvas is Strategyzer AG's. Its terms for the use of its tools, read on 23 November 2026 at https://strategyzer.com/legal/usage-of-our-tools, say the canvas is released under a Creative Commons licence and ask for this credit:
+The canvas is Strategyzer AG's. Its terms for its tools, read on 23 November 2026 at https://strategyzer.com/legal/usage-of-our-tools and again, unchanged, on 24 November for 1.0.0, release the canvas under a Creative Commons licence and ask for this credit:
 
 > The text and link Strategyzer.com should be clearly visible and legible under every canvas.
 
-The same page calls it good business practice to contact Strategyzer AG before putting the canvas into software (decision D9: Victor writes to Strategyzer AG before client showings), and reserves the Value Proposition Canvas in software for Strategyzer's express permission, so this tool never uses it.
+The same page calls it good business practice to contact Strategyzer AG before putting the canvas into software (decision D9: Victor writes to Strategyzer AG before client showings), and reserves the Value Proposition Canvas in software for Strategyzer's permission, so this tool never uses it.
 
 The canvas sheet Strategyzer publishes names its licence: the Creative Commons Attribution-Share Alike 3.0 Unported License, https://creativecommons.org/licenses/by-sa/3.0/ (read on 23 November 2026). The licence asks for credit, a link to it and a note that the work was changed. So every canvas this tool draws, on screen and in the report, carries "The Business Model Canvas: Strategyzer.com · CC BY-SA 3.0" under it, with Strategyzer.com linked to https://www.strategyzer.com and the licence linked; both guides and the report's method page add that the tool adapts the canvas and that the questions on each block are its own.
 

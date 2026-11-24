@@ -1,14 +1,15 @@
 # Review of what was taken
 
-Version 0.4.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
+Version 1.0.0. Every file this tool took from Vici or a sister prototype, how and why (brief 5.4). The plan's file-by-file reuse map is PLAN.md, Appendix A; this list holds what the repository carries now. The sources, read on 23 and 24 November 2026:
 
-- ViciDesign at 0d37f48 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36) and its fit for every window (#41), the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39), the PESTEL Challenger's report pages (#40), which this tool's report uses, and its dialog and report fixes of 1.0.0 (#42, #44)
+- ViciDesign at 39f1082 on `main`, Victor's design system, with the live-run dialog the SWOT Challenger added (its pull request #36) and its fit for every window (#41), the Prototype Ideator's fixes of 0.3.0 (#35, #37, #38 and #39) and its honeycomb (#45), the PESTEL Challenger's report pages (#40), which this tool's report uses, its dialog and report fixes of 1.0.0 (#42, #44), and the SWOT Challenger's report that prints in the light scheme (#46)
 - the Prototype Ideator at ec368c3, its M1: the fact audit and the DOM helper the set shares
 - the Prototype Ideator at 532e0f5, its `main` after M2: the live client the set shares, which it merged first (ec368c3)
 - the Sovereignty Assessment 2.0.0 at 35c0dea: the newest live client and the bilingual build
 - the Data Quality Agent 2.2.0 at 831f050: the presenter (steps, Play, key figures, live dialog)
 - the SWOT Challenger at 617b122, its M1: the first of the set to merge the shared parts
 - the SWOT Challenger at 31a2ac3, its `main` after M4 on 24 November 2026: the first of the set to merge a report on Vici's pattern
+- the PESTEL Challenger at 907b1c7, its 1.0.0 on its release branch, not yet merged on 24 November 2026: its accessibility test, its test of a page opened from a file and its version rule
 
 ## Copied unchanged
 
@@ -57,9 +58,11 @@ Version 0.4.0. Every file this tool took from Vici or a sister prototype, how an
 | `tests/i18n.mjs` | Sovereignty Assessment | This tool's key families and the few texts that read the same in German |
 | `tests/unit.mjs` | Sovereignty Assessment | Its stand-ins for storage and the document; this tool's modules |
 | `tests/lean.mjs` | Sovereignty Assessment | This tool's limits (a shell of eight modules in 1,800 lines, `js/` in 6,500) and the design review's cuts |
-| `tests/docs.mjs` | Sovereignty Assessment | This tool's documents, sections and named paths |
+| `tests/docs.mjs` | Sovereignty Assessment; its version rule from the PESTEL Challenger at 907b1c7 | This tool's documents, sections and named paths; from 1.0.0 the demo scripts against the engine and the guide's talk track, and no version but this one named or promised |
 | `tests/live_site.mjs` | Sovereignty Assessment | This tool's files and start check on the published site |
 | `tests/run-all.mjs` | Sovereignty Assessment | This tool's suites |
+| `tests/access.mjs` | PESTEL Challenger at 907b1c7 | Its keyboard pass, its focus comparison by pixels, its motion sampler and its name checks, with their planted controls; this tool's six steps, the removal of an AI item, the choice at Adapt, a block's dialog, the live-run dialog, the report dialog and the question before a run is thrown away |
+| `tests/from-file.mjs` | PESTEL Challenger at 907b1c7 | Its checks of the note a page opened from a file shows, in each language, served and late, with its control; here the note is the loading screen's help, which this tool already had, now with a link to the live site |
 | `tests/page-icon.mjs` | Data Quality Agent, the same in the Sovereignty Assessment | The website's card is required from 1.0.0; until then a missing card is skipped and said |
 | `tests/lib/harness.mjs` | Sovereignty Assessment | This tool's output folder, ports and storage key |
 | `tests/lib/prototype.mjs` | Data Quality Agent | This tool's name, colour pairs, hexagon tour and page icon |
@@ -75,3 +78,5 @@ Version 0.4.0. Every file this tool took from Vici or a sister prototype, how an
 The live run of 0.3.0 is new too: the agents' prompts (`js/prompts.js`), the pipeline with its repair (`js/pipeline.js`), the Scout's research (`js/scout.js`), the run itself (`js/live.js`), the budget (`js/budget.js`), the errors in plain words (`js/api_messages.js`), the private-data scan (`js/privacy.js`), the dialog's wiring (`js/live_dialog.js`) and the live screens (`js/live_view.js`), with the stand-in for the API (`tests/lib/standin.mjs`) and the suites `prompts`, `decisions` and the eight `live-` suites. The dialog follows Vici's pattern; the client under it is the set's (above).
 
 The report of 0.4.0 is this tool's on Vici's report pattern: `js/report.js` assembles it from the run's state, and `js/handoff.js` writes the handoff file, whose `countryCode()` and `sourcesOf()` follow the SWOT Challenger's at 31a2ac3; an accepted issue's response follows the PESTEL Challenger's file. The suites `handoff` and `report` are new.
+
+The release, 1.0.0, adds the demo scripts in English and German (`DEMO_SCRIPT.md`, `DEMO_SCRIPT.de.md`) and, in `tests/presenter.mjs`, the check that each language names the blocks only in itself.

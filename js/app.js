@@ -40,9 +40,11 @@ export async function start() {
     stepsDialog: $("steps-dialog"), stepsBody: $("steps-dialog-body"), live: $("live"), liveText: $("live-text"),
     mode: $("mode-tag"), modeText: $("mode-text"), fictional: document.querySelector(".fictional")
   };
-  // Where the canvas is tight (1280 × 720): Vici's compact framework view, and the Summary's first steps
-  // no taller than the Writer's columns.
+  // Where the canvas is tight (1280 × 720, 1366 × 768): Vici's compact framework view. Up to 960 px high
+  // (1600 × 900 too) the Summary's first steps are no taller than the Writer's columns, so the canvas keeps
+  // its room; the rest open from "+2 more".
   const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
+  const short = matchMedia("(max-height: 960px) and (min-width: 961px)");
   const params = new URLSearchParams(location.search);
   const state = {
     scenarioId: scenarioById(params.get("scenario")) ? params.get("scenario") : SIM.defaultScenario,
@@ -351,7 +353,7 @@ export async function start() {
     els.fictional.hidden = lv;
     renderSteps();
     drawPlay();
-    fitSummary(els.panel, tight.matches);
+    fitSummary(els.panel, short.matches);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
     // A block being entered redraws itself when a line comes or goes; redrawn from here as well, it
@@ -373,12 +375,13 @@ export async function start() {
     if (notes.length) els.panel.prepend(...notes);
   }
   new ResizeObserver(() => fitCanvas(els.canvas)).observe(els.canvas);
-  const refit = () => { fitSummary(els.panel, tight.matches); fitCanvas(els.canvas); };
+  const refit = () => { fitSummary(els.panel, short.matches); fitCanvas(els.canvas); };
   window.addEventListener("resize", refit);
   document.fonts?.ready.then(refit);
   // Where the canvas is tight, Vici's compact framework view shows each item's first line.
   const compact = () => els.canvas.classList.toggle("vc-framework--compact", tight.matches);
   tight.addEventListener("change", () => { compact(); refit(); });
+  short.addEventListener("change", refit);
   compact();
   /** Every first step of the chosen responses, in the dialog the summary's "+2 more" opens. */
   function drawStepsDialog() { els.stepsBody.replaceChildren(h("ul", { class: "first-steps" }, firstSteps(context()))); }

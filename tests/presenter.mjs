@@ -4,7 +4,9 @@
 // figures. A presenter then plays the run with other choices than the recording: an AI item removed,
 // the first issue accepted and the second given its other option. The tiles, the canvas's block states
 // and the summary agree with the engine for those choices, and the tiles strike the old value through
-// beside the new one. A scenario more than 90 days past its as-of date says to check for updates.
+// beside the new one. On every step of every scenario in both languages, every issue at Challenge and
+// Assess, no block is named in the other language. A scenario more than 90 days past its as-of date says to
+// check for updates.
 // Usage: node tests/presenter.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -107,6 +109,63 @@ try {
       `${at}: the summary gives this run's figures and the first steps of the responses chosen, not the recorded ones`, `${rec.slice(0, 60)} | ${listed.length} steps`);
     check(!outside.length && !errors.length, `${at}: no request left the site and nothing failed`, [...outside, ...errors].slice(0, 3).join(" | "));
     await ctx.close();
+  }
+
+  // ---- each language speaks only itself (G8 of M5) -------------------------------------------------------
+  // On every step of every scenario, and at Challenge and Assess with every issue selected in turn, no
+  // block is named in the other language: not in the text a person sees or a screen reader reads, and not
+  // in a name or a title, outside an element marked with the other language (the EN and DE buttons, the
+  // other guide). Before 1.0.0 the issue's "Bausteine" row named its blocks in English on a German page.
+  {
+    const names = (D) => Object.keys(D).filter((k) => /^block\.[a-z]+\.name$/.test(k)).map((k) => D[k]);
+    const scan = ({ other, otherLang }) => {
+      const hits = new Set();
+      const skip = (el) => !el || !!el.closest(`[lang|="${otherLang}"], dialog:not([open]), [hidden], template, script, style`) || (typeof el.checkVisibility === "function" && !el.checkVisibility());
+      const look = (text, where) => { for (const n of other) if (text.includes(n)) hits.add(`${n} (${where})`); };
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!skip(node.parentElement)) look(node.textContent, node.parentElement.className?.toString().split(" ")[0] || node.parentElement.tagName.toLowerCase());
+      }
+      for (const el of document.querySelectorAll("[aria-label], [title], [alt]")) {
+        if (skip(el)) continue;
+        for (const a of ["aria-label", "title", "alt"]) if (el.hasAttribute(a)) look(el.getAttribute(a), `${a} on ${el.tagName.toLowerCase()}`);
+      }
+      return [...hits];
+    };
+    const leaks = [];
+    let screens = 0;
+    let planted = false;
+    for (const src of SCENARIOS) for (const lang of ["en", "de"]) {
+      const arg = { other: names(lang === "en" ? DE : EN), otherLang: lang === "en" ? "de" : "en" };
+      const { context: ctx } = await context(browser, { locale: lang === "en" ? "en-GB" : "de-DE" });
+      const page = await ctx.newPage();
+      for (let step = 0; step <= 5; step += 1) {
+        await page.goto(`${server.base}?scenario=${src.id}&lang=${lang}&guide=0&step=${step}`);
+        await page.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+        await page.waitForSelector("#boot", { state: "detached", timeout: 5000 }).catch(() => {});
+        if (await page.evaluate(() => window.BMC.playing)) await page.click("#play");
+        const switches = step === 2 ? ".issue-pick" : step === 3 ? ".issue-tab" : null;
+        const count = switches ? await page.locator(switches).count() : 0;
+        for (let i = 0; i <= count; i += 1) {
+          if (i > 0) await page.locator(switches).nth(i - 1).click();
+          screens += 1;
+          for (const hit of await page.evaluate(scan, arg)) leaks.push(`${src.id} ${lang} step ${step}${i ? ` issue ${i}` : ""}: ${hit}`);
+        }
+        // The control: the row as 0.4.0 wrote it, planted on a German Challenge, must be caught.
+        if (lang === "de" && step === 2 && src.id === "s1") {
+          planted = (await page.evaluate((a) => {
+            const dd = document.createElement("dd");
+            dd.textContent = "Cost structure, Revenue streams";
+            document.querySelector("#panel .facts").append(dd);
+            return a;
+          }, arg)) && (await page.evaluate(scan, arg)).some((x) => x.startsWith("Cost structure"));
+          await page.evaluate(() => document.querySelector("#panel .facts dd:last-child").remove());
+        }
+      }
+      await ctx.close();
+    }
+    check(planted, "languages: control: the issue's blocks written in English on a German page, as 0.4.0 wrote them, are caught");
+    check(!leaks.length && screens > 60, `languages: no block named in the other language on ${screens} screens (every step of the three scenarios in both languages, every issue at Challenge and Assess)`, leaks.slice(0, 6).join("; "));
   }
 
   // ---- a scenario past its date --------------------------------------------------------------------------

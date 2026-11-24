@@ -27,10 +27,12 @@ const DOCS = {
   "README.md": { max: 900, sections: ["What it does", "What is real and what is simulated", "A live run", "The canvas", "Run it", "Tests", "The documents", "Part of a set of four", "Author"], version: `version ${APP.version}` },
   "DESIGN.md": { max: 700, sections: ["Who it is for and where it is seen", "The screen", "Colour", "Words and languages", "The figures", "What stayed and what went"], version: `Version ${APP.version}` },
   "DATA_SOURCES.md": { max: 1200, urlsFree: true, sections: ["The Business Model Canvas", "The German names of the blocks", "The sector KPI library", "The exchange rate", "The fictional companies"], version: `Version ${APP.version}` },
-  "TECH_NOTES.md": { numbered: 14, version: `Version ${APP.version}` },
+  "TECH_NOTES.md": { numbered: 15, version: `Version ${APP.version}` },
   "REVIEW.md": { sections: ["Copied unchanged", "Copied with a new header", "Adapted", "Written for this tool"], version: `Version ${APP.version}` },
   "tests/README.md": { sections: ["What runs", "Setup for the browser suites", "The private term list", "The golden cases"] },
   "vici/README.md": {},
+  "DEMO_SCRIPT.md": { max: 700, sections: ["Before you start", "If something goes wrong", "Questions that will come", "After the demo"] },
+  "DEMO_SCRIPT.de.md": { max: 700, sections: ["Bevor Sie anfangen", "Wenn etwas schiefgeht", "Fragen, die kommen werden", "Nach der Vorführung"] },
   "PLAN.md": {}
 };
 const LIVE_URL = "https://victorpflueger.github.io/BMC-challenger/";
@@ -63,6 +65,137 @@ if (text["README.md"] && !text["README.md"].includes(LIVE_URL)) problems.push(`R
     const row = (page.match(new RegExp(`<th scope="row">${head}</th><td>([^<]*)</td>`)) || [])[1] || "";
     if (!row.startsWith(`${APP.version} `)) problems.push(`index.html's guide row "${head}" does not open with ${APP.version} ("${row.slice(0, 40)}")`);
   }
+}
+
+// Lines that pass or fail by name: the demo scripts and the version (G4 and G9 of M5).
+const verdicts = [];
+const verdict = (ok, what, detail = "") => { verdicts.push([ok, what]); if (!ok) problems.push(`${what}${detail ? `: ${detail}` : ""}`); };
+
+// ---- the demo scripts --------------------------------------------------------------------------------------
+// Each quotes the default scenario's figures as the engine words them in its language; its timed steps are
+// the guide's talk track in that language (the titles, the words to say, the minutes, and a heading that
+// names their total); every address it gives (?scenario, ?step, ?guide, ?lang) names a scenario, a step, a
+// guide and a language the page takes, and the German script's addresses keep the page German.
+const flat = (x) => String(x).replace(/[  ]/g, " ").replace(/[“”„"«»]/g, "").replace(/\s+/g, " ").trim();
+const NUMBER_WORDS = { en: ["", "one", "two", "three", "four", "five", "six", "seven"], de: ["", "eine", "zwei", "drei", "vier", "fünf", "sechs", "sieben"] };
+function talkTrack(page, lang) {
+  const id = `guide-${lang}`;
+  const start = page.indexOf(`id="${id}"`);
+  const guide = page.slice(start, page.indexOf("</dialog>", start));
+  const unescape = (t) => t.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
+  return [...guide.matchAll(/<li><strong>(.*?)<\/strong>\s*<span class="vc-guide__say">(.*?)<\/span>\s*<span class="vc-guide__time">(.*?)<\/span><\/li>/gs)]
+    .map((m) => ({ title: flat(unescape(m[1].replace(/<[^>]+>/g, ""))).replace(/\.$/, ""), say: flat(unescape(m[2].replace(/<[^>]+>/g, ""))), time: flat(m[3]) }));
+}
+function scriptSteps(text) {
+  return text.split("\n").filter((l) => /^\| \d+(\.\d+)? min \|/.test(l)).map((l) => {
+    const cells = l.split("|").slice(1, -1).map((c) => c.trim());
+    return { time: flat(cells[0]), title: flat(cells[1]), say: flat(cells[2]) };
+  });
+}
+function scriptProblems(text, lang, track, figures, ids) {
+  const out = [];
+  const steps = scriptSteps(text);
+  if (steps.length !== track.length) out.push(`${steps.length} timed steps, the talk track has ${track.length}`);
+  track.forEach((g, i) => {
+    const s = steps[i];
+    if (!s) return;
+    if (s.title !== g.title) out.push(`step ${i + 1} is "${s.title}", the guide's "${g.title}"`);
+    if (s.time !== g.time) out.push(`step ${i + 1} takes ${s.time}, the guide's ${g.time}`);
+    if (s.say !== g.say) out.push(`step ${i + 1} says other words than the guide`);
+  });
+  const total = track.reduce((n, g) => n + parseFloat(g.time), 0);
+  const heading = lang === "de" ? `## Die ${NUMBER_WORDS.de[total]} Minuten` : `## The ${NUMBER_WORDS.en[total]} minutes`;
+  if (!text.split("\n").includes(heading)) out.push(`no heading "${heading.slice(3)}" for the talk track's ${total} minutes`);
+  const body = flat(text);
+  for (const [name, value] of Object.entries(figures)) if (!body.includes(flat(value))) out.push(`does not quote ${name} as the engine words it (${value})`);
+  for (const m of text.matchAll(/`(\?[^`]+|(?:scenario|step|guide|lang)=[^`]+)`/g)) {
+    const q = new URLSearchParams(m[1].replace(/^\?/, ""));
+    for (const [k, v] of q) {
+      const fine = k === "scenario" ? ids.includes(v) : k === "step" ? /^[0-5]$/.test(v) : k === "guide" ? ["0", "present"].includes(v) : k === "lang" ? ["en", "de"].includes(v) : false;
+      if (!fine) out.push(`the address ${m[1]} names ${k}=${v}, which the page does not take`);
+    }
+    if (lang === "de" && m[1].startsWith("?") && q.get("lang") !== "de") out.push(`the German address ${m[1]} does not keep the page German`);
+  }
+  return out;
+}
+{
+  const page = fs.readFileSync(path.join(APP_ROOT, "index.html"), "utf8");
+  const { localise, buildRun, recordedChoices } = await import(pathToFileURL(path.join(APP_ROOT, "js/run.js")).href);
+  const { SCENARIOS } = await import(pathToFileURL(path.join(APP_ROOT, "data/scenarios/index.js")).href);
+  const { SIM } = await import(pathToFileURL(path.join(APP_ROOT, "js/config.js")).href);
+  const { fmtMoney, fmtPartMoney, fmtPressure } = await import(pathToFileURL(path.join(APP_ROOT, "js/format.js")).href);
+  const { estimateRun } = await import(pathToFileURL(path.join(APP_ROOT, "js/estimate.js")).href);
+  const ids = SCENARIOS.map((x) => x.id);
+  const figuresOf = (lang) => {
+    const sc = localise(SCENARIOS.find((x) => x.id === SIM.defaultScenario), lang);
+    const r = buildRun(sc, recordedChoices(sc));
+    const eur = new Intl.NumberFormat(lang === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(estimateRun(sc, r).eur);
+    return {
+      "the company": sc.company.name,
+      "what is at stake": fmtPartMoney(r.before.atStake, r.before.priced, r.before.count, lang),
+      "the blocks under pressure": fmtPressure(r.before.pressure.before, r.before.pressure.of, lang),
+      "what is left": fmtPartMoney(r.after.left, r.after.priced, r.after.count, lang),
+      "the blocks still under pressure": fmtPressure(r.after.pressure.after, r.after.pressure.of, lang),
+      "the first issue's expected loss": fmtMoney(r.before.issues[0].before.expected, lang),
+      "the AI's items": String(Object.values(r.completed.blocks).flat().filter((it) => it.source === "ai").length),
+      "the session cost": `≈ ${eur}`
+    };
+  };
+  let agree = 0;
+  const found = [];
+  for (const [file, lang] of [["DEMO_SCRIPT.md", "en"], ["DEMO_SCRIPT.de.md", "de"]]) {
+    const t = text[file];
+    if (!t) { found.push(`${file} is missing`); continue; }
+    const track = talkTrack(page, lang);
+    const bad = scriptProblems(t, lang, track, figuresOf(lang), ids);
+    if (track.length < 3 || track.length > 7) bad.push(`the guide's talk track has ${track.length} steps`);
+    if (bad.length) found.push(...bad.map((b) => `${file}: ${b}`)); else agree += 1;
+  }
+  verdict(agree === 2, `demo scripts: ${agree} of 2 agree with the engine and the talk track`, found.slice(0, 6).join("; "));
+  // The rule fails on planted scripts: a figure changed, a step dropped, an address the page does not take.
+  const en = text["DEMO_SCRIPT.md"] || "";
+  const track = talkTrack(page, "en");
+  const figs = figuresOf("en");
+  const caught = [
+    en.replace(flat(figs["what is left"]) === figs["what is left"] ? figs["what is left"] : "\u0000", "€9.9m"),
+    en.split("\n").filter((l, i, all) => i !== all.findIndex((x) => /^\| \d+ min \|/.test(x))).join("\n"),
+    `${en}\nTry \`?scenario=s9&step=7\`.`
+  ].map((planted) => scriptProblems(planted, "en", track, figs, ids).length > 0);
+  verdict(caught.every(Boolean) && en.includes(figs["what is left"]), `control: a demo script with a changed figure, a dropped step and an address the page does not take is caught (${caught.filter(Boolean).length} of 3)`);
+}
+
+// ---- the version -------------------------------------------------------------------------------------------
+// The page's strings, its static text and the documents (but TECH_NOTES and REVIEW, whose logs name each
+// version as it came) name no version of this tool but js/config.js's, and promise no later one. A line may
+// name another tool's version ("Data Quality Agent 2.2.0") or a standard ("EN ISO 14083"). Adapted from the
+// PESTEL Challenger 1.0.0's tests/docs.mjs (907b1c7).
+const OTHER_TOOL = /(Agent|Assessment|Radar|Challenger|Ideator|Hunter|Vici|ViciDesign|Playwright|Chromium|Chrome|Node|ISO|EN|Haiku|Sonnet|Opus|schema|playwright@)\s*v?\d+\.\d+(\.\d+)?/i;
+function versionProblems(where, t) {
+  const out = [];
+  for (const line of t.split("\n")) {
+    const promise = line.match(/\b(follows? in|comes? with version|arrives? in|from version|folgt in|kommt mit Version)\b[^.]*\d+\.\d+(\.\d+)?/i);
+    if (promise) out.push(`${where}: "${promise[0].slice(0, 60)}"`);
+    for (const m of line.matchAll(/\b\d+\.\d+\.\d+\b/g)) {
+      if (m[0] === APP.version) continue;
+      if (promise && m.index >= promise.index && m.index < promise.index + promise[0].length) continue;
+      const around = line.slice(Math.max(0, m.index - 24), m.index + m[0].length + 12);
+      if (OTHER_TOOL.test(around)) continue;
+      out.push(`${where}: "${around.trim()}"`);
+    }
+  }
+  return out;
+}
+{
+  const found = [];
+  for (const l of ["en", "de"]) {
+    const { default: dict } = await import(pathToFileURL(path.join(APP_ROOT, `js/i18n/${l}.js`)).href);
+    for (const [k, v] of Object.entries(dict)) found.push(...versionProblems(`${l}.js ${k}`, String(v)));
+  }
+  found.push(...versionProblems("index.html", fs.readFileSync(path.join(APP_ROOT, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ")));
+  for (const name of ["README.md", "DESIGN.md", "DATA_SOURCES.md", "DEMO_SCRIPT.md", "DEMO_SCRIPT.de.md"]) if (text[name]) found.push(...versionProblems(name, text[name]));
+  verdict(!found.length, `version: the page's strings, its static text and the documents name no version but ${APP.version} and promise none`, found.slice(0, 4).join("; "));
+  const stale = versionProblems("planted", "Version 0.3.0 plays recorded runs. The report as a PDF follows in 0.4.0.\nBuilt on the Data Quality Agent 2.2.0.");
+  verdict(stale.length === 2 && !stale.some((x) => x.includes("2.2.0")), "control: a planted line with an earlier version and a promise is caught, another tool's version is not", stale.join("; "));
 }
 
 // The canvas's credit, the licence and the dates.
@@ -211,6 +344,7 @@ for (const [f, t] of Object.entries(text)) {
   if (`> ${CREDIT.replace("legible", "readable")}`.includes(`> ${CREDIT}`)) problems.push("self-test: the credit check missed a changed word");
 }
 
+for (const [ok, what] of verdicts) console.log(`${ok ? "PASS" : "FAIL"}  ${what}`);
 for (const c of counts) console.log(`      ${c}`);
 for (const p of problems) console.log(`FAIL  ${p}`);
 console.log(`${Object.keys(DOCS).length} documents checked, ${taken.length} files that say where they came from, ${cited} section citations and ${named} named paths: ${problems.length} problem${problems.length === 1 ? "" : "s"}.`);

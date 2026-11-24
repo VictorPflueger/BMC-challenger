@@ -140,15 +140,20 @@ export function renderBlockEdit(body, title, blockId, ctx, on) {
     if (i + 1 < texts.length) body.querySelector(`#edit-${blockId}-${i + 1}`)?.focus();
     else if (!full && e.target.value.trim()) { texts.push(""); on.items(blockId, texts, true, texts.length - 1); }
   };
-  const rows = texts.map((text, i) => h("li", { class: "edit-row" },
-    h("input", { class: "vc-input", type: "text", maxlength: String(LIMITS.itemText), value: text, id: `edit-${blockId}-${i}`, "aria-label": t("live.item.label", { n: i + 1 }, lang), autocomplete: "off",
-      on: { change: (e) => { texts[i] = e.target.value; on.items(blockId, texts); }, keydown: (e) => enter(e, i) } }),
-    h("button", { type: "button", class: "vc-icon-button", "aria-label": t("live.item.remove", { item: text || String(i + 1) }, lang), on: { click: () => { texts.splice(i, 1); on.items(blockId, texts, true); } } }, icon("close"))));
+  // Each line's Remove button names the line, and follows it as the person types.
+  const rows = texts.map((text, i) => {
+    const named = (v) => t("live.item.remove", { item: v.trim() || t("live.item.label", { n: i + 1 }, lang) }, lang);
+    const remove = h("button", { type: "button", class: "vc-icon-button", "aria-label": named(text), on: { click: () => { texts.splice(i, 1); on.items(blockId, texts, true); } } }, icon("close"));
+    return h("li", { class: "edit-row" },
+      h("input", { class: "vc-input", type: "text", maxlength: String(LIMITS.itemText), value: text, id: `edit-${blockId}-${i}`, "aria-label": t("live.item.label", { n: i + 1 }, lang), autocomplete: "off",
+        on: { input: (e) => remove.setAttribute("aria-label", named(e.target.value)), change: (e) => { texts[i] = e.target.value; on.items(blockId, texts); }, keydown: (e) => enter(e, i) } }),
+      remove);
+  });
   body.replaceChildren(
     h("p", { class: "block-dialog__question" }, t(`block.${blockId}.question`, null, lang)),
     notice(lang),
     rows.length ? h("ul", { class: "edit-list" }, rows) : h("p", { class: "vc-framework__empty" }, t("live.block.empty", null, lang)),
-    h("button", { type: "button", class: "vc-button vc-button--secondary vc-button--sm", id: "edit-add", disabled: full, on: { click: () => { texts.push(""); on.items(blockId, texts, true, texts.length - 1); } } }, icon("plus"), t(full ? "live.item.full" : "live.item.add", { n: LIMITS.itemsPerBlock }, lang)));
+    h("button", { type: "button", class: "vc-button vc-button--secondary", id: "edit-add", disabled: full, on: { click: () => { texts.push(""); on.items(blockId, texts, true, texts.length - 1); } } }, icon("plus"), t(full ? "live.item.full" : "live.item.add", { n: LIMITS.itemsPerBlock }, lang)));
 }
 
 /**
@@ -160,7 +165,7 @@ export function editField(it, lang, on) {
   const id = `edit-${it.id}`;
   return h("div", { class: "vc-field item-edit" },
     h("label", { class: "vc-label", for: id }, t("live.item.words", null, lang)),
-    h("input", { class: "vc-input vc-input--sm", type: "text", maxlength: String(LIMITS.itemText), value: it.text, id, "aria-label": t("live.item.edit", { item: it.text }, lang), autocomplete: "off",
+    h("input", { class: "vc-input", type: "text", maxlength: String(LIMITS.itemText), value: it.text, id, "aria-label": t("live.item.edit", { item: it.text }, lang), autocomplete: "off",
       on: { change: (e) => on.edit(it.id, e.target.value) } }));
 }
 
