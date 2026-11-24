@@ -231,9 +231,10 @@ try {
     await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
     await live.enter(p);
     if (lang === "en") {
-      await p.evaluate(() => document.getElementById("bar").append(Object.assign(document.createElement("input"), { type: "text", id: "planted-field" })));
+      // Planted in a box of its own at the end of the page, where no redraw of the page reaches it.
+      await p.evaluate(() => { const box = document.createElement("div"); box.id = "planted-box"; box.append(Object.assign(document.createElement("input"), { type: "text", id: "planted-field" })); document.body.append(box); });
       control((await unnoticed(p, "en")).join() === "planted-field", "control: the notice check finds a field a person can type in without \"Public information only\" beside it");
-      await p.evaluate(() => document.getElementById("planted-field").remove());
+      await p.evaluate(() => document.getElementById("planted-box")?.remove());
     }
     await look("Start, empty", { beside: true });
     await live.sample(p);
