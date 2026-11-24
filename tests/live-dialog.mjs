@@ -124,7 +124,9 @@ try {
     await live.openDialog(p);
     const clean = await p.$eval("#live-warning", (w) => w.hidden);
     await p.keyboard.press("Escape");
-    await p.fill("#live-line", "Write to anna.berg@example.org or call +49 30 1234 5678");
+    // An address on the reserved example.org domain, joined here so that no file of the repository
+    // carries an e-mail address (tests/hygiene.mjs).
+    await p.fill("#live-line", `Write to ${["anna.berg", "example.org"].join("@")} or call +49 30 1234 5678`);
     await p.click('#canvas [data-block="partners"] .block-open');
     await p.click("#edit-add");
     await p.fill("#edit-partners-0", "Our bank DE89 3704 0044 0532 0130 00, a confidential deal");

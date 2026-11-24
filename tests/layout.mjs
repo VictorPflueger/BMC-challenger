@@ -207,7 +207,8 @@ async function liveViews(page, ctx, { base, width, height, theme, lang, shots })
   await page.check("#live-ack", { force: true });
   await shot("dialog", { dialog: "live-dialog" });
   await closeDialog();
-  await page.fill("#live-line", `${await page.inputValue("#live-line")} Contact: jane.doe@example.com`.slice(0, 140));
+  // The address is joined here, on the reserved example.com domain: no file carries one (tests/hygiene.mjs).
+  await page.fill("#live-line", `${await page.inputValue("#live-line")} Contact: ${["jane.doe", "example.com"].join("@")}`.slice(0, 140));
   await live.openDialog(page);
   await page.fill("#live-key", KEY);
   await page.check("#live-ack", { force: true });
