@@ -20,7 +20,7 @@ import { kpiById, SECTORS } from "../data/kpis.js";
 import { GENERAL_KNOWLEDGE } from "./guards.js";
 import { editField, notice } from "./live_view.js";
 
-const blockName = (id) => t(`block.${id}.name`);
+const blockName = (id, lang) => t(`block.${id}.name`, null, lang);
 const issueLabel = (i) => `${i.id.slice(1)}. ${i.title}`;
 // The issue in view is the one selected at Challenge, Assess and Adapt alike.
 const sectorName = (id, lang) => SECTORS.find((s) => s.id === id)?.name?.[lang] || id;
@@ -331,8 +331,8 @@ function panelChallenge(ctx, on) {
   ];
 }
 
-/** Marker sizes by expected euros a year: thirds of the largest (Vici's three steps). */
-function sizeOf(value, max) {
+/** Marker sizes by expected euros a year: thirds of the largest (Vici's three steps). The report uses it too. */
+export function sizeOf(value, max) {
   if (value === null || !max) return "";
   if (value <= max / 3) return "vc-risk__marker--sm";
   if (value > (2 * max) / 3) return "vc-risk__marker--lg";
@@ -411,7 +411,8 @@ function choiceKey(o, chosen) {
   return chosen === "accept" ? "accept" : o.list[chosen].kind;
 }
 
-function effectWords(e, lang) {
+/** What an option does, in words: the loss before and after, the upside, the bands. The report uses it too. */
+export function effectWords(e, lang) {
   if (e.before === null) {
     if (e.kind === "advantage") return t("effect.advantageNoEuros", { upside: fmtMoney(e.upside, lang) }, lang);
     return t(e.kind === "mitigate" ? "effect.mitigateBand" : "effect.noEuros", { b1: t(`band.${e.bandBefore}`, null, lang), b2: t(`band.${e.bandAfter}`, null, lang) }, lang);
@@ -421,13 +422,14 @@ function effectWords(e, lang) {
   return t("effect.accept", { before: fmtMoney(e.before, lang) }, lang);
 }
 
-function changeLine(c, ctx) {
+/** One change a response makes to the canvas, in words; one that names an item the person removed says so. */
+export function changeLine(c, ctx) {
   const { run, lang } = ctx;
   const item = run.completed.blocks[c.block]?.find((x) => x.id === c.item);
   const gone = c.action !== "add" && (!item || run.removed.has(c.item));
   const text = c.action === "remove" ? item?.text || "" : c.text;
   const note = gone ? t("change.gone", null, lang) : "";
-  return h("li", { dataset: { action: c.action, ...(gone ? { skipped: "true" } : {}) } }, t(`change.${c.action}`, { block: blockName(c.block) }, lang), " ", h("span", { class: "change-text" }, text), gone ? h("span", { class: "change-gone" }, " ", note) : null);
+  return h("li", { dataset: { action: c.action, ...(gone ? { skipped: "true" } : {}) } }, t(`change.${c.action}`, { block: blockName(c.block, lang) }, lang), " ", h("span", { class: "change-text" }, text), gone ? h("span", { class: "change-gone" }, " ", note) : null);
 }
 
 function panelAdapt(ctx, on) {
@@ -486,16 +488,21 @@ function panelSummary(ctx, on) {
 
 /**
  * Shows as many first steps as the summary has room for, in the issues' order, then "+2 more", which
- * opens them all. Run after the panel is in the page and on every resize.
+ * opens them all. Where the canvas is tight (tight: true, at 1280 × 720) the room ends where the Writer's
+ * tallest column ends, so the first steps never make the panel taller than the summary itself and the
+ * canvas keeps the height its blocks' names and states need. Run after the panel is in the page and on
+ * every resize.
  */
-export function fitSummary(panel) {
+export function fitSummary(panel, tight = false) {
   const list = panel.querySelector(".first-steps");
   const more = panel.querySelector(".summary-more");
   if (!list || !more) return;
   const items = [...list.children];
   for (const li of items) li.hidden = false;
   more.hidden = true;
-  const limit = () => panel.getBoundingClientRect().bottom - parseFloat(getComputedStyle(panel).paddingBottom || "0");
+  const others = [...panel.querySelectorAll(".summary__col")].filter((col) => !col.contains(list)).map((col) => col.lastElementChild).filter(Boolean);
+  const writer = () => (tight && others.length ? Math.max(...others.map((el) => el.getBoundingClientRect().bottom)) : Infinity);
+  const limit = () => Math.min(panel.getBoundingClientRect().bottom - parseFloat(getComputedStyle(panel).paddingBottom || "0"), writer());
   const overflows = () => Math.max(items.findLast((li) => !li.hidden)?.getBoundingClientRect().bottom || 0, more.hidden ? 0 : more.getBoundingClientRect().bottom) > limit() + 1;
   if (!overflows()) return;
   more.hidden = false;
@@ -524,6 +531,11 @@ export function renderPanel(el, ctx, on) {
 
 // ---- the bar under the story --------------------------------------------------------------------------
 
+/** The quieter way on beside a bar's action, such as "Try another company" beside the report. */
+export function secondButton(words, on) {
+  return h("button", { type: "button", class: "vc-button vc-button--secondary turn-second", id: "btn-second", on: { click: () => on.bar(words.action) } }, words.label, icon(words.action === "report" ? "download" : "refresh"));
+}
+
 /**
  * The bar right under the story: where the person acts, Vici's merlot callout says "Your turn" and holds
  * the one primary action with vc-attention; elsewhere it says when Play moves on and holds Next, named
@@ -531,11 +543,12 @@ export function renderPanel(el, ctx, on) {
  */
 export function renderBar(el, ctx, on) {
   const words = barWords(ctx);
-  const button = h("button", { type: "button", class: ["vc-button", "cta", words.kind === "turn" ? "vc-attention" : ""], id: "btn-cta", on: { click: () => on.bar(words.action) } }, words.label, icon(words.action === "restart" ? "refresh" : "chevron-right"));
+  const button = h("button", { type: "button", class: ["vc-button", "cta", words.kind === "turn" ? "vc-attention" : ""], id: "btn-cta", on: { click: () => on.bar(words.action) } }, words.label, icon(words.action === "report" ? "download" : "chevron-right"));
   if (words.kind === "turn") {
     el.replaceChildren(h("div", { class: "vc-callout turn turn-bar", role: "status" },
       h("span", { class: "vc-callout__cell", "aria-hidden": "true" }, icon("hand")),
       h("div", { class: "vc-callout__body" }, h("p", { class: "vc-callout__title" }, words.heading), h("p", { class: "turn-text" }, words.text)),
+      words.secondary ? secondButton(words.secondary, on) : null,
       button));
   } else {
     el.replaceChildren(h("div", { class: "story-foot" },

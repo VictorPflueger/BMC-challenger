@@ -2,9 +2,11 @@
 // works guides and their key figures (guideProblems), the byline (bylineProblems), the Writing
 // guideline's checkable patterns (writingProblems), the AI notice of a page that can start a live run
 // (aiNoticeProblems), names, not record ids (recordIdProblems), the framework view's states
-// (frameworkProblems) and the risk matrix (riskMatrixProblems). They run on the page as served, on the
-// page as rendered in English and in German, on every step of the three scenarios, on every text in the
-// dictionaries and the scenarios, and on the docs.
+// (frameworkProblems), the risk matrix (riskMatrixProblems) and, from 0.4.0, the report (reportProblems).
+// They run on the page as served, on the page as rendered in English and in German, on every step of the
+// three scenarios, on the report of each scenario as the page draws it and as its HTML file holds it, on
+// a live run's report finished and stopped, on every text in the dictionaries and the scenarios, and on
+// the docs.
 // ViciDesign's check-guide-render.mjs drives the guide over http. vici/ holds Vici's files byte for byte,
 // at the commit vici/README.md and the workflow name. The texts the agents and the scenarios write join
 // these checks with the simulation in 0.2.0.
@@ -33,6 +35,7 @@ const { aiNoticeProblems, canRunLive, AI_NOTICE } = await lib("ai.mjs");
 const { recordIdProblems } = await lib("ids.mjs");
 const { frameworkProblems } = await lib("framework.mjs");
 const { riskMatrixProblems } = await lib("risk.mjs");
+const { reportProblems } = await lib("report.mjs");
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 
 const read = (f) => readFileSync(path.join(APP_ROOT, f), "utf8");
@@ -176,6 +179,46 @@ try {
   }
   check(screens === 36 && !stepProblems.length, `every step of the three scenarios in both languages (${screens} screens) keeps Vici's framework view, the writing rules and names, not ids, and writes no "null" or "undefined" as text, the opened block included${stepProblems.length ? `: ${stepProblems.slice(0, 8).join("; ")}` : ""}`);
   check(matrices === 6, `the risk matrix stands at Assess in every scenario and language and keeps Vici's rule (${matrices} of 6)`);
+
+  // The report of every scenario in both languages, at Summary with its dialog open: Vici's report rule on
+  // the report as the page draws it and as its HTML file holds it, the writing rules on its words, and the
+  // page's own checks (guide, byline, writing, AI notice, names, not ids) with the dialog open.
+  const reportIssues = [];
+  let reports = 0;
+  let reportDemo = null;
+  for (const sc of ["s1", "s2", "s3"]) for (const lang of ["en", "de"]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
+    await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort("blockedbyclient"));
+    const p = await context.newPage();
+    const errors = [];
+    p.on("pageerror", (e) => errors.push(String(e.message || e)));
+    await p.goto(`${server.base}?guide=0&lang=${lang}&scenario=${sc}&step=5`);
+    await p.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+    await p.click("#btn-cta");
+    await p.waitForSelector("#report-dialog[open] #report");
+    await p.evaluate(() => Promise.all([...document.querySelectorAll("#report img")].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))));
+    const at = `${sc} ${lang} report`;
+    const report = await p.$eval("#report", (el) => el.outerHTML);
+    if (!reportDemo) reportDemo = report;
+    const view = await p.content();
+    const other = lang === "en" ? "de" : "en";
+    const one = view.replace(new RegExp(`<dialog\\b[^>]*\\bid="guide-${other}"[\\s\\S]*?</dialog>`), "").replace(new RegExp(`<button[^>]*data-vc-guide-open="guide-${other}"[\\s\\S]*?</button>`), "");
+    const [d] = await Promise.all([p.waitForEvent("download"), p.click("#rp-html")]);
+    const file = readFileSync(await d.path(), "utf8");
+    const problems = [
+      ...reportProblems(report).map((x) => `report: ${x}`),
+      ...reportProblems(file).map((x) => `HTML file: ${x}`),
+      ...writingProblems(`<html lang="${lang === "de" ? "de" : "en-GB"}"><body>${report}</body></html>`).map((x) => `report writing: ${x}`),
+      ...guideProblems(one).map((x) => `guide: ${x}`), ...bylineProblems(view).map((x) => `byline: ${x}`), ...writingProblems(view).map((x) => `writing: ${x}`),
+      ...aiNoticeProblems(view).map((x) => `notice: ${x}`), ...recordIdProblems(view, IDS).map((x) => `ids: ${x}`),
+      ...(await leaks(p)).map((x) => `"${x}" shows as text`), ...errors.map((x) => `page error: ${x}`)
+    ];
+    reportIssues.push(...problems.map((x) => `${at}: ${x}`));
+    reports += 1;
+    await context.close();
+  }
+  control(reportDemo && reportProblems(reportDemo.replace(/<p class="vc-byline[\s\S]*?<\/p>/, "")).length > 0 && reportProblems(reportDemo.replace(/(<section class="vc-report__page[^"]*report-page--issues[^>]*>)/, '$1<button type="button">Print</button>')).length > 0, "control: reportProblems catches the tool's report without its byline, and with a button in it");
+  check(reports === 6 && !reportIssues.length, `the report of every scenario in both languages (${reports}) keeps Vici's report rule as drawn and as its HTML file, the writing rules, and the page's guide, byline, writing, AI notice and names with the dialog open${reportIssues.length ? `: ${reportIssues.slice(0, 8).join("; ")}` : ""}`);
   // The two checks fail on this page's own markup, planted with a mistake.
   const canvasDemo = planted || "";
   control(riskMatrixProblems(canvasDemo.replace(/(<[^>]*\bvc-risk__cell\b[^>]*data-band=")[a-z]+/, "$1nope")).length > 0, "control: riskMatrixProblems catches a cell out of its band on the Assess screen");
@@ -197,8 +240,9 @@ try {
   for (const lang of ["en", "de"]) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort("blockedbyclient"));
-    const scene = { hold: null, error: false };
-    await install(context, { research: true, lang, script: (agent) => (scene.error && agent === "completer" ? apiError(402, "billing_error", "Your credit balance is too low.") : scene.hold && agent === "completer" ? scene.hold.then(() => undefined) : undefined) });
+    const scene = { hold: null, error: false, cap: false };
+    await install(context, { research: true, lang, script: (agent) => (scene.error && agent === "completer" ? apiError(402, "billing_error", "Your credit balance is too low.") : scene.hold && agent === "completer" ? scene.hold.then(() => undefined) : undefined),
+      usage: (agent) => (scene.cap && agent === "analyst" ? { input_tokens: 1000, output_tokens: 110000 } : {}) });
     const p = await context.newPage();
     const errors = [];
     p.on("pageerror", (e) => errors.push(String(e.message || e)));
@@ -273,17 +317,46 @@ try {
     await p.click("#btn-cta");
     await live.waitFor(p, "done");
     await look("the summary");
-    scene.error = true;
+    // The finished run's report, as the dialog draws it.
     await p.click("#btn-cta");
+    await p.waitForSelector("#report-dialog[open] #report");
+    const done = await p.$eval("#report", (el) => el.outerHTML);
+    liveProblems.push(...reportProblems(done).map((x) => `${lang} the live report: ${x}`));
+    await look("the live report", { dialog: "report-dialog" });
+    await p.keyboard.press("Escape");
+    scene.error = true;
+    await p.click("#btn-second"); // Start again, beside Download the report
+    await p.waitForSelector("#discard-dialog[open]");
+    await look("the question before a run is thrown away", { dialog: "discard-dialog" });
+    await p.click("#discard-go");
     await live.openDialog(p);
     await look("the dialog with the key held", { dialog: "live-dialog" });
     await p.check("#live-ack", { force: true });
     await p.click("#live-start");
     await live.waitFor(p, "stopped");
     await look("a run stopped by an error");
+    // Stopped at the budget cap after Assess: the report of what is done.
+    scene.error = false;
+    scene.cap = true;
+    await p.click("#btn-cta");
+    await live.openDialog(p);
+    await p.$eval("#live-cap", (el) => { el.value = "0.05"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    await p.check("#live-ack", { force: true });
+    await p.click("#live-start");
+    await live.waitFor(p, "review");
+    await p.click("#btn-cta");
+    await live.waitFor(p, "stopped", 30000);
+    await look("a run stopped at its cap");
+    await p.click("#btn-cta");
+    await p.waitForSelector("#report-dialog[open] #report");
+    const stopped = await p.$eval("#report", (el) => el.outerHTML);
+    liveProblems.push(...reportProblems(stopped).map((x) => `${lang} the stopped run's report: ${x}`));
+    if (!/data-vc-notice="[^"]+"/.test(stopped)) liveProblems.push(`${lang} the stopped run's report carries no notice`);
+    await look("the report of what is done", { dialog: "report-dialog" });
+    await p.keyboard.press("Escape");
     await context.close();
   }
-  check(liveScreens === 24 && !liveProblems.length, `every screen of a live run in both languages (${liveScreens} screens: ${[...liveNames].join(", ")}) keeps the writing rules, names, not ids, the AI notice beside each control that sets agents to work, Vici's framework view, risk matrix and live-run dialog, and writes no "null" or "undefined" as text${liveProblems.length ? `: ${liveProblems.slice(0, 8).join("; ")}` : ""}`);
+  check(liveScreens === 32 && !liveProblems.length, `every screen of a live run in both languages (${liveScreens} screens: ${[...liveNames].join(", ")}) keeps the writing rules, names, not ids, the AI notice beside each control that sets agents to work, Vici's framework view, risk matrix and live-run dialog, and writes no "null" or "undefined" as text${liveProblems.length ? `: ${liveProblems.slice(0, 8).join("; ")}` : ""}`);
 
   // ViciDesign's own drive of the guide, over http.
   const r = await new Promise((resolve) => {

@@ -9,6 +9,7 @@ import { STEP } from "./run.js";
 import { SECTORS } from "../data/kpis.js";
 import { LIMITS } from "./guards.js";
 import { BLOCKS } from "./canvas.js";
+import { secondButton } from "./view.js";
 
 const STEP_NAMES = ["start", "complete", "challenge", "assess", "adapt", "summary"];
 const stepName = (n, lang) => t(`p.step.${STEP_NAMES[n]}`, null, lang);
@@ -81,20 +82,22 @@ const aiTag = (lang) => h("span", { class: "vc-tag vc-tag--feature ai-notice" },
 
 /**
  * The bar under the story in a live run: what the person can do here and now. Returns { kind, el }.
- * kinds: turn (the person acts: start, review, decide), work (an agent works), stop (the run stopped),
- * end (done), next (a step behind the run's front).
+ * kinds: turn (the person acts: start, review, decide, take the report), work (an agent works), stop
+ * (the run stopped, with the report of what is done once a step is), wait (a step behind the run's front).
  */
 export function liveBar(ctx, on) {
   const { lang, step, reached } = ctx;
   const L = ctx.live;
-  const cta = (label, action, extra = "") => h("button", { type: "button", class: ["vc-button", "cta", extra], id: "btn-cta", on: { click: () => on.bar(action) } }, label, icon(action === "abort" ? "stop" : "chevron-right"));
-  const turn = (heading, text, label, action, kind = "turn") => ({
+  const cta = (label, action, extra = "") => h("button", { type: "button", class: ["vc-button", "cta", extra], id: "btn-cta", on: { click: () => on.bar(action) } }, label, icon(action === "abort" ? "stop" : action === "report" ? "download" : "chevron-right"));
+  // A turn that sets agents to work carries the AI notice; the report's does not, as it starts none.
+  const turn = (heading, text, label, action, kind = "turn", { secondary = null, agents = kind === "turn" } = {}) => ({
     kind,
     el: h("div", { class: "vc-callout turn turn-bar live-turn", role: "status" },
       h("span", { class: "vc-callout__cell", "aria-hidden": "true" }, icon(kind === "stop" ? "warning" : "hand")),
       h("div", { class: "vc-callout__body" }, h("p", { class: "vc-callout__title" }, heading), h("p", { class: "turn-text" }, text)),
-      kind === "turn" ? aiTag(lang) : null,
-      cta(label, action, kind === "turn" ? "vc-attention" : ""))
+      agents ? aiTag(lang) : null,
+      secondary ? secondButton(secondary, on) : null,
+      cta(label, action, kind === "turn" || action === "report" ? "vc-attention" : ""))
   });
   if (L.status === "working") {
     return {
@@ -104,14 +107,16 @@ export function liveBar(ctx, on) {
         cta(t("live.abort", null, lang), "abort", "vc-button--secondary"))
     };
   }
+  // A run that stopped after a step offers the report of what is done, with Start again beside it.
   if (L.status === "stopped" && step >= reached) {
+    if (reached >= STEP.complete) return turn(t("live.stopped", null, lang), stopWords(ctx), t("rp.stopped.cta", null, lang), "report", "stop", { secondary: { label: t("live.again", null, lang), action: "again" } });
     return turn(t("live.stopped", null, lang), stopWords(ctx), t("live.again", null, lang), "again", "stop");
   }
   if (step === STEP.start && !L.started) return turn(t("turn.title", null, lang), t("live.turn.start", null, lang), t("live.turn.start.action", null, lang), "agents");
   if (step === STEP.complete && L.status === "review") return turn(t("turn.title", null, lang), t("live.turn.complete", null, lang), t("turn.complete.action", null, lang), "challenge");
   if (step === STEP.adapt && L.status === "decision") return null; // the simulation's decision bar, with the notice added by the caller
   if (step === STEP.summary && L.status === "done") {
-    return { kind: "end", el: h("div", { class: "story-foot" }, h("p", { class: "foot-note", id: "foot-note" }, t("live.end", null, lang)), cta(t("live.again", null, lang), "again")) };
+    return turn(t("turn.title", null, lang), t("live.end", null, lang), t("rp.cta", null, lang), "report", "turn", { secondary: { label: t("live.again", null, lang), action: "again" }, agents: false });
   }
   if (step < reached) return null; // Next, as in the simulation
   return { kind: "wait", el: h("div", { class: "story-foot" }, h("p", { class: "foot-note" }, t("live.wait", null, lang)), cta(t("live.back", null, lang), "simulation", "vc-button--secondary")) };

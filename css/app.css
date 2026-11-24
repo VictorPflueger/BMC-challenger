@@ -298,6 +298,8 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .foot-note[data-tone="move"] { color: var(--vc-accent-text); font-weight: var(--vc-weight-semibold); }
 .foot-note:empty { display: none; }
 .cta.vc-button { --_h: 46px; flex: none; position: relative; overflow: hidden; gap: 8px; }
+/* The quieter way on beside the action, such as "Try another company" beside the report. */
+.turn-second.vc-button { --_h: 46px; flex: none; gap: 8px; }
 .cta::after { content: ""; position: absolute; inset: auto 0 0; height: 4px; background: currentColor; opacity: 0.55; transform: scaleX(var(--fill, 0)); transform-origin: left; pointer-events: none; }
 .turn.vc-callout { align-items: center; gap: 14px; padding: 8px 12px 8px 16px; }
 .turn .vc-callout__body { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; }
@@ -379,13 +381,13 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .block-name.vc-framework__title { font-size: var(--vc-font-size-sm); }
   .block-question { font-size: var(--fs-xs); line-height: 1.3; }
   .workspace { padding-top: 4px; padding-bottom: 6px; }
-  .stage { gap: 5px; }
+  .stage { gap: 4px; }
   .stage-title { font-size: var(--vc-font-size-lg); }
   .stage-lead { font-size: var(--fs-xs); }
   .panel { padding: 6px 14px; }
   .canvas .vc-item__summary { flex-wrap: nowrap; }
-  .cta.vc-button { --_h: 42px; }
-  .turn.vc-callout { padding-block: 6px; }
+  :is(.cta, .turn-second).vc-button { --_h: 42px; }
+  .turn.vc-callout { padding-block: 4px; }
   .turn .vc-callout__title { font-size: var(--vc-font-size-md); }
   /* Vici's risk matrix keeps 2.75rem rows; at 720 px high the panel gives it 2.1rem, so the canvas
      keeps the height its blocks' names and states need. */
@@ -459,7 +461,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .edit-list { display: grid; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
 .edit-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
 .block-dialog .item-edit { display: grid; gap: 4px; margin-top: 6px; }
-.turn-bar.vc-callout:has(> .ai-notice) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.turn-bar.vc-callout:has(> :is(.ai-notice, .turn-second)) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .live-agent { display: inline-flex; align-items: center; gap: 8px; color: var(--vc-text); font-weight: var(--vc-weight-medium); }
 .steps .vc-step[data-not-run="true"] .vc-step__label { color: var(--vc-text-subtle); }
 .panel-note.unchecked { margin-bottom: 6px; }

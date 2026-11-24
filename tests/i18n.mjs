@@ -111,7 +111,10 @@ const FAMILIES = {
   "live.preset.": { values: ["fast.help", "balanced.help", "thorough.help"], file: "js/live_dialog.js" },
   "live.private.": { values: ["email", "iban", "phone", "word"], file: "js/live_dialog.js" },
   "lang.": { values: ["en", "de"], file: "js/live_dialog.js" },
-  "kpi.wait.": { values: ["analyst", "redteam"], file: "js/story.js" }
+  "kpi.wait.": { values: ["analyst", "redteam"], file: "js/story.js" },
+  "rp.": { values: ["sum.h", "canvas.h", "issues.h", "matrix.h", "resp.h", "adapted.h", "method.h"], file: "js/report.js" },
+  "rp.legend.": { values: ["entered", "ai", "challenged", "pressure", "watch", "addressed", "removed", "count"], file: "js/report.js" },
+  "discard.": { values: ["again", "clear"], file: "js/app.js" }
 };
 const families = [];
 for (const [prefix, { values, file }] of Object.entries(FAMILIES)) {
@@ -152,7 +155,9 @@ check(/<html lang="en-GB"/.test(html), "the page is English until a script says 
 // ---- no sentence a person sees typed into the tool's own scripts ----------------------------------------
 const ALLOWED = [
   ["js/main.js", "Script error.", "the browser's own text for an error in a script from another site, compared, never shown"],
-  ["js/config.js", "Business Model Canvas Challenger", "APP.name, the tool's name in console tags and the handoff file; the page shows app.name from the dictionaries"]
+  ["js/config.js", "Business Model Canvas Challenger", "APP.name, the tool's name in console tags and the handoff file; the page shows app.name from the dictionaries"],
+  ["js/config.js", "Victor Pflüger", "AUTHOR.name, the byline's person as Vici's profile names him, the same in both languages"],
+  ["js/report.js", "CC BY-SA 3.0", "the canvas licence's name, the text of its link under every canvas, the same in both languages"]
 ];
 // js/guards.js writes to the model, not to a person: its refusals and the repair turn go back to the
 // agent in English, as the prompts do (brief 5.2, PLAN.md §4). The screen never shows them.

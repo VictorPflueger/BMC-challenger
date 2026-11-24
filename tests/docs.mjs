@@ -27,7 +27,7 @@ const DOCS = {
   "README.md": { max: 900, sections: ["What it does", "What is real and what is simulated", "A live run", "The canvas", "Run it", "Tests", "The documents", "Part of a set of four", "Author"], version: `version ${APP.version}` },
   "DESIGN.md": { max: 700, sections: ["Who it is for and where it is seen", "The screen", "Colour", "Words and languages", "The figures", "What stayed and what went"], version: `Version ${APP.version}` },
   "DATA_SOURCES.md": { max: 1200, urlsFree: true, sections: ["The Business Model Canvas", "The German names of the blocks", "The sector KPI library", "The exchange rate", "The fictional companies"], version: `Version ${APP.version}` },
-  "TECH_NOTES.md": { numbered: 13, version: `Version ${APP.version}` },
+  "TECH_NOTES.md": { numbered: 14, version: `Version ${APP.version}` },
   "REVIEW.md": { sections: ["Copied unchanged", "Copied with a new header", "Adapted", "Written for this tool"], version: `Version ${APP.version}` },
   "tests/README.md": { sections: ["What runs", "Setup for the browser suites", "The private term list", "The golden cases"] },
   "vici/README.md": {},

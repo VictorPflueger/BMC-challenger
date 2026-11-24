@@ -6,9 +6,25 @@
 export const APP = {
   id: "bmc",
   name: "Business Model Canvas Challenger",
-  version: "0.3.0",
+  version: "0.4.0",
   url: "https://victorpflueger.github.io/BMC-challenger/"
 };
+
+// The byline's person and links, as Vici's profile (src/brand/profile.json) names them: the report's last
+// page carries them, both links rel="author". The Prototype Ideator is where the handoff file goes next.
+export const AUTHOR = Object.freeze({
+  name: "Victor Pflüger",
+  linkedin: "https://www.linkedin.com/in/victorpflueger",
+  website: "https://victorpflueger.github.io/VIP/index.html",
+  portrait: "vici/assets/brand/portrait-96.jpg"
+});
+export const IDEATOR_URL = "https://victorpflueger.github.io/PrototypeIdeator/";
+
+// The credit under every canvas, on screen and in the report (PLAN.md §3): Strategyzer.com and the licence.
+export const CREDIT = Object.freeze({
+  strategyzer: "https://www.strategyzer.com",
+  licence: "https://creativecommons.org/licenses/by-sa/3.0/"
+});
 
 // The page's content security policy, exactly as index.html's meta tag carries it (brief 5.1);
 // tests/policy.mjs compares the two. A live run reaches api.anthropic.com with the person's own key;

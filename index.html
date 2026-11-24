@@ -13,6 +13,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="vici/dist/vici.min.css">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/report.css">
   <!-- Vici's theme script: the visitor's choice, else the light theme the html element names, before the page is drawn. -->
   <script src="vici/dist/vici-theme.js"></script>
   <script src="vici/dist/vici.js" defer></script>
@@ -157,6 +158,28 @@
     <div class="vc-dialog__body block-dialog__body" id="steps-dialog-body"></div>
   </dialog>
 
+  <!-- Start again or Clear everything while a live result isn't downloaded: Vici's destructive confirmation. -->
+  <dialog class="vc-dialog vc-dialog--sm" id="discard-dialog" aria-labelledby="discard-title" aria-describedby="discard-text">
+    <header class="vc-dialog__header">
+      <h2 class="vc-dialog__title" id="discard-title" data-i18n="discard.again">Start again without the report?</h2>
+    </header>
+    <div class="vc-dialog__body"><p class="discard-text" id="discard-text" data-i18n="discard.text">This run's result exists only in this tab. To keep it, download its report first.</p></div>
+    <footer class="vc-dialog__footer">
+      <button type="button" class="vc-button vc-button--ghost" id="discard-keep" data-vc-close autofocus data-i18n="discard.keep">Keep the run</button>
+      <button type="button" class="vc-button vc-button--danger" id="discard-go" data-vc-close="discard" data-i18n="live.again">Start again</button>
+    </footer>
+  </dialog>
+
+  <!-- The report at the end of a run (js/report_view.js): every page at size, the downloads in the footer. -->
+  <dialog class="vc-dialog report-dialog" id="report-dialog" aria-labelledby="report-dialog-title">
+    <header class="vc-dialog__header">
+      <h2 class="vc-dialog__title" id="report-dialog-title" data-i18n="rp.dialog.h">The report</h2>
+      <button type="button" class="vc-icon-button" data-vc-close aria-label="Close" data-i18n-attr="aria-label:p.close"><span class="vc-icon vc-icon--close" aria-hidden="true"></span></button>
+    </header>
+    <div class="vc-dialog__body report-dialog__body" id="report-body"></div>
+    <footer class="vc-dialog__footer report-tools" id="report-tools"></footer>
+  </dialog>
+
   <!-- How it works, once in English and once in German: Vici's guide. vici.js builds each chapter rail and
        opens the guide of the page's language once per browser tab (js/lang.js keeps the other closed);
        ?guide=0 keeps it closed, ?guide=present opens the talk track. -->
@@ -257,7 +280,7 @@
             <tr><th scope="row">The canvas</th><td>Adapted from The Business Model Canvas by Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); the questions on each block are this tool's own</td></tr>
             <tr><th scope="row">Kept</th><td>Nothing: your key and your inputs stay in this tab's memory and are gone when you close it</td></tr>
             <tr><th scope="row">The agents</th><td>In the simulation, recorded: answers written for each company and checked against the same rules a live run must pass. In a live run, Claude models working on your own key</td></tr>
-            <tr><th scope="row">This version</th><td>0.3.0 plays the three companies and runs live on your own Claude key; the report as PDF, HTML and JSON arrives in 0.4.0</td></tr>
+            <tr><th scope="row">This version</th><td>0.4.0 plays the three companies, runs live on your own Claude key and ends in the report: PDF, HTML and the file for the Prototype Ideator</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -269,7 +292,7 @@
           <li><strong>Start and Complete: the AI's additions.</strong> <span class="vc-guide__say">“The team filled five blocks. The agents added <span data-fig="lead.ai">10</span> items in lilac, and each says what it rests on.”</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Challenge: the first issue.</strong> <span class="vc-guide__say">“Emission allowances raise the cost of every European call, and the source is the Commission's own page.”</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Adapt: choose and apply.</strong> <span class="vc-guide__say">“Pass the cost on, plan both routes, sell an emissions statement: <span data-fig="lead.left">€7.8m</span> is left a year, and <span data-fig="lead.pressureAfter">2 of 9</span> blocks stay under pressure.”</span> <span class="vc-guide__time">1 min</span></li>
-          <li><strong>Summary, then your company.</strong> <span class="vc-guide__say">“Agents wrote the words, code computed every figure, and the canvas credits Strategyzer. Run it live does the same for your company, on your own Claude key.”</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Summary: the report, then your company.</strong> <span class="vc-guide__say">“Download the report: every page carries its footer, and every canvas the Strategyzer credit. Agents wrote the words, code computed every figure. Run it live does the same for your company, on your own Claude key.”</span> <span class="vc-guide__time">1 min</span></li>
         </ol>
       </section>
     </div>
@@ -322,7 +345,7 @@
             <tr><th scope="row">Das Canvas</th><td>Angepasst nach dem Business Model Canvas der Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); die Fragen in den Bausteinen stammen von diesem Werkzeug</td></tr>
             <tr><th scope="row">Gespeichert</th><td>Nichts: Ihr Schlüssel und Ihre Eingaben bleiben im Speicher dieses Tabs und sind weg, wenn Sie ihn schließen</td></tr>
             <tr><th scope="row">Die Agenten</th><td>In der Simulation aufgezeichnet: Antworten, die für jedes Unternehmen geschrieben und nach denselben Regeln geprüft sind, die ein Live-Lauf erfüllen muss. Im Live-Lauf Claude-Modelle, die mit Ihrem eigenen Schlüssel arbeiten</td></tr>
-            <tr><th scope="row">Diese Version</th><td>0.3.0 spielt die drei Unternehmen ab und läuft live mit Ihrem eigenen Claude-Schlüssel; der Bericht als PDF, HTML und JSON kommt mit 0.4.0</td></tr>
+            <tr><th scope="row">Diese Version</th><td>0.4.0 spielt die drei Unternehmen ab, läuft live mit Ihrem eigenen Claude-Schlüssel und endet im Bericht: PDF, HTML und die Datei für den Prototype Ideator</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -334,7 +357,7 @@
           <li><strong>Start und Ergänzen: was die KI hinzufügt.</strong> <span class="vc-guide__say">„Das Team hat fünf Bausteine gefüllt. Die Agenten haben <span data-fig="lead.ai">10</span> Einträge in Lila ergänzt, und jeder sagt, worauf er beruht.“</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Hinterfragen: die erste Schwachstelle.</strong> <span class="vc-guide__say">„Emissionszertifikate verteuern jeden Anlauf in Europa, und die Quelle ist die Seite der Kommission selbst.“</span> <span class="vc-guide__time">1 min</span></li>
           <li><strong>Anpassen: wählen und anwenden.</strong> <span class="vc-guide__say">„Kosten weitergeben, beide Routen planen, eine Emissionsbescheinigung verkaufen: Es bleiben <span data-fig="lead.left">7,8 Mio. €</span> im Jahr, und <span data-fig="lead.pressureAfter">2 von 9</span> Bausteinen bleiben unter Druck.“</span> <span class="vc-guide__time">1 min</span></li>
-          <li><strong>Fazit, dann Ihr Unternehmen.</strong> <span class="vc-guide__say">„Die Agenten haben die Worte geschrieben, Code hat jede Zahl gerechnet, und das Canvas nennt Strategyzer als Quelle. Live starten macht dasselbe für Ihr Unternehmen, mit Ihrem eigenen Claude-Schlüssel.“</span> <span class="vc-guide__time">1 min</span></li>
+          <li><strong>Fazit: der Bericht, dann Ihr Unternehmen.</strong> <span class="vc-guide__say">„Laden Sie den Bericht herunter: Jede Seite trägt ihre Fußzeile, jedes Canvas den Hinweis auf Strategyzer. Die Agenten haben die Worte geschrieben, Code hat jede Zahl gerechnet. Live starten macht dasselbe für Ihr Unternehmen, mit Ihrem eigenen Claude-Schlüssel.“</span> <span class="vc-guide__time">1 min</span></li>
         </ol>
       </section>
     </div>

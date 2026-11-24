@@ -13,9 +13,10 @@
 //            no database, cache, cookie or service worker, and its address names nothing but the scenario,
 //            the step, the language and the guide.
 //   live     a whole live run against the stand-in (lib/standin.mjs) with a planted key, research and a
-//            decision other than the one recommended leaves only those keys (Vici's storedKeyProblems
-//            agrees), and the key is in no storage, no address the page opened, no request body, no
-//            console message and nothing in the DOM; a reload forgets the key and the run.
+//            decision other than the one recommended, then its report saved as PDF, HTML and JSON (0.4.0),
+//            leaves only those keys (Vici's storedKeyProblems agrees), and the key is in no storage, no
+//            address the page opened, no request body, no downloaded file, no console message and nothing
+//            in the DOM; a reload forgets the key and the run.
 // Vici's storageProblems() also judges every script (G15 of M3). Each scanner and the judge first prove
 // on planted examples that they catch what they look for. Vici's functions come from a ViciDesign
 // checkout (VICI_DIR, or ../ViciDesign); without one the suite says so and skips them, unless
@@ -347,6 +348,20 @@ async function liveRun() {
     const scout = api.calls.filter((c) => c.agent === "scout");
     check(done.reached === 5 && done.research?.ran === true && scout.length > 0 && choseOther, `a live run with research and a decision of its own reaches the summary (${api.calls.map((c) => c.agent).join(" ")})`);
 
+    // Its report, downloaded three ways (0.4.0): the PDF through Save as PDF, the HTML file and the JSON file.
+    await page.click("#btn-cta");
+    await page.waitForSelector("#report-dialog[open] #report");
+    await page.evaluate(() => { window.print = () => window.dispatchEvent(new Event("afterprint")); });
+    await page.click("#rp-pdf");
+    const files = [];
+    for (const id of ["#rp-html", "#rp-json"]) {
+      const [d] = await Promise.all([page.waitForEvent("download"), page.click(id)]);
+      files.push(d.suggestedFilename());
+      requests.push({ url: "", body: fs.readFileSync(await d.path(), "utf8") });
+    }
+    await page.keyboard.press("Escape");
+    check(files.length === 2 && files.every((f) => /^bmc-challenger-.+-\d{4}-\d{2}-\d{2}-en\.(html|json)$/.test(f)), `the report leaves the page as its files (${files.join(", ")}), printed as PDF too`);
+
     // What the browser keeps.
     const st = await readState(page, ctx);
     const problems = judge(st);
@@ -364,13 +379,13 @@ async function liveRun() {
       "local or session storage": JSON.stringify([st.local, st.session]),
       "the address": page.url(),
       "an address the page opened": requests.map((r) => r.url).join("\n"),
-      "a request body": requests.map((r) => r.body).join("\n"),
+      "a request body or a downloaded file": requests.map((r) => r.body).join("\n"),
       "a console message": consoleLines.join("\n"),
       "a page error": errors.join("\n"),
       "the DOM, its attributes or a field's value": dom
     };
     const found = leaks(places, KEY);
-    check(sentTo.size === 1 && sentTo.has(KEY) && !found.length, `the key went only in the x-api-key header of ${api.calls.length} requests to api.anthropic.com and is in no storage, address, request body, console message or DOM attribute${found.length ? `; found in ${found.join(", ")}` : ""}`);
+    check(sentTo.size === 1 && sentTo.has(KEY) && !found.length, `the key went only in the x-api-key header of ${api.calls.length} requests to api.anthropic.com and is in no storage, address, request body, downloaded file, console message or DOM attribute${found.length ? `; found in ${found.join(", ")}` : ""}`);
     check(consoleLines.some((l) => l.includes("Live run on claude-haiku-5-5")) && consoleLines.some((l) => l.includes("The Scout reported")), `the console scan reads the run's own lines (${consoleLines.length} lines)`);
     const issue = api.defaults.redteam.issues[0].title;
     const run = JSON.stringify([st.local, st.session]) + decodeURIComponent(page.url());
