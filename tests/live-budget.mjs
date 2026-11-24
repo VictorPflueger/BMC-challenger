@@ -3,11 +3,12 @@
 // $0.01 for each search it may run, worked out here on its own and compared with js/budget.js. In
 // Chromium against the stand-in: a request that fits only with fewer output tokens goes with the step's
 // minimum; a run that can't go on stops before the request, says "Stopped at your budget cap after
-// <step>", sends nothing more, marks the rest not run and keeps what is done in its record (the report
-// of M4 prints it on every page); the meter equals the usage of every answer times its price plus $0.01
-// a search, at 0.894, within 1e-9; the Session cost tile shows the spend with the cap in its note; the
-// run's last console line gives each agent's requests, tokens, searches, seconds and cost, which add up
-// to the meter, and nothing the person entered (what Victor sends back after his live runs, G26).
+// <step>", sends nothing more, marks the rest not run, says so on the review, and keeps what is done
+// in its record (the report of M4 prints it on every page); the meter equals the usage of every answer
+// times its price plus $0.01 a search, at 0.894, within 1e-9; the Session cost tile shows the spend
+// with the cap in its note; the run's last console line gives each agent's requests, tokens, searches,
+// seconds and cost, which add up to the meter, and nothing the person entered (what Victor sends back
+// after his live runs, G26).
 // Prints LIVE BUDGET OK. Usage: node tests/live-budget.mjs
 import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live, KEY } from "./lib/standin.mjs";
@@ -90,8 +91,10 @@ try {
     await p.click("#btn-cta");
     const st = await live.waitFor(p, "stopped");
     await p.waitForTimeout(500);
-    const screen = await p.evaluate(() => ({ bar: document.querySelector("#bar").textContent, steps: [...document.querySelectorAll("#steps .vc-step")].map((li) => li.dataset.notRun === "true") }));
+    const screen = await p.evaluate(() => ({ bar: document.querySelector("#bar").textContent, steps: [...document.querySelectorAll("#steps .vc-step")].map((li) => li.dataset.notRun === "true"), step: window.BMC.state.step, hint: document.querySelector("#panel .complete-hint")?.textContent }));
     const msg = EN["live.stop.cap"].replace("{step}", EN["p.step.complete"]);
+    // The review stays on screen and says the truth: the run stopped before the Red team answered.
+    check(screen.step === 1 && screen.hint === EN["live.complete.stopped"], "the review says the run stopped before the challenge, not that the Red team challenged the canvas", JSON.stringify({ step: screen.step, hint: screen.hint }));
     check(st.stopped?.cause === "cap" && st.reached === 1 && api.calls.length === 1, "a run whose next request could pass the cap stops before it and sends nothing more", JSON.stringify({ st, calls: api.calls.map((c) => c.agent) }));
     check(screen.bar.includes(msg), `it says "${msg}"`, screen.bar.slice(0, 160));
     check(same(screen.steps, [false, false, true, true, true, true]), "the steps it never ran are marked not run; what is done stays", JSON.stringify(screen.steps));
