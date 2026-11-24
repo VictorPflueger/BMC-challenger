@@ -19,6 +19,7 @@ const SUITES = [
   { id: "scenarios", what: "the scenario checker passes the three scenarios and fails on a planted defect of each kind", file: "tests/scenarios.mjs", browser: false },
   { id: "audit", what: "the fact audit on golden texts in both languages, and each guardrail refusing a planted defect", file: "tests/audit.mjs", browser: false },
   { id: "policy", what: "the security policy exactly as the brief has it, nothing loaded from elsewhere, no inline script or style", file: "tests/policy.mjs", browser: false },
+  { id: "decisions", what: "the four decisions after 0.2.0, settled with Vici first: theme script, first lines, German words, recorded", file: "tests/decisions.mjs", browser: false },
   { id: "lean", what: "the presenter's size, no request before the live client, the design review's cuts, the docs' length", file: "tests/lean.mjs", browser: false },
   { id: "hygiene", what: "no client, prospect, contact or meeting named in any published file", file: "tests/hygiene.mjs", browser: false },
   { id: "parity", what: "the shared parts equal every sibling that has them", file: "tests/parity.mjs", browser: false },

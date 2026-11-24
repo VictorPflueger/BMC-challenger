@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: VictorPflueger/ViciDesign
-          ref: 2759b7aa06eaf2eea11fc9f4f9578342535de7ce
+          ref: 5b8fea383c969b519f44c6b9dba196bc7387ba50
           path: ViciDesign
           fetch-depth: 0
       # Victor's website, for the page icon (its card for this tool is added with 1.0.0), and the

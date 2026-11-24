@@ -72,7 +72,7 @@ function itemRow(it, { status, word, current, lang, toggle = null, rank = 0 }) {
   return h("li", { class: "vc-item", dataset: { source, item: it.id, rank: String(rank), ...(status ? { status } : {}) }, "aria-current": current ? "true" : null },
     h("div", { class: "vc-item__summary" },
       h("span", { class: "vc-item__mark", "aria-hidden": "true" }, mark),
-      h("button", { type: "button", class: "vc-item__text item-open", dataset: { open: it.block || blockOf(it.id) } }, text),
+      h("button", { type: "button", class: "item-open", dataset: { open: it.block || blockOf(it.id) } }, h("span", { class: "vc-item__text" }, text)),
       h("span", { class: "vc-item__states" }, states),
       toggle ? h("button", { type: "button", class: "vc-icon-button item-toggle", "aria-pressed": String(removed), "aria-label": t(removed ? "p.complete.keepLabel" : "p.complete.removeLabel", { item: it.text }, lang), title: t(removed ? "p.complete.keep" : "p.complete.remove", null, lang), on: { click: () => toggle(it.id) } }, icon(removed ? "undo" : "close")) : null));
 }
@@ -213,7 +213,7 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
     if (it.status === "changed") note.push(h("p", {}, t("item.changedBy", null, lang)));
     // In the dialog the text is plain, not a button: the block is already open.
     const opener = row.querySelector(".item-open");
-    opener.replaceWith(h("span", { class: "vc-item__text" }, ...opener.childNodes));
+    opener.replaceWith(...opener.childNodes);
     if (note.length) row.append(h("div", { class: "vc-item__body" }, note));
     return row;
   });

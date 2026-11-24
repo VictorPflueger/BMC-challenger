@@ -148,13 +148,17 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 /* An item's text is a button that opens its block: Vici's text, with the button's own look taken off. At
    Complete an AI item has a small switch beside it that removes it or brings it back. */
 .vc-item__summary { cursor: default; align-items: center; }
-.item-open.vc-item__text { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.item-open { display: flex; align-items: center; flex: 1 1 9rem; min-width: 0; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
 .item-open:hover { text-decoration: underline; text-underline-offset: 0.18em; }
-.canvas .vc-item__text { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .item-toggle.vc-icon-button { flex: none; width: 1.75rem; height: 1.75rem; margin-inline-start: -2px; }
-/* On the canvas the switch keeps an AI item's row as tall as any other (26 px, above WCAG's 24 px minimum),
-   so a block fits as many AI items as entered ones. The block dialog keeps the larger switch. */
-.canvas .item-toggle.vc-icon-button { width: 1.625rem; height: 1.625rem; margin-block: -3px; }
+/* Vici's density rule on the canvas: every target is at least 32 px, the small control size for dense
+   screens, inside Vici's 2rem rows (negative margins keep the row's height); 44 px with a coarse pointer. */
+.canvas :is(.item-toggle.vc-icon-button, .item-open) { min-height: 2rem; margin-block: -4px; }
+.canvas :is(.block-open, .block-more) { min-height: 2rem; min-width: 2rem; margin-block: -7.5px; }
+.canvas .item-toggle.vc-icon-button { width: 2rem; height: 2rem; }
+.canvas .block-open { display: inline-flex; align-items: center; }
+.canvas .block-more { border: 5px solid transparent; background-clip: padding-box; }
+@media (pointer: coarse) { .canvas :is(.item-toggle.vc-icon-button, .item-open, .block-open, .block-more) { min-height: 2.75rem; min-width: 2.75rem; margin-block: 0; } }
 .canvas .vc-item__states { margin-block: -3px; flex-wrap: nowrap; }
 /* A word its mark already says, such as "AI" beside an item's sparkle, stays for screen readers only. */
 .canvas .tag-quiet { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -379,8 +383,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .stage-title { font-size: var(--vc-font-size-lg); }
   .stage-lead { font-size: var(--fs-xs); }
   .panel { padding: 6px 14px; }
-  .canvas .vc-item__text { -webkit-line-clamp: 1; }
-  .canvas .vc-item__summary { flex-wrap: nowrap; min-height: 1.75rem; }
+  .canvas .vc-item__summary { flex-wrap: nowrap; }
   .cta.vc-button { --_h: 42px; }
   .turn.vc-callout { padding-block: 6px; }
   .turn .vc-callout__title { font-size: var(--vc-font-size-md); }
@@ -401,7 +404,8 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .panel .split .panel-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* The merlot marker and the bar under the story say whose turn it is; the stepper drops its words. */
   .steps .vc-step__hint { display: none; }
-  .canvas.vc-framework { min-height: 8.75rem; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(2rem, 0.7fr); }
+  .canvas.vc-framework { min-height: 8.75rem; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(2.625rem, 0.7fr); }
+  .canvas .block .vc-framework__head { row-gap: 0; }
   .issue-pick { font-size: var(--fs-xs); padding-block: 1px; }
   .split { grid-template-columns: minmax(18rem, 1.3fr) minmax(0, 1fr); }
   .issue-list { gap: 2px; }
@@ -410,8 +414,6 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .panel .vc-risk figcaption { display: none; }
   /* A tight canvas shows a block's state as "2 · high"; the noun stays for screen readers. */
   .canvas .tag-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  /* The wide, short blocks at the bottom put their name and states beside their items, so even a short
-     row shows the items an issue names. */
   /* Short as they are here, the two bottom blocks put their name and states beside their items, so the
      items an issue names stay in view. */
   .canvas .block.vc-framework__area:is([data-block="costs"], [data-block="revenue"]) { display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: start; column-gap: 12px; padding-block: 4px; }

@@ -103,6 +103,15 @@ Each of these makes the plan work at 1280 × 720 or keeps the set of four alike;
 - The tool's own theme script, copied from the sisters in 0.1.0, is gone: Vici's `vici/dist/vici-theme.js`, which the PESTEL Challenger merged into ViciDesign, does the same under a strict policy.
 - `applyChanges` numbers an added item past every id its block ever held, so it never reuses the number of an AI item the person removed.
 
+### The four decisions after 0.2.0
+
+Victor left four open points of the M2 pull request to me on 24 November 2026, with one rule: when in doubt, Vici decides.
+
+1. **The theme script.** The page loads Vici's `vici/dist/vici-theme.js`, and the tool keeps no theme script of its own.
+2. **Targets on the canvas.** Vici's density rule decides: 40 px controls by default, the small control size of 32 px on dense screens, never below 32 px on a touch screen, 44 px as the comfortable touch minimum. So every target on the canvas (an item, the remove switch, a block's name and its "+2") is at least 32 × 32 px inside Vici's 2rem rows, and 44 px with a coarse pointer; every other control keeps 40 px. The brief's AC-14 asks 40 px of every target; the canvas follows Vici instead, and `tests/layout.mjs` measures both rules. The byline's links stay for M5, as Victor decided at M1.
+3. **An item's first line.** Vici's framework view has a compact form that shows each item's first line, so the canvas uses it (`vc-framework--compact`, set where the canvas is tight, at 1280 × 720) and has no line clamp of its own. At 1920 × 1080 the canvas shows items in full, as Vici's framework view does; the block's dialog always does.
+4. **German words.** "Fazit" for the last step and "Mindern" for mitigate stay. Vici names neither; the SWOT Challenger uses both words, and the PESTEL Challenger uses "Mindern" too.
+
 ## 10. The siblings and the shared parts
 
 The brief's rule (4.1): before writing a shared part, fetch the siblings; if one has merged it, copy it byte for byte and name the commit. At 20:30 UTC on 23 November 2026 no sibling had a shared part, so this tool built its own. The SWOT Challenger merged its M1 at 20:44 UTC (617b122), a few minutes before this tool's M1 was pushed, with `js/risk.js`, `data/kpis.js`, `schemas/strategy-challenge-1.json` and `schemas/strategy-challenge-1.js`. Those four are its files now, copied unchanged from 617b122, and the engine, the formats and the tests moved onto them; `tests/kpis.mjs` is SWOT's too. The PESTEL Challenger (a223844) and the Prototype Ideator (0aefaf6) still held their plans only. `tests/parity.mjs` compares each shared part with every sibling checkout that has it, and CI checks out all three.

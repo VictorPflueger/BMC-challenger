@@ -67,6 +67,10 @@ function measure() {
   // are Vici's own component, measured with the rest of AC-14 in 1.0.0.
   const small = all(".app-header button, .talk button").filter(shows).map((el) => ({ el, r: box(el) }))
     .filter(({ r }) => r.width < 40 - 0.5 || r.height < 40 - 0.5).map(({ el, r }) => `${(el.textContent.trim() || el.getAttribute("aria-label") || el.className).slice(0, 20)} ${Math.round(r.width)}×${Math.round(r.height)}`);
+  // Vici's density rule on the canvas: every clickable target at least 32 × 32 px (the small control size).
+  const minTarget = matchMedia("(pointer: coarse)").matches ? 44 : 32;
+  const canvasSmall = all(".canvas button, .canvas a, .canvas input, .canvas [role=button]").filter(shows).map((el) => ({ el, r: box(el) }))
+    .filter(({ r }) => r.width < minTarget - 0.5 || r.height < minTarget - 0.5).map(({ el, r }) => `${(el.textContent.trim() || el.getAttribute("aria-label") || el.className).slice(0, 20)} ${Math.round(r.width)}×${Math.round(r.height)}`);
   const blocks = all(".canvas .block").map((el) => {
     const b = box(el);
     const head = el.querySelector(".vc-framework__head");
@@ -93,6 +97,8 @@ function measure() {
     talkRight: Math.max(...talkItems.map((b) => b.right)),
     labelClearance,
     small,
+    canvasSmall,
+    minTarget,
     blocks,
     canvas: box(q(".canvas")),
     credit: box(q(".credit")),
@@ -156,7 +162,7 @@ try {
     check(guide.id === `guide-${lang}` && guide.inside && guide.sideways <= 0, `${size}: the guide opens in its language inside the window`, JSON.stringify(guide));
     check(!bootHelp, `${size}: the loading screen's help stays hidden after a normal start`);
 
-    const problems = { fit: [], stepper: [], header: [], talk: [], clearance: [], small: [], blocks: [], heads: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], adapt: [] };
+    const problems = { fit: [], stepper: [], header: [], talk: [], clearance: [], small: [], targets: [], blocks: [], heads: [], credit: [], bar: [], cut: [], panel: [], scrolls: [], adapt: [] };
     let adaptChecked = 0;
     for (const sc of SCENARIOS) for (let step = 0; step < STEPS.length; step++) {
       const at = `${sc} ${STEPS[step]}`;
@@ -176,6 +182,7 @@ try {
       if (!(Math.max(...m.talkTops) - Math.min(...m.talkTops) <= 4 && m.talkRight <= m.viewport.width)) problems.talk.push(`${at} (centres ${m.talkTops.join(", ")})`);
       if (!(m.labelClearance >= 8)) problems.clearance.push(`${at} (${Math.round(m.labelClearance)} px)`);
       if (m.small.length) problems.small.push(`${at}: ${m.small.join(", ")}`);
+      if (m.canvasSmall.length) problems.targets.push(`${at}: ${m.canvasSmall.slice(0, 4).join(", ")}`);
       const tiny = m.blocks.filter((b) => b.width < 110 || b.height < 32);
       if (m.blocks.length !== 9 || tiny.length) problems.blocks.push(`${at}: ${tiny.map((b) => `${b.id} ${Math.round(b.width)}×${Math.round(b.height)}`).join(", ")}`);
       const heads = m.blocks.filter((b) => b.headCut);
@@ -201,6 +208,7 @@ try {
     check(!problems.talk.length, `${size}: Play, Back, the six steps, Next, Run it live and the AI notice stand on one line`, problems.talk.slice(0, 4).join("; "));
     check(!problems.clearance.length, `${size}: the step labels keep clear of Back and Next`, problems.clearance.slice(0, 4).join("; "));
     check(!problems.small.length, `${size}: every control in the header and the talk bar is at least 40 × 40 px`, problems.small.slice(0, 4).join("; "));
+    check(!problems.targets.length, `${size}: every target on the canvas is at least 32 × 32 px, Vici's small control size`, problems.targets.slice(0, 4).join("; "));
     check(!problems.blocks.length, `${size}: the nine blocks have room on every step`, problems.blocks.slice(0, 4).join("; "));
     check(!problems.heads.length, `${size}: every block keeps its name and its state tags whole`, problems.heads.slice(0, 6).join("; "));
     check(!problems.credit.length, `${size}: the byline above the canvas, the credit and the fictional label under it, on every step`, problems.credit.slice(0, 4).join("; "));
@@ -210,6 +218,23 @@ try {
     check(!problems.scrolls.length, `${size}: the panels of Challenge, Assess and Summary show everything without scrolling`, problems.scrolls.slice(0, 6).join("; "));
     check(adaptChecked >= SCENARIOS.length * 5 && !problems.adapt.length, `${size}: at Adapt every option of every issue, Accept included, shows in full above the bar (${adaptChecked} issues)`, problems.adapt.slice(0, 4).join("; "));
     check(!errors.length && !outside.length, `${size}: no errors, no request to another site`, [...errors, ...outside].slice(0, 4).join(" | "));
+    await ctx.close();
+  }
+  // With a coarse pointer (a touch screen) every target on the canvas is at least 44 px, Vici's
+  // comfortable minimum for touch: Complete (the remove switches) and Challenge (the "+2" chips) of S2.
+  for (const [width, height] of SIZES) {
+    const { context: ctx } = await context(browser, { width, height, hasTouch: true });
+    const page = await ctx.newPage();
+    const small = [];
+    for (const step of [1, 2]) {
+      await page.goto(`${server.base}?guide=0&scenario=s2&step=${step}`);
+      await page.waitForSelector('html[data-boot="ready"]', { timeout: 20000 });
+      await page.waitForSelector("#boot", { state: "detached", timeout: 5000 }).catch(() => {});
+      const m = await page.evaluate(measure);
+      if (m.minTarget !== 44) small.push("the page did not see a coarse pointer");
+      small.push(...m.canvasSmall.map((s) => `${STEPS[step]}: ${s}`));
+    }
+    check(!small.length, `${width} × ${height} with a touch screen: every target on the canvas is at least 44 × 44 px`, small.slice(0, 4).join("; "));
     await ctx.close();
   }
 } finally {

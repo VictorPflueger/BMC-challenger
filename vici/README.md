@@ -1,7 +1,7 @@
 # Vici, copied into this prototype
 
 These files come unchanged from Vici, Victor Pflüger's design system
-(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`2759b7a`**
+(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`5b8fea3`**
 (24 November 2026), on the way to Vici 2.0. Besides the How it works guide (`vc-guide`) with one guide
 per language, the 2.0 byline, the key-figure rule, the struck-through old value of a key figure
 (`vc-stat__was`), `vc-attention` and `--vc-step-fill`, that commit brings the framework view with its

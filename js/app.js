@@ -175,6 +175,11 @@ export async function start() {
   const refit = () => { fitSummary(els.panel); fitCanvas(els.canvas); };
   window.addEventListener("resize", refit);
   document.fonts?.ready.then(refit);
+  // Where the canvas is tight (1280 × 720), Vici's compact framework view shows each item's first line.
+  const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
+  const compact = () => els.canvas.classList.toggle("vc-framework--compact", tight.matches);
+  tight.addEventListener("change", () => { compact(); refit(); });
+  compact();
   /** Every first step of the chosen responses, in the dialog the summary's "+2 more" opens. */
   function drawStepsDialog() { els.stepsBody.replaceChildren(h("ul", { class: "first-steps" }, firstSteps(context()))); }
 
