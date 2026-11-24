@@ -84,6 +84,14 @@ export async function context(browser, { width = 1280, height = 720, locale = "e
   return { context: ctx, outside };
 }
 
+/**
+ * Ends a suite once everything it printed has left: process.exit() right after console.log can cut the
+ * last lines, its success token among them, when stdout is a pipe that is read slowly.
+ */
+export function exit(code) {
+  process.stdout.write("", () => process.exit(code));
+}
+
 /** Console noise that blocked outside requests cause. */
 export const NETWORK_NOISE = /Failed to load resource|net::ERR_|ERR_BLOCKED_BY_CLIENT|ERR_FAILED/;
 

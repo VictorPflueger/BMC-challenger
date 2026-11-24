@@ -6,7 +6,7 @@
 // after 1.5 and 4 seconds or after retry-after (at most 20 seconds, js/anthropic.js; the cap is checked
 // in Node with the clock stubbed); the spend cap, credit and key errors never are. Prints LIVE ERRORS OK.
 // Usage: node tests/live-errors.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live, apiError } from "./lib/standin.mjs";
 import { ApiError, withRetry } from "../js/anthropic.js";
 import EN from "../js/i18n/en.js";
@@ -93,4 +93,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} error checks passed`);
 if (!failed) console.log("LIVE ERRORS OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

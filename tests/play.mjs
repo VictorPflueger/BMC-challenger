@@ -5,7 +5,7 @@
 // a step and pause; ?scenario=s2&step=4 plays the run up to that step with the recorded choices; the
 // address follows the presenter; each step change moves the focus to the step's title.
 // Usage: node tests/play.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE, exit } from "./lib/harness.mjs";
 
 const results = [];
 const check = (ok, what, detail = "") => results.push({ ok: !!ok, what, detail });
@@ -102,4 +102,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} play checks passed.`);
 if (!failed) console.log("PLAY OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

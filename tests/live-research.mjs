@@ -5,7 +5,7 @@
 // included; an organisation with web search switched off goes on without research and the Challenge
 // step says so. Without research the run says once, in the console, that the model knows the world up
 // to June 2026. Prints LIVE RESEARCH OK. Usage: node tests/live-research.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live, scoutTurn, apiError, s1Answers } from "./lib/standin.mjs";
 import { OUTPUT } from "../schemas/index.js";
 import EN from "../js/i18n/en.js";
@@ -101,4 +101,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} research checks passed`);
 if (!failed) console.log("LIVE RESEARCH OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

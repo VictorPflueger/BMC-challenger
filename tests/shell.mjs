@@ -11,7 +11,7 @@
 // Usage: node tests/shell.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE, exit } from "./lib/harness.mjs";
 
 const mod = (p) => import(pathToFileURL(path.join(APP_ROOT, p)).href);
 const EN = (await mod("js/i18n/en.js")).default;
@@ -169,4 +169,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} shell checks passed.`);
 if (!failed) console.log("SHELL OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

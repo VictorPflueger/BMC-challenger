@@ -3,7 +3,7 @@
 // block's dialog shows its basis and confidence; before the challenge the person keeps, edits or removes
 // each AI item, and the Red team's request carries the edited text and none of the removed items. An
 // edited item says so. Prints LIVE REVIEW OK. Usage: node tests/live-review.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live } from "./lib/standin.mjs";
 import EN from "../js/i18n/en.js";
 
@@ -73,4 +73,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} review checks passed`);
 if (!failed) console.log("LIVE REVIEW OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

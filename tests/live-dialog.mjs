@@ -11,7 +11,7 @@
 // Usage: node tests/live-dialog.mjs
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { APP_ROOT, viciDir, launchBrowser, serveStatic, port, context, outDir } from "./lib/harness.mjs";
+import { APP_ROOT, viciDir, launchBrowser, serveStatic, port, context, outDir, exit } from "./lib/harness.mjs";
 import { install, live, apiError, KEY } from "./lib/standin.mjs";
 import EN from "../js/i18n/en.js";
 
@@ -184,4 +184,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} dialog checks passed. Screenshots: ${shots}`);
 if (!failed) console.log("LIVE DIALOG OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

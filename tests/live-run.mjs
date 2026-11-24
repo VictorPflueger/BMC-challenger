@@ -6,7 +6,7 @@
 // the page's language and keeps it when the page switches, saying so; Clear everything empties the form,
 // the canvas and the run and forgets the key, and stops an agent at work; the browser asks before leaving while a live result exists.
 // Prints LIVE RUN OK. Usage: node tests/live-run.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live } from "./lib/standin.mjs";
 import EN from "../js/i18n/en.js";
 import DE from "../js/i18n/de.js";
@@ -165,4 +165,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} live-run checks passed`);
 if (!failed) console.log("LIVE RUN OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

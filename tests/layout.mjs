@@ -19,7 +19,7 @@
 // and the footer stay in view.
 // Usage: node tests/layout.mjs [s1 s2 s3] [--no-live]
 import path from "node:path";
-import { APP_ROOT, launchBrowser, serveStatic, port, context, outDir, NETWORK_NOISE, ONLY } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, outDir, NETWORK_NOISE, ONLY, exit } from "./lib/harness.mjs";
 import { install, live, apiError, KEY } from "./lib/standin.mjs";
 
 const SCENARIOS = ONLY.length ? ONLY : ["s1", "s2", "s3"];
@@ -415,4 +415,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} layout checks passed on ${views} views (${liveCount} of a live run). Screenshots: ${shots}`);
 if (!failed) console.log("LAYOUT OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

@@ -9,7 +9,7 @@
 // run's last console line gives each agent's requests, tokens, searches, seconds and cost, which add up
 // to the meter, and nothing the person entered (what Victor sends back after his live runs, G26).
 // Prints LIVE BUDGET OK. Usage: node tests/live-budget.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live, KEY } from "./lib/standin.mjs";
 import { fitToCap, worstCaseUsd } from "../js/budget.js";
 import { MODELS, AGENT_TOKENS, FX_USD_EUR } from "../js/config.js";
@@ -132,4 +132,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} budget checks passed`);
 if (!failed) console.log("LIVE BUDGET OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

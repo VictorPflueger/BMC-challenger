@@ -6,7 +6,7 @@
 // free GET /v1/models; a failing answer gets exactly one repair, and the run goes on; Abort at each agent
 // stops the run at once, sends nothing more and keeps every step done. Prints LIVE REQUESTS OK.
 // Usage: node tests/live-requests.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, NETWORK_NOISE, exit } from "./lib/harness.mjs";
 import { install, live, answer, KEY } from "./lib/standin.mjs";
 import { OUTPUT } from "../schemas/index.js";
 import { PRESETS, ANTHROPIC } from "../js/config.js";
@@ -113,4 +113,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} request checks passed`);
 if (!failed) console.log("LIVE REQUESTS OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);

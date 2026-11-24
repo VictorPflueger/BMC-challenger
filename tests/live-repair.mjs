@@ -7,7 +7,7 @@
 // issue's own and four changes in one option (Strategist). The Writer's prose that fails the fact audit
 // goes back with its tokens, and after a second refusal shows with "Unchecked" instead of stopping.
 // Prints LIVE REPAIR OK. Usage: node tests/live-repair.mjs
-import { APP_ROOT, launchBrowser, serveStatic, port, context } from "./lib/harness.mjs";
+import { APP_ROOT, launchBrowser, serveStatic, port, context, exit } from "./lib/harness.mjs";
 import { install, live, answer, s1Answers } from "./lib/standin.mjs";
 import EN from "../js/i18n/en.js";
 
@@ -72,4 +72,4 @@ for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.what}${!r.o
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} repair checks passed`);
 if (!failed) console.log("LIVE REPAIR OK");
-process.exit(failed ? 1 : 0);
+exit(failed ? 1 : 0);
