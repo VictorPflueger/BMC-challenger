@@ -152,12 +152,19 @@ export function renderCanvas(el, ctx, on = {}) {
 
 /**
  * Shows in each block as many items as fit, then "+N more". Run after the canvas is in the page and on
- * every resize: the blocks take their height from the layout, never from their items. An item's rank
- * (data-rank, set by renderCanvas) says what goes first: the items of rank 0 from the last up, then those
- * of rank 1, then 2. The items left in view keep their order.
+ * every resize: the blocks take their height from the layout, never from their items. Short of room, a
+ * block first shows each item's first line (Vici's vc-framework__area--compact); then items go by rank (data-rank, set by renderCanvas): those
+ * of rank 0 from the last up, then those of rank 1, then 2, the items left in view keeping their order.
+ * A block that would show no item at all says its count and states short ("+2", "1 · high"), and a wide
+ * block at the bottom puts its name beside its items, as on a tight canvas, so the items an issue names
+ * stay in view.
  */
 export function fitCanvas(el) {
+  const tight = matchMedia("(max-height: 820px) and (min-width: 961px)").matches;
   for (const area of el.querySelectorAll(".block")) {
+    const wide = area.matches('[data-block="costs"], [data-block="revenue"]');
+    area.classList.remove("vc-framework__area--compact", "block--brief");
+    area.classList.toggle("block--side", wide && tight);
     const question = area.querySelector(".block-question");
     if (question) {
       question.hidden = false;
@@ -167,30 +174,39 @@ export function fitCanvas(el) {
     const more = area.querySelector(".block-more");
     if (!list || !more) continue;
     const items = [...list.children];
-    for (const li of items) li.hidden = false;
-    more.hidden = true;
-    list.hidden = false;
+    const order = items.map((li, i) => [li, Number(li.dataset.rank) || 0, i]).sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([li]) => li);
+    let shown = items.length;
     // Too tall when the last item in view ends below the list. Measured on the items, not the list's
     // scroll height, which a focus ring drawn around a switch would also count.
     const overflows = () => {
       const last = items.findLast((li) => !li.hidden);
       return !!last && last.getBoundingClientRect().bottom > list.getBoundingClientRect().bottom + 1;
     };
-    if (!overflows()) continue;
-    more.hidden = false;
-    const order = items.map((li, i) => [li, Number(li.dataset.rank) || 0, i]).sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([li]) => li);
-    let shown = items.length;
     // "+2 more"; a tight canvas shows "+2" and keeps the word for screen readers (tag-long).
     const label = () => { const n = items.length - shown; more.replaceChildren(`+${n}`, h("span", { class: "tag-long" }, " ", tn("block.more", n, {}))); };
-    label();
-    while (shown > 0 && overflows()) {
-      order[items.length - shown].hidden = true;
-      shown -= 1;
+    const fit = () => {
+      for (const li of items) li.hidden = false;
+      shown = items.length;
+      more.hidden = true;
+      list.hidden = false;
+      if (!overflows()) return;
+      area.classList.add("vc-framework__area--compact");
+      if (!overflows()) return;
+      more.hidden = false;
       label();
-    }
+      while (shown > 0 && overflows()) {
+        order[items.length - shown].hidden = true;
+        shown -= 1;
+        label();
+      }
+    };
+    fit();
+    if (!shown) { area.classList.add("block--brief"); fit(); }
+    if (!shown && wide && !tight) { area.classList.add("block--side"); fit(); }
     // With no item in view the list keeps no height; a count that would fall outside the block stays hidden.
     list.hidden = shown === 0;
-    if (more.getBoundingClientRect().bottom > area.getBoundingClientRect().bottom - 2) more.hidden = true;
+    // Its target reaches past the chip (a transparent border); what counts is the chip the eye sees.
+    if (!more.hidden && more.getBoundingClientRect().bottom - parseFloat(getComputedStyle(more).borderBottomWidth || "0") > area.getBoundingClientRect().bottom - 1) more.hidden = true;
     more.setAttribute("aria-label", t("block.moreLabel", { n: items.length - shown, block: blockName(area.dataset.block) }));
   }
 }
@@ -240,11 +256,22 @@ export function renderBlock(body, title, blockId, ctx, on = {}) {
 
 function panelStart(ctx, on) {
   const { scenarios, sc, lang } = ctx;
+  // A radio group: one Tab stop, the chosen company; the arrow keys move to the next or the previous one
+  // and choose it, so they never reach the page's own arrows, which move between steps.
+  const ids = scenarios.map((s) => s.id);
+  const arrows = (e, id) => {
+    const by = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!by || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    const next = ids[(ids.indexOf(id) + by + ids.length) % ids.length];
+    e.currentTarget.parentElement.querySelector(`[data-scenario="${next}"]`)?.focus();
+    on.scenario(next);
+  };
   return [
     h("h2", { class: "panel-title" }, t("p.start.title", null, lang)),
     h("div", { class: "companies", role: "radiogroup", "aria-label": t("p.start.title", null, lang) }, scenarios.map((s) => {
       const chosen = s.id === sc.id;
-      return h("button", { type: "button", role: "radio", class: "company", "aria-checked": String(chosen), dataset: { scenario: s.id }, on: { click: () => on.scenario(s.id) } },
+      return h("button", { type: "button", role: "radio", class: "company", tabindex: chosen ? "0" : "-1", "aria-checked": String(chosen), dataset: { scenario: s.id }, on: { click: () => on.scenario(s.id), keydown: (e) => arrows(e, s.id) } },
         h("span", { class: "company-name" }, s.company.name),
         h("span", { class: "company-meta" }, `${sectorName(s.company.sector, lang)} · ${t(`country.${s.company.country}`, null, lang)}`),
         h("span", { class: "company-text" }, s.company.description),
@@ -326,7 +353,7 @@ function panelChallenge(ctx, on) {
         h("p", { class: "issue-detail__text" }, i.description),
         h("dl", { class: "facts" },
           h("dt", {}, t("p.issue.contradicts", null, lang)), h("dd", {}, i.contradicts),
-          h("dt", {}, t("p.issue.blocks", null, lang)), h("dd", {}, i.blocks.map(blockName).join(", ")),
+          h("dt", {}, t("p.issue.blocks", null, lang)), h("dd", {}, i.blocks.map((b) => blockName(b, lang)).join(", ")),
           h("dt", {}, t("p.issue.rests", null, lang)), h("dd", {}, h("ul", { class: "sources" }, i.evidence.map((u) => sourceLine(u, ctx)))))))
   ];
 }
@@ -474,7 +501,8 @@ function panelSummary(ctx, on) {
   const { sc, run, lang } = ctx;
   const s = sc.answers.summary;
   const steps = firstSteps(ctx);
-  const col = (title, ...body) => h("section", { class: "summary__col" }, h("h2", { class: "panel-title" }, title), body);
+  // Every column is the agents' work, so each title carries the lilac mark the AI's items carry.
+  const col = (title, ...body) => h("section", { class: "summary__col" }, h("h2", { class: "panel-title" }, h("span", { class: "ai-mark", "aria-hidden": "true" }, icon("sparkle")), title), body);
   return [
     h("div", { class: "summary" },
       col(t("p.summary.findings", null, lang), h("ol", {}, s.findings.map((f) => h("li", {}, writerText(f, run, ctx.live?.lang || lang))))),
@@ -488,12 +516,11 @@ function panelSummary(ctx, on) {
 
 /**
  * Shows as many first steps as the summary has room for, in the issues' order, then "+2 more", which
- * opens them all. Where the canvas is tight (tight: true, at 1280 × 720) the room ends where the Writer's
- * tallest column ends, so the first steps never make the panel taller than the summary itself and the
- * canvas keeps the height its blocks' names and states need. Run after the panel is in the page and on
- * every resize.
+ * opens them all. The room ends where the Writer's tallest column ends (tight, the default), so the first
+ * steps never make the panel taller than the summary itself and the canvas keeps the room its blocks
+ * need. Run after the panel is in the page and on every resize.
  */
-export function fitSummary(panel, tight = false) {
+export function fitSummary(panel, tight = true) {
   const list = panel.querySelector(".first-steps");
   const more = panel.querySelector(".summary-more");
   if (!list || !more) return;

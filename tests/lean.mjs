@@ -14,7 +14,7 @@
 //            "Save run as simulation", the report's separate About page (About this report is the last
 //            part of the method page) and uploads (D12)
 //   docs     README.md at most 900 words, DESIGN.md at most 700, DATA_SOURCES.md at most 1,200 (its
-//            addresses not counted) and, once it exists, DEMO_SCRIPT.md at most 700
+//            addresses not counted), and DEMO_SCRIPT.md and DEMO_SCRIPT.de.md at most 700 each (from 1.0.0)
 // Each rule is first tried on a planted example that must break it. Prints CUTS OK and LEAN OK.
 // Adapted from the Sovereignty Assessment's tests/lean.mjs.
 // Usage: node tests/lean.mjs
@@ -97,7 +97,7 @@ check(tiles.length === 3, `page: three key figures, no fourth (${tiles.join(", "
 // ---- docs ---------------------------------------------------------------------------------------------------------
 const count = (f) => (existsSync(path.join(APP_ROOT, f)) ? words(read(f)) : Infinity);
 for (const [f, max] of [["README.md", LIMITS.readme], ["DESIGN.md", LIMITS.design], ["DATA_SOURCES.md", LIMITS.sources]]) check(count(f) <= max, `docs: ${f} has ${count(f)} words, at most ${max}`);
-if (existsSync(path.join(APP_ROOT, "DEMO_SCRIPT.md"))) check(count("DEMO_SCRIPT.md") <= LIMITS.script, `docs: DEMO_SCRIPT.md has ${count("DEMO_SCRIPT.md")} words, at most ${LIMITS.script}`);
+for (const f of ["DEMO_SCRIPT.md", "DEMO_SCRIPT.de.md"]) check(existsSync(path.join(APP_ROOT, f)) && count(f) <= LIMITS.script, `docs: ${f} has ${existsSync(path.join(APP_ROOT, f)) ? count(f) : "no"} words, at most ${LIMITS.script}`);
 
 let failed = 0;
 for (const [list, token] of [[results, null], [cut, "CUTS OK"]]) {

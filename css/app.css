@@ -31,19 +31,12 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .kpi-value { font-variant-numeric: tabular-nums; }
 
 /* ---- header ------------------------------------------------------------------------------------ */
-.app-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px 18px;
-  padding: 8px var(--gutter);
-  border-bottom: 1px solid var(--vc-border-subtle);
-  background: var(--vc-surface);
-}
+.app-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px 18px; padding: 8px var(--gutter); border-bottom: 1px solid var(--vc-border-subtle); background: var(--vc-surface); }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .brand-name { font-family: var(--vc-font-display); font-weight: var(--vc-weight-display); font-size: var(--vc-font-size-2xl); letter-spacing: var(--vc-tracking-heading); line-height: 1.05; white-space: nowrap; color: var(--vc-text); }
 .header-actions { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
 .header-actions .vc-button, .header-actions .vc-icon-button { --_h: 40px; white-space: nowrap; }
+.header-actions > .vc-tooltip-anchor { min-height: 40px; align-items: center; } /* the mode tag's tooltip: 40 px to hover */
 .mode-tag.vc-tag { cursor: help; letter-spacing: 0.04em; }
 .mode-tag[data-mode="live"] { background: var(--vc-feature-bg); color: var(--vc-feature-text); border-color: var(--vc-feature-border); }
 .lang-switch .vc-button { --_h: 40px; min-width: 2.75rem; justify-content: center; }
@@ -63,17 +56,12 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .intro { display: flex; align-items: center; justify-content: space-between; gap: 6px 24px; padding: 4px var(--gutter); background: var(--vc-surface); border-bottom: 1px solid var(--vc-border-subtle); }
 .intro-text { margin: 0; min-width: 0; flex: 1 1 30rem; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); text-wrap: pretty; }
 .intro .vc-byline { flex: none; flex-wrap: nowrap; white-space: nowrap; margin: 0; }
-.intro .vc-byline__icon { min-width: var(--hit); min-height: 34px; }
+/* The byline's two links take 40 px to hit (AC-14) and keep the strip's height: the extra lies over its padding. */
+.intro .vc-byline__icon { min-width: var(--hit); min-height: 40px; margin-block: -3px; }
+.intro a.vc-byline__person { min-height: 40px; }
 
 /* ---- the talk track's bar ------------------------------------------------------------------------ */
-.talk {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 7px var(--gutter);
-  border-bottom: 1px solid var(--vc-border-subtle);
-  background: var(--vc-bg-subtle);
-}
+.talk { display: flex; align-items: center; gap: 12px; padding: 7px var(--gutter); border-bottom: 1px solid var(--vc-border-subtle); background: var(--vc-bg-subtle); }
 .talk > .vc-button { --_h: var(--hit); flex: none; }
 .play.vc-button { min-width: 7.5rem; justify-content: center; }
 /* A step's label is centred under its marker and may reach past the stepper's edge, as Summary's does in
@@ -117,7 +105,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   flex: 1 1 0;
   min-height: 6.5rem;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(2.625rem, 0.9fr);
   grid-template-areas:
     "partners partners activities activities value value relationships relationships segments segments"
     "partners partners resources resources value value channels channels segments segments"
@@ -157,9 +145,17 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .canvas :is(.block-open, .block-more) { min-height: 2rem; min-width: 2rem; margin-block: -7.5px; }
 .canvas .item-toggle.vc-icon-button { width: 2rem; height: 2rem; }
 .canvas .block-open { display: inline-flex; align-items: center; }
-.canvas .block-more { border: 5px solid transparent; background-clip: padding-box; }
+.canvas .block-more { border: 5px solid transparent; background-clip: padding-box; margin-inline: -5px; }
 @media (pointer: coarse) { .canvas :is(.item-toggle.vc-icon-button, .item-open, .block-open, .block-more) { min-height: 2.75rem; min-width: 2.75rem; margin-block: 0; } }
 .canvas .vc-item__states { margin-block: -3px; flex-wrap: nowrap; }
+/* A block short of room shows each item's first line (Vici's area compact form); with no room for an
+   item it says its count and states short, and a wide block at the bottom, always so at 1280 × 720, puts
+   its name and states beside its items, so the items an issue names stay in view (fitCanvas). */
+.canvas .block--brief .tag-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.canvas .block.vc-framework__area.block--side { display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: start; column-gap: 12px; padding-block: 3px; }
+.canvas .block--side .vc-framework__head { flex-wrap: nowrap; white-space: nowrap; padding-block-start: 5px; }
+.canvas .block--side .vc-framework__states { flex-wrap: nowrap; }
+.canvas .block--side :is(.vc-framework__items, .block-question) { align-self: stretch; grid-column: 2; grid-row: 1; }
 /* A word its mark already says, such as "AI" beside an item's sparkle, stays for screen readers only. */
 .canvas .tag-quiet { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* The two wide blocks at the bottom list their items in columns. */
@@ -208,7 +204,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .split { display: grid; grid-template-columns: minmax(18rem, 1.05fr) minmax(0, 1.25fr); gap: 8px 20px; align-items: start; }
 .issue-list { display: grid; gap: 3px; }
 .panel :is(.issue-list, .sources, .kpi-effects, .option__changes, .vc-framework__legend) { padding: 0; list-style: none; }
-.issue-pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 3px 8px; border: 1px solid transparent; border-radius: var(--vc-radius-sm); background: none; color: var(--vc-text); font: inherit; font-size: var(--vc-font-size-sm); line-height: 1.25; text-align: start; cursor: pointer; }
+.issue-pick { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 2rem; padding: 3px 8px; border: 1px solid transparent; border-radius: var(--vc-radius-sm); background: none; color: var(--vc-text); font: inherit; font-size: var(--vc-font-size-sm); line-height: 1.25; text-align: start; cursor: pointer; }
 .issue-pick:hover { background: var(--vc-bg-subtle); }
 .issue-pick[aria-pressed="true"] { border-color: var(--vc-accent); background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
 .issue-pick__n { display: inline-grid; place-items: center; width: 1.6rem; aspect-ratio: var(--vc-hex-ratio); background: var(--vc-text); color: var(--vc-surface); clip-path: var(--vc-hex); font-size: var(--fs-xs); font-weight: var(--vc-weight-semibold); }
@@ -232,6 +228,11 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .issue-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
 .issue-tab { display: inline-flex; align-items: center; gap: 6px; min-height: 2rem; padding: 2px 10px 2px 4px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-sm); background: var(--vc-surface); color: var(--vc-text); font: inherit; font-size: var(--vc-font-size-sm); cursor: pointer; }
 .issue-tab:hover { border-color: var(--vc-text-subtle); }
+/* The panel shares the canvas's dense screen: Vici's small control size, 32 px, for its toggles and chips
+   too, the extra lying over their neighbours' space so nothing moves; 44 px with a touch screen. */
+.baselines > summary { padding-block: 0.625rem; margin-block: -0.625rem; line-height: 1.25rem; } /* 40 px, as Vici reaches its numbers' summary */
+.panel .block-more { min-height: 2rem; margin-block: -6px; border: 6px solid transparent; background-clip: padding-box; }
+@media (pointer: coarse) { .panel :is(.issue-pick, .issue-tab) { min-height: 2.75rem; } .panel .vc-button--sm { --_h: 2.75rem; } .panel summary { padding-block: 12px; margin-block: -12px; } .panel .block-more { border-width: 12px; } }
 .issue-tab[aria-pressed="true"] { border-color: var(--vc-accent); background: var(--vc-accent-soft); color: var(--vc-on-accent-soft); }
 .issue-tab__word { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -284,6 +285,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .summary { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 8px 22px; font-size: var(--vc-font-size-sm); line-height: 1.45; }
 .summary-more { margin-top: 4px; }
 .summary__col { min-width: 0; }
+.stage-lead > .vc-tag { margin-inline-end: 2px; vertical-align: 1px; } .ai-mark { display: inline-flex; margin-inline-end: 5px; color: var(--vc-feature-text); vertical-align: -1px; }
 .summary li + li { margin-top: 2px; }
 .step-meta { color: var(--vc-text-muted); font-size: var(--fs-xs); }
 
@@ -332,6 +334,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
    never as the screen fades out after a normal start, and not after a failed start, whose own message
    says what to do. A failed start doesn't spin. */
 .boot-help { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-sm); visibility: hidden; }
+.boot-help a { display: inline-block; padding-block: 10px; margin-block: -10px; }
 .boot[data-state="loading"] .boot-help { animation: boot-help 0s 4s both; }
 .boot[data-state="failed"] .vc-spinner { display: none; }
 @keyframes boot-help { from { visibility: hidden; } to { visibility: visible; } }
@@ -347,11 +350,11 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .stage-title { font-size: var(--vc-font-size-2xl); }
   .credit { font-size: var(--vc-font-size-sm); }
 }
-/* The name, the header's controls and three figures share the header: the name and a figure's label may
-   take two lines. */
+/* The name, the header's controls and three figures share the header: below 1700 px the name takes two
+   lines, below 1500 px a figure's label may too. */
+@media (max-width: 1699px) { .brand-name { max-width: 12em; font-size: var(--vc-font-size-xl); white-space: normal; text-wrap: balance; } }
 @media (max-width: 1500px) {
   :root { --fs-kpi: 1.5rem; }
-  .brand-name { max-width: 12em; font-size: var(--vc-font-size-xl); white-space: normal; text-wrap: balance; }
   /* The first tile may grow a little so that a note such as "on 5 of 6 issues" keeps to one line. */
   .kpis { --kpi-w: 10.5rem; grid-template-columns: minmax(var(--kpi-w), 11.75rem) repeat(2, var(--kpi-w)); }
   .kpi.vc-stat { padding: 5px 11px 6px; }
@@ -384,7 +387,8 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .stage { gap: 4px; }
   .stage-title { font-size: var(--vc-font-size-lg); }
   .stage-lead { font-size: var(--fs-xs); }
-  .panel { padding: 6px 14px; }
+  /* Vici's risk numbers summary reaches 10 px past its box to take 40 px; the panel keeps that inside. */
+  .panel { padding: 6px 14px; } .panel:has(.vc-risk__numbers) { padding-bottom: 10px; }
   .canvas .vc-item__summary { flex-wrap: nowrap; }
   :is(.cta, .turn-second).vc-button { --_h: 42px; }
   .turn.vc-callout { padding-block: 4px; }
@@ -399,7 +403,7 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .option__title { font-size: var(--vc-font-size-sm); }
   .option__changes, .option__effect { font-size: var(--fs-xs); }
   .option { gap: 3px; padding-block: 6px 7px; }
-  .issue-tab { min-height: 1.75rem; font-size: var(--fs-xs); }
+  .issue-tab { font-size: var(--fs-xs); }
   .options__legend { font-size: var(--vc-font-size-sm); }
   .issue-tabs { margin-bottom: 4px; }
   .issue-detail { gap: 4px; }
@@ -416,12 +420,6 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
   .panel .vc-risk figcaption { display: none; }
   /* A tight canvas shows a block's state as "2 · high"; the noun stays for screen readers. */
   .canvas .tag-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  /* Short as they are here, the two bottom blocks put their name and states beside their items, so the
-     items an issue names stay in view. */
-  .canvas .block.vc-framework__area:is([data-block="costs"], [data-block="revenue"]) { display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: start; column-gap: 12px; padding-block: 4px; }
-  .canvas .block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__head { flex-wrap: nowrap; white-space: nowrap; padding-block-start: 5px; }
-  .canvas .block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__states { flex-wrap: nowrap; }
-  .canvas .block:is([data-block="costs"], [data-block="revenue"]) :is(.vc-framework__items, .block-question) { align-self: stretch; grid-column: 2; grid-row: 1; }
   .canvas .vc-framework__state { font-size: var(--fs-xs); }
   .company-text { display: none; }
   .talk .vc-step__button { min-height: 0; padding-block: 0; }
@@ -460,7 +458,10 @@ html { font-size: clamp(100%, 0.48vw + 50%, 112.5%); }
 .live-actions .vc-help { margin: 0; }
 .edit-list { display: grid; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
 .edit-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
-.block-dialog .item-edit { display: grid; gap: 4px; margin-top: 6px; }
+.block-dialog .item-edit { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 10px; margin-top: 6px; }
+/* Every control in a dialog takes 40 px to hit (AC-14); Vici's live-run dialog reaches it on its own. */
+.vc-dialog__header > .vc-icon-button, .vc-live__forget.vc-button { --_h: 2.5rem; }
+.block-dialog .item-toggle.vc-icon-button { width: 2.5rem; height: 2.5rem; }
 .turn-bar.vc-callout:has(> :is(.ai-notice, .turn-second)) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 .live-agent { display: inline-flex; align-items: center; gap: 8px; color: var(--vc-text); font-weight: var(--vc-weight-medium); }
 .steps .vc-step[data-not-run="true"] .vc-step__label { color: var(--vc-text-subtle); }

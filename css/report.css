@@ -76,10 +76,11 @@
 .report-block:is([data-block="costs"], [data-block="revenue"]) .vc-framework__items { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
 .report-block .vc-item { font-size: var(--vc-font-size-xs); line-height: 1.35; }
 /* On paper an item is one paragraph: the mark at its start, the text, then its state words in the line, so a
-   canvas with many items still fits one sheet with its legend and credit. */
+   canvas with many items still fits one sheet with its legend and credit. A long German compound breaks with
+   a hyphen where the browser knows the language, not at any letter. */
 .report-block .vc-item__summary { display: block; min-height: 0; padding: 3px 5px; }
 .report-block .vc-item__mark { float: left; margin-inline-end: 4px; }
-.report-block .vc-item__text { display: inline; padding: 0; }
+.report-block .vc-item__text { display: inline; padding: 0; hyphens: auto; }
 .report-block .vc-item__states { display: inline; margin-inline-start: 4px; padding: 0; }
 .report-block .vc-item__states > .vc-tag { margin-inline-end: 2px; vertical-align: 1px; }
 .report-block .vc-item__mark { width: 0.9rem; height: 1.35em; }
@@ -166,6 +167,8 @@
 .report-tools__notes { display: grid; gap: 2px; min-width: 0; }
 .report-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--vc-space-2); }
 .report-hint { margin: 0; color: var(--vc-text-muted); font-size: var(--vc-font-size-xs); }
-.report-ideator { display: inline-flex; align-items: center; gap: 0.35em; font-weight: var(--vc-weight-semibold); }
+/* On screen the report's byline takes 40 px to hit, like the page's, without moving a line; paper keeps Vici's. */
+@media screen { .report a.vc-byline__person { min-height: 40px; margin-block: -8px; } }
+.report-ideator { display: inline-flex; align-items: center; gap: 0.35em; min-height: 40px; margin-block: -10px; font-weight: var(--vc-weight-semibold); }
 .report-error { margin: 0; padding: 2px var(--vc-space-2); border: 1px solid var(--vc-danger-border); background: var(--vc-danger-bg); color: var(--vc-danger-text); font-size: var(--vc-font-size-xs); }
 .report-error[hidden] { display: none; }

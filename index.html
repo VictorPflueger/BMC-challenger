@@ -199,7 +199,7 @@
           <input class="vc-input" id="live-key" type="password" autocomplete="off" spellcheck="false" data-1p-ignore data-lpignore="true" aria-describedby="live-key-note" placeholder="sk-ant-…">
           <button type="button" class="vc-icon-button" id="live-key-show" aria-controls="live-key" aria-pressed="false" aria-label="Show key" data-i18n-attr="aria-label:live.key.show"><span class="vc-icon vc-icon--eye" aria-hidden="true"></span></button>
         </div>
-        <p class="vc-help" id="live-key-note"><span data-i18n="live.key.note">You need a key from the Claude Console; a Claude.ai plan doesn't pay for API calls. The key stays in this tab's memory and is gone when you close the tab or reload the page. A workspace with a monthly spend limit keeps a key safe.</span> <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="live.key.link">Get a key</a></p>
+        <p class="vc-help" id="live-key-note"><span data-i18n="live.key.note">You need a key from the Claude Console; a Claude.ai plan doesn't pay for API calls. The key stays in this tab's memory and is gone when you close the tab or reload the page. A workspace with a monthly spend limit caps what a leaked key can cost.</span> <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer" data-i18n="live.key.link">Get a key</a></p>
         <p class="vc-live__current" id="live-key-held" hidden><span data-i18n="live.key.held">Key in memory:</span> <span class="vc-live__masked" id="live-key-masked"></span> <button type="button" class="vc-button vc-button--ghost vc-button--sm vc-live__forget" id="live-forget" data-i18n="live.key.forget">Forget key</button></p>
       </section>
       <fieldset class="vc-live__part vc-live__setting">
@@ -265,7 +265,7 @@
           <tbody>
             <tr><th scope="row">At stake a year</th><td>The expected yearly loss from the issues found: the midpoint of each euro range times its likelihood. After your choices it shows what is left, the old value struck through</td><td class="vc-num"><span data-fig="lead.stake">€32.9m</span></td></tr>
             <tr><th scope="row">Blocks under pressure</th><td>How many of the nine blocks carry an issue of medium band or worse</td><td class="vc-num"><span data-fig="lead.pressure">6 of 9</span></td></tr>
-            <tr><th scope="row">Session cost</th><td>What the model calls cost: measured in a live run against its cap; in the simulation, estimated for a live run of the same company at the Balanced setting, at €0.894 to the dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ €0.05</span></td></tr>
+            <tr><th scope="row">Session cost</th><td>What the model calls cost: measured in a live run against its cap; in the simulation, estimated for a live run of the same company at the Balanced setting with web research, as the scenario's run used it, at €0.894 to the dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ €0.05</span></td></tr>
           </tbody>
         </table></div>
       </section>
@@ -280,7 +280,7 @@
             <tr><th scope="row">The canvas</th><td>Adapted from The Business Model Canvas by Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); the questions on each block are this tool's own</td></tr>
             <tr><th scope="row">Kept</th><td>Nothing: your key and your inputs stay in this tab's memory and are gone when you close it</td></tr>
             <tr><th scope="row">The agents</th><td>In the simulation, recorded: answers written for each company and checked against the same rules a live run must pass. In a live run, Claude models working on your own key</td></tr>
-            <tr><th scope="row">This version</th><td>0.4.0 plays the three companies, runs live on your own Claude key and ends in the report: PDF, HTML and the file for the Prototype Ideator</td></tr>
+            <tr><th scope="row">This version</th><td>1.0.0 plays the three companies, runs live on your own Claude key and ends in the report: PDF, HTML and the file for the Prototype Ideator</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -330,7 +330,7 @@
           <tbody>
             <tr><th scope="row">Risiko pro Jahr</th><td>Der erwartete Verlust pro Jahr aus den gefundenen Schwachstellen: die Mitte jeder Euro-Spanne mal ihre Wahrscheinlichkeit. Nach Ihrer Wahl zeigt sie, was bleibt, den alten Wert durchgestrichen</td><td class="vc-num"><span data-fig="lead.stake">32,9 Mio. €</span></td></tr>
             <tr><th scope="row">Bausteine unter Druck</th><td>Wie viele der neun Bausteine eine Schwachstelle der Stufe mittel oder höher tragen</td><td class="vc-num"><span data-fig="lead.pressure">6 von 9</span></td></tr>
-            <tr><th scope="row">Sitzungskosten</th><td>Was die Modellaufrufe kosten: im Live-Lauf gemessen gegen die Ausgabegrenze; in der Simulation geschätzt für einen Live-Lauf desselben Unternehmens mit der Einstellung Ausgewogen, zu 0,894 € je Dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ 0,05 €</span></td></tr>
+            <tr><th scope="row">Sitzungskosten</th><td>Was die Modellaufrufe kosten: im Live-Lauf gemessen gegen die Ausgabegrenze; in der Simulation geschätzt für einen Live-Lauf desselben Unternehmens mit der Einstellung Ausgewogen und Webrecherche, wie der Lauf des Szenarios sie nutzte, zu 0,894 € je Dollar</td><td class="vc-num"><span data-fig="lead.cost">≈ 0,05 €</span></td></tr>
           </tbody>
         </table></div>
       </section>
@@ -345,7 +345,7 @@
             <tr><th scope="row">Das Canvas</th><td>Angepasst nach dem Business Model Canvas der Strategyzer AG (Strategyzer.com, CC BY-SA 3.0); die Fragen in den Bausteinen stammen von diesem Werkzeug</td></tr>
             <tr><th scope="row">Gespeichert</th><td>Nichts: Ihr Schlüssel und Ihre Eingaben bleiben im Speicher dieses Tabs und sind weg, wenn Sie ihn schließen</td></tr>
             <tr><th scope="row">Die Agenten</th><td>In der Simulation aufgezeichnet: Antworten, die für jedes Unternehmen geschrieben und nach denselben Regeln geprüft sind, die ein Live-Lauf erfüllen muss. Im Live-Lauf Claude-Modelle, die mit Ihrem eigenen Schlüssel arbeiten</td></tr>
-            <tr><th scope="row">Diese Version</th><td>0.4.0 spielt die drei Unternehmen ab, läuft live mit Ihrem eigenen Claude-Schlüssel und endet im Bericht: PDF, HTML und die Datei für den Prototype Ideator</td></tr>
+            <tr><th scope="row">Diese Version</th><td>1.0.0 spielt die drei Unternehmen ab, läuft live mit Ihrem eigenen Claude-Schlüssel und endet im Bericht: PDF, HTML und die Datei für den Prototype Ideator</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -373,8 +373,8 @@
       <p class="boot-brand"><span class="vc-cell vc-cell--lilac vc-cell--xl" aria-hidden="true"><span class="vc-icon vc-icon--layout"></span></span>Business Model Canvas Challenger</p>
       <p class="boot-status" role="status"><span class="vc-spinner" aria-hidden="true"></span><span id="boot-status"><span data-boot-lang="en">Starting the Business Model Canvas Challenger…</span><span data-boot-lang="de" lang="de" hidden>Der Business Model Canvas Challenger startet…</span></span></p>
       <p id="boot-detail" class="vc-alert vc-alert--danger boot-detail" hidden></p>
-      <p class="boot-help" data-boot-lang="en">Still on this screen? Serve the folder over http, for example with <code>python -m http.server 8000</code>, and open <code>http://localhost:8000</code>. Browsers don't run its modules from a file.</p>
-      <p class="boot-help" data-boot-lang="de" lang="de" hidden>Hängt es hier? Liefern Sie den Ordner über http aus, etwa mit <code>python -m http.server 8000</code>, und öffnen Sie <code>http://localhost:8000</code>. Aus einer Datei führen Browser die Module nicht aus.</p>
+      <p class="boot-help" data-boot-lang="en">Still on this screen? Browsers don't run this page's program from a file. Open <a href="https://victorpflueger.github.io/BMC-challenger/">victorpflueger.github.io/BMC-challenger</a>, or serve this folder with <code>python -m http.server 8000</code> and open <code>http://localhost:8000</code>.</p>
+      <p class="boot-help" data-boot-lang="de" lang="de" hidden>Hängt es hier? Aus einer Datei führen Browser das Programm dieser Seite nicht aus. Öffnen Sie <a href="https://victorpflueger.github.io/BMC-challenger/">victorpflueger.github.io/BMC-challenger</a>, oder liefern Sie diesen Ordner mit <code>python -m http.server 8000</code> aus und öffnen Sie <code>http://localhost:8000</code>.</p>
       <noscript><p class="boot-detail">The Business Model Canvas Challenger needs JavaScript. Allow it for this site and reload the page.</p><p class="boot-detail" lang="de">Der Business Model Canvas Challenger braucht JavaScript. Erlauben Sie es für diese Seite und laden Sie sie neu.</p></noscript>
     </div>
   </div>

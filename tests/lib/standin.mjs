@@ -126,7 +126,12 @@ export const live = {
     await page.click("#live");
     await page.waitForFunction(() => window.BMC?.state.mode === "live");
   },
-  async sample(page) { await page.click("#live-sample"); },
+  /** The scenario's canvas filled in; returns once the page has drawn it, so typing afterwards isn't redrawn away. */
+  async sample(page) {
+    await page.click("#live-sample");
+    await page.waitForFunction(() => document.getElementById("live-name")?.value);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  },
   async openDialog(page) {
     await page.click("#btn-cta");
     await page.waitForSelector("#live-dialog[open]");

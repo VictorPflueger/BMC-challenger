@@ -60,9 +60,11 @@ export function stepWords(ctx) {
         : { title: t("st.adapt.title", { n: before.count }, lang), lead: t("st.adapt.lead", null, lang) };
     default:
       return {
-        // A live run's summary keeps the language it was written in, its figures too.
+        // A live run's summary keeps the language it was written in, its figures too. The Writer wrote it:
+        // the lead opens with the lilac AI tag (ai).
         title: writerText(sc.answers.summary.headline, run, ctx.live?.lang || lang),
-        lead: writerText(sc.answers.summary.situation, run, ctx.live?.lang || lang)
+        lead: writerText(sc.answers.summary.situation, run, ctx.live?.lang || lang),
+        ai: true
       };
   }
 }
@@ -123,15 +125,17 @@ function figureWords(ctx) {
   const part = before.priced < before.count;
   const of = { priced: before.priced, total: before.count };
   const leftNote = part ? tn("kpi.stake.leftPart", before.count, of, lang) : after.upside > 0 ? t("kpi.stake.left.upside", { upside: fmtMoney(after.upside, lang) }, lang) : t("kpi.stake.left", null, lang);
+  // After the decision a tile strikes its old value through beside the new one, only where it changed.
+  const changed = (a, b) => (a === b ? "" : b);
   const stake = applied
-    ? { value: money(after.left, lang), was: money(before.atStake, lang), note: leftNote, state: "decided" }
+    ? { value: money(after.left, lang), was: changed(money(after.left, lang), money(before.atStake, lang)), note: leftNote, state: "decided" }
     : { value: money(before.atStake, lang), was: "", note: part ? tn("fig.part", before.count, of, lang) : tn("kpi.stake.found", before.count, {}, lang), state: "ready" };
   const pressureNow = fmtPressure(before.pressure.before, before.pressure.of, lang);
   const pressure = applied
-    ? { value: fmtPressure(after.pressure.after, after.pressure.of, lang), was: pressureNow, note: t("kpi.pressure.after", null, lang), state: "decided" }
+    ? { value: fmtPressure(after.pressure.after, after.pressure.of, lang), was: changed(fmtPressure(after.pressure.after, after.pressure.of, lang), pressureNow), note: t("kpi.pressure.after", null, lang), state: "decided" }
     : { value: pressureNow, was: "", note: t("kpi.pressure.found", null, lang), state: "ready" };
   const cost = estimate
-    ? { value: `≈ ${fmtCents(estimate.eur, lang)}`, was: "", note: t("kpi.cost.estimate", null, lang), state: "ready" }
+    ? { value: estimate.eur < 0.005 ? fmtCents(estimate.eur, lang) : `≈ ${fmtCents(estimate.eur, lang)}`, was: "", note: t(estimate.research ? "kpi.cost.estimateResearch" : "kpi.cost.estimate", null, lang), state: "ready" }
     : { value: "…", was: "", note: t("p.kpi.cost.note", null, lang), state: "idle" };
   return { stake, pressure, cost };
 }

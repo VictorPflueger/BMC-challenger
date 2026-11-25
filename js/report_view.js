@@ -93,10 +93,10 @@ export function createReportView({ dialog, title, body, tools, context, announce
     const c = current.ctx;
     const file = handoffFor({ sc: c.sc, run: c.run, lang: c.lang, mode: c.mode, model: c.live?.model ?? null, applied: c.applied, created: new Date(), stopText: c.notice || "" });
     const problems = handoffProblems(file);
-    // A file that fails its check is not offered; the dialog says why, beside the button, in words.
+    // A file that fails its check is not offered; the dialog says so beside the button, in the page's language.
     const error = document.getElementById("rp-error");
     if (problems.length) {
-      const words = t("rp.json.failed", { problem: problems[0] });
+      const words = t("rp.json.failed");
       if (error) { error.textContent = words; error.hidden = false; }
       announce(words);
       return;
@@ -131,9 +131,9 @@ export function createReportView({ dialog, title, body, tools, context, announce
         h("p", { class: "report-error", id: "rp-error", role: "alert", hidden: true }),
         h("p", { class: "report-hint" }, h("a", { class: "report-ideator", id: "rp-ideator", href: IDEATOR_URL, target: "_blank", rel: "noopener" }, icon("sparkle"), t("rp.ideator"), h("span", { class: "vc-visually-hidden" }, t("rp.newTab"))))),
       h("div", { class: "report-actions" },
-        h("button", { type: "button", class: "vc-button vc-button--secondary vc-button--sm", id: "rp-html", "aria-describedby": "rp-html-hint", on: { click: html } }, icon("download"), t("rp.htmlFile")),
-        h("button", { type: "button", class: "vc-button vc-button--secondary vc-button--sm", id: "rp-json", "aria-describedby": "rp-json-hint", on: { click: json } }, icon("download"), t("rp.jsonFile")),
-        h("button", { type: "button", class: "vc-button vc-button--sm", id: "rp-pdf", "aria-describedby": "rp-pdf-hint", on: { click: pdf } }, icon("download"), t("rp.pdf")),
+        h("button", { type: "button", class: "vc-button vc-button--secondary", id: "rp-html", "aria-describedby": "rp-html-hint", on: { click: html } }, icon("download"), t("rp.htmlFile")),
+        h("button", { type: "button", class: "vc-button vc-button--secondary", id: "rp-json", "aria-describedby": "rp-json-hint", on: { click: json } }, icon("download"), t("rp.jsonFile")),
+        h("button", { type: "button", class: "vc-button", id: "rp-pdf", "aria-describedby": "rp-pdf-hint", on: { click: pdf } }, icon("download"), t("rp.pdf")),
         // What the two files are, for a screen reader as well as for the eye in the button's own words.
         h("span", { class: "vc-visually-hidden", id: "rp-html-hint" }, t("rp.html.hint")),
         h("span", { class: "vc-visually-hidden", id: "rp-json-hint" }, t("rp.json.hint")))

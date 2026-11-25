@@ -40,8 +40,9 @@ export async function start() {
     stepsDialog: $("steps-dialog"), stepsBody: $("steps-dialog-body"), live: $("live"), liveText: $("live-text"),
     mode: $("mode-tag"), modeText: $("mode-text"), fictional: document.querySelector(".fictional")
   };
-  // Where the canvas is tight (1280 × 720): Vici's compact framework view, and the Summary's first steps
-  // no taller than the Writer's columns.
+  // Where the canvas is tight (1280 × 720, 1366 × 768): Vici's compact framework view. Up to 960 px high
+  // (1600 × 900 too) the Summary's first steps are no taller than the Writer's columns, so the canvas keeps
+  // its room; the rest open from "+2 more".
   const tight = matchMedia("(max-height: 820px) and (min-width: 961px)");
   const params = new URLSearchParams(location.search);
   const state = {
@@ -133,17 +134,21 @@ export async function start() {
     steps: () => { drawStepsDialog(); els.stepsDialog.showModal(); },
     form: (key, value) => {
       setForm({ [key]: value }, { quiet: true });
-      // The missing-name note goes as soon as there is a name.
+      // The missing-name note goes as soon as there is a name; a scenario's company renamed is no longer fictional.
       if (key === "name" && value.trim()) { const err = $("live-name-error"); if (err && !err.hidden) { err.hidden = true; $("live-name").removeAttribute("aria-invalid"); } }
+      if (key === "name") els.fictional.hidden = !live.sampleKept();
     },
     items: (block, texts, redraw = false, focus = -1) => {
       setBlock(block, texts);
-      if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); if (focus >= 0) $(`edit-${block}-${focus}`)?.focus(); }
+      if (redraw) { renderBlockEdit(els.dialogBody, els.dialogTitle, block, context(), on); (focus >= 0 ? $(`edit-${block}-${focus}`) : $("edit-add"))?.focus(); }
     },
+    // The scenario's company and canvas replace what was entered, so two companies never mix; the run
+    // knows it is of a fictional company (session.sample).
     sample: () => {
       const sc = local(state.scenarioId, getLang());
       setForm({ name: sc.company.name, sector: sc.company.sector, country: t(`country.${sc.company.country}`), description: sc.company.description });
-      for (const [b, items] of Object.entries(sc.entered.blocks)) setBlock(b, items.map((it) => it.text));
+      for (const b of Object.keys(session().entered.blocks)) setBlock(b, (sc.entered.blocks[b] || []).map((it) => it.text));
+      updateSession({ sample: state.scenarioId });
       render();
     },
     // An agent at work is stopped first: its answer would belong to a run that no longer exists.
@@ -334,7 +339,7 @@ export async function start() {
     const own = lv && (ctx.step === STEP.start || ctx.step > ctx.reached);
     words = own ? liveWords(ctx) : stepWords(ctx);
     els.title.textContent = words.title;
-    els.lead.textContent = words.lead;
+    els.lead.replaceChildren(...(words.ai ? [h("span", { class: "vc-tag vc-tag--sm vc-tag--feature" }, icon("sparkle"), t("item.ai")), " "] : []), words.lead);
     document.body.dataset.step = STEPS[state.step];
     renderCanvas(els.canvas, ctx, on);
     if (lv && ctx.step === STEP.start) els.panel.replaceChildren(...panelLiveStart(ctx, on).filter(Boolean));
@@ -348,10 +353,10 @@ export async function start() {
     const old = !lv && (Date.now() - new Date(`${ctx.sc.as_of}T12:00:00`).getTime()) / 86400000 > SIM.staleDays;
     els.stale.hidden = !old;
     els.stale.querySelector(".stale-text").textContent = lv ? "" : staleWords(ctx.sc, ctx.lang);
-    els.fictional.hidden = lv;
+    els.fictional.hidden = lv && !live.sampleKept();
     renderSteps();
     drawPlay();
-    fitSummary(els.panel, tight.matches);
+    fitSummary(els.panel);
     fitCanvas(els.canvas);
     if (els.stepsDialog.open) drawStepsDialog();
     // A block being entered redraws itself when a line comes or goes; redrawn from here as well, it
@@ -373,7 +378,7 @@ export async function start() {
     if (notes.length) els.panel.prepend(...notes);
   }
   new ResizeObserver(() => fitCanvas(els.canvas)).observe(els.canvas);
-  const refit = () => { fitSummary(els.panel, tight.matches); fitCanvas(els.canvas); };
+  const refit = () => { fitSummary(els.panel); fitCanvas(els.canvas); };
   window.addEventListener("resize", refit);
   document.fonts?.ready.then(refit);
   // Where the canvas is tight, Vici's compact framework view shows each item's first line.

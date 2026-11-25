@@ -348,7 +348,8 @@ async function figures() {
       const stake = money(run.before.atStake, lang);
       const left = money(run.after.left, lang);
       const pressure = [fmtPressure(run.before.pressure.before, 9, lang), fmtPressure(run.after.pressure.after, 9, lang)];
-      check(tile.stake.was === stake && tile.stake.main === left && tile.pressure.was === pressure[0] && tile.pressure.main === pressure[1], `${at}: the tiles strike the old value through beside the new one, as the engine has them (${tile.stake.was} → ${tile.stake.main}, ${tile.pressure.was} → ${tile.pressure.main})`);
+      // The old value is struck through only where it changed.
+      check(tile.stake.was === (stake === left ? "" : stake) && tile.stake.main === left && tile.pressure.was === (pressure[0] === pressure[1] ? "" : pressure[0]) && tile.pressure.main === pressure[1], `${at}: the tiles strike the old value through beside the new one, as the engine has them (${tile.stake.was} → ${tile.stake.main}, ${tile.pressure.was} → ${tile.pressure.main})`);
       await openReport(p.page);
       const fig = await reportFigures(p.page);
       const same = ["stake", "pressure", "cost"].every((k) => fig[k] && fig[k].main === tile[k].main && fig[k].was === tile[k].was && fig[k].note === tile[k].note);
@@ -369,7 +370,7 @@ async function figures() {
       const file = await download(p.page, "#rp-json");
       const j = JSON.parse(file.text);
       const near = (a, b) => Math.abs(a - b) <= 1e-9;
-      check(!handoffProblems(j).length && money(j.figures.at_stake_eur_year, lang) === tile.stake.was && money(j.figures.left_eur_year, lang) === tile.stake.main && near(j.figures.upside_eur_year, run.after.upside) && fmtPressure(j.figures.pressure.before, 9, lang) === tile.pressure.was && fmtPressure(j.figures.pressure.after, 9, lang) === tile.pressure.main && near(j.figures.score.before, run.before.resilience.before) && near(j.figures.score.after, run.after.resilience.after),
+      check(!handoffProblems(j).length && money(j.figures.at_stake_eur_year, lang) === (tile.stake.was || tile.stake.main) && money(j.figures.left_eur_year, lang) === tile.stake.main && near(j.figures.upside_eur_year, run.after.upside) && fmtPressure(j.figures.pressure.before, 9, lang) === (tile.pressure.was || tile.pressure.main) && fmtPressure(j.figures.pressure.after, 9, lang) === tile.pressure.main && near(j.figures.score.before, run.before.resilience.before) && near(j.figures.score.after, run.after.resilience.after),
         `${at}: the handoff file carries the tiles' figures, the engine's numbers (${j.figures.at_stake_eur_year}, ${j.figures.left_eur_year}, ${j.figures.pressure.before} and ${j.figures.pressure.after} of 9)`);
       await closePage(p, `${at} figures`);
     }
@@ -457,7 +458,7 @@ async function names() {
   await live.waitFor(p.page, "done");
   await openReport(p.page);
   const json = await download(p.page, "#rp-json");
-  check(json.name === `bmc-challenger-gruene-waerme-gmbh-${today()}-en.json`, `a live run of Grüne Wärme GmbH downloads ${json.name}`);
+  check(json.name === `bmc-challenger-gruene-waerme-gmbh-${today()}-en.json` && JSON.parse(json.text).company.fictional === false, `a live run of Grüne Wärme GmbH, renamed from the scenario, downloads ${json.name}, a real company's file (fictional false)`);
   await closePage(p, "live names");
 }
 
@@ -492,7 +493,8 @@ async function liveGroup() {
     const j = JSON.parse(json.text);
     const problems = handoffProblems(j);
     const read = readHandoff ? readHandoff(j, { file: json.name }) : null;
-    check(!problems.length && j.mode === "live" && j.model === "claude-haiku-5-5" && j.company.fictional === false && (read ? read.ok : !REQUIRE_IDEATOR), `the live file passes the check${read ? " and the Ideator's reader" : " (no Ideator checkout, its reader skipped)"}, with mode live, its model and fictional false${problems.length ? `: ${problems[0]}` : ""}`);
+    // Started from Tidewell Lines's canvas with its name kept: a run of a fictional company.
+    check(!problems.length && j.mode === "live" && j.model === "claude-haiku-5-5" && j.company.fictional === true && (read ? read.ok : !REQUIRE_IDEATOR), `the live file passes the check${read ? " and the Ideator's reader" : " (no Ideator checkout, its reader skipped)"}, with mode live, its model and fictional true, as the scenario's company${problems.length ? `: ${problems[0]}` : ""}`);
     const html = await download(p.page, "#rp-html");
     const r = await printVia(p.page);
     const pdfText = pdfPageTexts(r.pdf).join("\n");
@@ -544,6 +546,10 @@ async function liveGroup() {
     const json = await download(p.page, "#rp-json");
     const j = JSON.parse(json.text);
     check(!handoffProblems(j).length && j.responses.every((x) => !x.chosen) && j.disclaimer.includes(notice), "its handoff file passes the check, with no response chosen and the stop in its disclaimer");
+    // Started from Tidewell Lines's canvas with its name kept: a fictional company, and every download says so.
+    const said = fold(pdfPageTexts(r.pdf).join(" "));
+    const label = await p.page.evaluate(() => { const f = document.querySelector(".fictional"); return !!f && !f.hidden && f.getClientRects().length > 0; });
+    check(j.company.fictional === true && label && said.includes(fold(EN["p.fictional"])) && said.includes(fold(EN["rp.about.fictionLive"])), `a live run of a scenario's company says it is fictional: "${EN["p.fictional"]}" under the canvas and on the cover, the About line, and fictional true in the file`);
     await closePage(p, "live stopped");
   }
 }

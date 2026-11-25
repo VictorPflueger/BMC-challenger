@@ -1,7 +1,7 @@
 # Vici, copied into this prototype
 
 These files come unchanged from Vici, Victor Pflüger's design system
-(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`0d37f48`**
+(<https://victorpflueger.github.io/ViciDesign/index.html>): version **v1.0.0** as it stands on main at commit **`20e47d7`**
 (24 November 2026), on the way to Vici 2.0. Besides the How it works guide (`vc-guide`) with one guide
 per language, the 2.0 byline, the key-figure rule, the struck-through old value of a key figure
 (`vc-stat__was`), `vc-attention` and `--vc-step-fill`, that commit brings the framework view with its
@@ -11,7 +11,7 @@ paint under a strict security policy, the live-run dialog (`vc-live`, from the S
 the Prototype Ideator's fit for short windows), callouts that keep their text and actions in their
 own ink, the report's pages that print with the prototype's footer and lie on the page's own background
 in the dark theme (from the PESTEL Challenger), dialogs whose backdrop keeps still under reduced motion,
-and the live-run dialog's fit for every window from 1280 × 720 to 1920 × 1080 (from the SWOT Challenger). Its files still call themselves 1.0.0 until 2.0 is released. The
+the live-run dialog's fit for every window from 1280 × 720 to 1920 × 1080 and a report that prints in the light scheme from the dark theme (both from the SWOT Challenger), a honeycomb whose first column starts at the comb's edge (from the Prototype Ideator), segmented options, switches, sliders and the numbers' summary that take 40 px to hit (from the PESTEL Challenger), the live-run dialog's acknowledgement, which does too, and the framework view's compact form for one area alone (both from this tool). Its files still call themselves 1.0.0 until 2.0 is released. The
 prototype loads them from here rather than from a CDN, so every page is served from this site alone.
 
 | File here | What it is |

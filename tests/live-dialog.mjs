@@ -5,7 +5,7 @@
 // any message: a refused key, or a key that can't reach the setting's model, stops there with its
 // message. Inside a frame the dialog refuses to start. What is usually private (an e-mail address, a
 // phone number, an IBAN, "confidential", "vertraulich") is listed, clean text is not, and the run can
-// still start. At 1280 × 720 and 1920 × 1080, in both themes and languages, the dialog fits the window
+// still start. The estimate says "under €0.01" without "≈", and says when the cap is below it. At 1280 × 720 and 1920 × 1080, in both themes and languages, the dialog fits the window
 // without scrolling, its start button and AI notice in view, and Vici's liveDialogProblems() finds
 // nothing. Needs a ViciDesign checkout (VICI_DIR or ../ViciDesign). Prints LIVE DIALOG OK.
 // Usage: node tests/live-dialog.mjs
@@ -69,6 +69,17 @@ try {
     await p.click("#live-key-show");
     const hidden = await p.$eval("#live-key", (i) => [i.type, document.getElementById("live-key-show").getAttribute("aria-pressed")]);
     check(shown.join() === "text,true" && hidden.join() === "password,false", "Show key shows it and hides it again", JSON.stringify([shown, hidden]));
+    // The estimate: "under €0.01" alone on Fast, without "≈"; a cap below it is said before the run starts.
+    const estimate = () => p.$eval("#live-estimate", (e) => e.textContent.replace(/\s+/g, " ").trim());
+    await p.check('input[name="live-preset"][value="fast"]', { force: true });
+    const fast = await estimate();
+    await p.check('input[name="live-preset"][value="thorough"]', { force: true });
+    await p.click("#live-research", { force: true });
+    await p.$eval("#live-cap", (el) => { el.value = "0.05"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    const low = await estimate();
+    await p.$eval("#live-cap", (el) => { el.value = "3"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    const high = await estimate();
+    check(fast.includes(EN["fig.underCent"]) && !fast.includes(`≈ ${EN["fig.underCent"]}`) && low.includes(EN["live.estimate.over"]) && !high.includes(EN["live.estimate.over"]), `the estimate says "${EN["fig.underCent"]}" without "≈", and says when the cap is below it, as the slider moves`, JSON.stringify({ fast, low, high }));
     await p.keyboard.press("Escape");
     await live.openDialog(p);
     check(!(await p.isChecked("#live-ack")) && (await disabled(p)), "the acknowledgement is unticked at every opening");
